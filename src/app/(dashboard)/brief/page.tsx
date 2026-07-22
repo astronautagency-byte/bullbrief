@@ -9,6 +9,7 @@ import {
   formatRelativeTime,
   formatDuration,
   getTrendDirection,
+  stripHtml,
   type Article,
   type Episode,
   type BriefingData,
@@ -29,6 +30,7 @@ import {
   Podcast,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PageHead } from "@/components/page-head";
 
 export default function BriefPage() {
   const [briefing, setBriefing] = useState<BriefingData | null>(null);
@@ -153,6 +155,11 @@ export default function BriefPage() {
 
   return (
     <div className="space-y-6">
+      <PageHead
+        title="Daily Brief"
+        description="Your personalized daily market briefing. AI-powered summary of market conditions, top stories, and portfolio insights."
+        canonical="https://bullbrief.vercel.app/brief"
+      />
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="font-display font-bold text-2xl md:text-3xl text-on-surface italic">
@@ -342,7 +349,7 @@ export default function BriefPage() {
                     </h3>
                     {article.description && (
                       <p className="text-sm text-on-surface-variant mt-1 line-clamp-3">
-                        {article.description}
+                        {stripHtml(article.description)}
                       </p>
                     )}
                   </div>

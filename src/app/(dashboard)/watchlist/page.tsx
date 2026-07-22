@@ -5,6 +5,7 @@ import { cn } from "@/lib/cn";
 import { formatPrice, formatPercent, formatChange, getTrendDirection } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Sparkline } from "@/components/ui/sparkline";
+import { PageHead } from "@/components/page-head";
 import {
   Search,
   Plus,
@@ -244,6 +245,11 @@ export default function WatchlistPage() {
 
   return (
     <div className="space-y-4 md:space-y-6">
+      <PageHead
+        title="Watchlist"
+        description="Track your favorite stocks with real-time prices, charts, and price alerts. Build and manage your personalized stock watchlist."
+        canonical="https://bullbrief.vercel.app/watchlist"
+      />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           {isEditing ? (

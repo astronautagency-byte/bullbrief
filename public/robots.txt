@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /brief/
+Disallow: /settings/
+
+Sitemap: https://bullbrief.vercel.app/sitemap.xml

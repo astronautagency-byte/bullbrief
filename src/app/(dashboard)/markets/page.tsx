@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { InteractiveChart } from "@/components/ui/interactive-chart";
+import { PageHead } from "@/components/page-head";
 import {
   TrendingUp,
   TrendingDown,
@@ -135,6 +136,11 @@ export default function MarketsPage() {
 
   return (
     <div className="space-y-6">
+      <PageHead
+        title="Market Overview"
+        description="Real-time market data for S&P 500, NASDAQ, DOW, VIX, TSX, and more. Live index prices, charts, and financial news."
+        canonical="https://bullbrief.vercel.app/markets"
+      />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="font-display font-bold text-2xl md:text-3xl text-on-surface italic">

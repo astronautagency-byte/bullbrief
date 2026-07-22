@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/cn";
-import { formatRelativeTime, type Episode, type Podcast } from "@/lib/types";
+import { formatRelativeTime, stripHtml, type Episode, type Podcast } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { AudioPlayer } from "@/components/ui/audio-player";
+import { PageHead } from "@/components/page-head";
 import {
   Search,
   Podcast as PodcastIcon,
@@ -174,6 +175,11 @@ export default function PodcastsPage() {
 
   return (
     <div className="space-y-6">
+      <PageHead
+        title="Podcasts"
+        description="Discover and listen to the best financial podcasts. Market analysis, investing tips, and economic insights from top podcasters."
+        canonical="https://bullbrief.vercel.app/podcasts"
+      />
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="font-display font-bold text-2xl text-on-surface italic">
           Podcasts
@@ -282,7 +288,7 @@ export default function PodcastsPage() {
               </h2>
               {selectedFavourite.description && (
                 <p className="text-sm text-on-surface-variant line-clamp-2 mt-0.5">
-                  {selectedFavourite.description}
+                  {stripHtml(selectedFavourite.description)}
                 </p>
               )}
               {selectedFavourite.categories.length > 0 && (
@@ -374,7 +380,7 @@ export default function PodcastsPage() {
                     </h3>
                     {fav.description && (
                       <p className="text-sm text-on-surface-variant line-clamp-1">
-                        {fav.description}
+                        {stripHtml(fav.description)}
                       </p>
                     )}
                     {fav.categories.length > 0 && (
@@ -439,7 +445,7 @@ export default function PodcastsPage() {
                     </h3>
                     {podcast.description && (
                       <p className="text-sm text-on-surface-variant mt-1 line-clamp-2">
-                        {podcast.description}
+                        {stripHtml(podcast.description)}
                       </p>
                     )}
                     {podcast.categories.length > 0 && (
@@ -573,7 +579,7 @@ function EpisodeCard({
           </div>
           {episode.description && (
             <p className="text-sm text-on-surface-variant mt-1 line-clamp-2">
-              {episode.description}
+              {stripHtml(episode.description)}
             </p>
           )}
           {episode.categories.length > 0 && (

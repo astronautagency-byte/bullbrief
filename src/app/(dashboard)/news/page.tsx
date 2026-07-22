@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/cn";
-import { formatRelativeTime, type Article } from "@/lib/types";
+import { formatRelativeTime, stripHtml, type Article } from "@/lib/types";
 import { Badge, SentimentBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHead } from "@/components/page-head";
 import {
   Search,
   Bookmark,
@@ -86,6 +87,11 @@ export default function NewsPage() {
 
   return (
     <div className="space-y-6">
+      <PageHead
+        title="News"
+        description="Latest financial news, market updates, and investment insights. Stay informed with real-time headlines from CNBC, MarketWatch, and more."
+        canonical="https://bullbrief.vercel.app/news"
+      />
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <h1 className="font-display font-bold text-2xl text-on-surface italic">
@@ -189,7 +195,7 @@ export default function NewsPage() {
               </h3>
               {article.description && (
                 <p className="text-sm text-on-surface-variant mt-1 line-clamp-3">
-                  {article.description}
+                  {stripHtml(article.description)}
                 </p>
               )}
             </div>
