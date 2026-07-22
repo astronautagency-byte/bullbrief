@@ -13,6 +13,8 @@ import {
   Download,
   Trash2,
   Loader2,
+  Bell,
+  BellRing,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -27,6 +29,17 @@ interface WatchlistStock {
   changePercent: number;
   sparkline?: number[];
   addedAt?: string;
+}
+
+interface PriceAlertItem {
+  id: string;
+  symbol: string;
+  companyName: string;
+  type: "above" | "below";
+  targetPrice: number;
+  currentPrice: number;
+  triggered: boolean;
+  createdAt: string;
 }
 
 const POPULAR_STOCKS = [
@@ -81,6 +94,12 @@ export default function WatchlistPage() {
   const [addSearch, setAddSearch] = useState("");
   const [adding, setAdding] = useState<string | null>(null);
 
+  const [alerts, setAlerts] = useState<PriceAlertItem[]>([]);
+  const [showAlertModal, setShowAlertModal] = useState<WatchlistStock | null>(null);
+  const [alertType, setAlertType] = useState<"above" | "below">("above");
+  const [alertPrice, setAlertPrice] = useState("");
+  const [alertSaving, setAlertSaving] = useState(false);
+
   const fetchWatchlist = useCallback(async () => {
     setLoading(true);
     try {
@@ -100,9 +119,18 @@ export default function WatchlistPage() {
     }
   }, []);
 
+  const fetchAlerts = useCallback(async () => {
+    try {
+      const res = await fetch("/api/alerts");
+      const json = await res.json();
+      setAlerts(json.data ?? []);
+    } catch {}
+  }, []);
+
   useEffect(() => {
     fetchWatchlist();
-  }, [fetchWatchlist]);
+    fetchAlerts();
+  }, [fetchWatchlist, fetchAlerts]);
 
   const generateSparkline = (base: number, trend: number): number[] => {
     if (base === 0) return [0, 0, 0, 0, 0, 0];
@@ -153,6 +181,36 @@ export default function WatchlistPage() {
     setWatchlist((prev) => prev.filter((s) => s.symbol !== symbol));
   };
 
+  const createAlert = async () => {
+    if (!showAlertModal || !alertPrice) return;
+    setAlertSaving(true);
+    try {
+      await fetch("/api/alerts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          symbol: showAlertModal.symbol,
+          companyName: showAlertModal.companyName,
+          type: alertType,
+          targetPrice: Number(alertPrice),
+        }),
+      });
+      fetchAlerts();
+      setShowAlertModal(null);
+      setAlertPrice("");
+      if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission();
+      }
+    } finally {
+      setAlertSaving(false);
+    }
+  };
+
+  const deleteAlert = async (id: string) => {
+    await fetch(`/api/alerts/${id}`, { method: "DELETE" });
+    setAlerts((prev) => prev.filter((a) => a.id !== id));
+  };
+
   const sorted = [...watchlist].sort((a, b) => {
     switch (sortMode) {
       case "gainer":
@@ -180,6 +238,9 @@ export default function WatchlistPage() {
         s.name.toLowerCase().includes(addSearch.toLowerCase())) &&
       !watchlist.some((w) => w.symbol === s.symbol)
   );
+
+  const activeAlerts = alerts.filter((a) => !a.triggered);
+  const triggeredAlerts = alerts.filter((a) => a.triggered);
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -254,6 +315,40 @@ export default function WatchlistPage() {
         </div>
       </div>
 
+      {triggeredAlerts.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-xs font-mono uppercase tracking-wider text-on-surface-variant flex items-center gap-2">
+            <BellRing className="w-4 h-4 text-primary" />
+            Triggered Alerts
+          </h3>
+          {triggeredAlerts.map((alert) => (
+            <div
+              key={alert.id}
+              className="flex items-center justify-between p-3 rounded-xl bg-primary/10 border border-primary/30"
+            >
+              <div className="flex items-center gap-3">
+                <BellRing className="w-4 h-4 text-primary" />
+                <div>
+                  <span className="font-mono font-medium text-on-surface text-sm">
+                    {alert.symbol}
+                  </span>
+                  <span className="text-on-surface-variant text-xs ml-2">
+                    {alert.type === "above" ? "rose above" : "dropped below"}{" "}
+                    ${alert.targetPrice.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => deleteAlert(alert.id)}
+                className="p-1 text-on-surface-variant/50 hover:text-error transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-surface-container rounded-xl border border-outline-variant w-full max-w-md shadow-2xl">
@@ -310,6 +405,97 @@ export default function WatchlistPage() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showAlertModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-surface-container rounded-xl border border-outline-variant w-full max-w-sm shadow-2xl">
+            <div className="flex items-center justify-between p-4 border-b border-outline-variant">
+              <h2 className="font-display font-bold text-lg text-on-surface">
+                Set Alert — {showAlertModal.symbol}
+              </h2>
+              <button
+                onClick={() => { setShowAlertModal(null); setAlertPrice(""); }}
+                className="p-1 text-on-surface-variant hover:text-on-surface transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <p className="text-on-surface-variant text-sm">
+                Current price: {showAlertModal.price > 0 ? formatPrice(showAlertModal.price) : "N/A"}
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {(["above", "below"] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setAlertType(t)}
+                    className={cn(
+                      "px-4 py-2.5 rounded-lg text-sm font-medium transition-all border",
+                      alertType === t
+                        ? "bg-primary text-on-primary border-primary"
+                        : "bg-surface-container-high border-outline-variant text-on-surface-variant hover:border-primary/30"
+                    )}
+                  >
+                    {t === "above" ? "Price Goes Above" : "Price Drops Below"}
+                  </button>
+                ))}
+              </div>
+              <div>
+                <label className="block text-on-surface-variant text-xs font-mono uppercase tracking-wider mb-1.5">
+                  Target Price ($)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={alertPrice}
+                  onChange={(e) => setAlertPrice(e.target.value)}
+                  className="w-full bg-surface-container-low border border-outline-variant rounded-lg px-4 py-2.5 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+                />
+              </div>
+              <Button
+                className="w-full"
+                onClick={createAlert}
+                disabled={!alertPrice || alertSaving}
+                loading={alertSaving}
+              >
+                <Bell className="w-4 h-4" />
+                Create Alert
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeAlerts.length > 0 && (
+        <div className="bg-surface-container-low border border-outline-variant rounded-xl p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Bell className="w-3.5 h-3.5 text-primary" />
+            <span className="text-xs font-mono uppercase tracking-wider text-on-surface-variant">
+              {activeAlerts.length} Active Alert{activeAlerts.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {activeAlerts.map((alert) => (
+              <div
+                key={alert.id}
+                className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-surface-container-high border border-outline-variant text-xs"
+              >
+                <span className="font-mono font-medium text-on-surface">{alert.symbol}</span>
+                <span className="text-on-surface-variant">
+                  {alert.type === "above" ? "↑" : "↓"} ${alert.targetPrice.toFixed(2)}
+                </span>
+                <button
+                  onClick={() => deleteAlert(alert.id)}
+                  className="text-on-surface-variant/50 hover:text-error transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -383,10 +569,20 @@ export default function WatchlistPage() {
                     />
                   )}
                 </div>
-                <div className="md:col-span-1 flex justify-end">
+                <div className="md:col-span-1 flex justify-end gap-1">
+                  <button
+                    onClick={() => {
+                      setShowAlertModal(stock);
+                      setAlertPrice(stock.price > 0 ? String(Math.round(stock.price)) : "");
+                    }}
+                    className="p-1.5 text-on-surface-variant/30 hover:text-primary transition-colors"
+                    aria-label={`Set price alert for ${stock.symbol}`}
+                  >
+                    <Bell className="w-4 h-4" />
+                  </button>
                   <button
                     onClick={() => removeStock(stock.symbol)}
-                    className="p-1.5 text-on-surface-variant/30 hover:text-error md:opacity-0 md:group-hover:opacity-100 transition-all"
+                    className="p-1.5 text-on-surface-variant/30 hover:text-error transition-all"
                     aria-label={`Remove ${stock.symbol} from watchlist`}
                   >
                     <Trash2 className="w-4 h-4" />

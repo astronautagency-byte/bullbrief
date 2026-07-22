@@ -5,22 +5,21 @@ import { cn } from "@/lib/cn";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useTheme } from "@/components/theme-provider";
 import {
   User,
   Mail,
   Lock,
-  Clock,
-  Globe,
   Palette,
   Trash2,
   Save,
 } from "lucide-react";
 
 export default function SettingsPage() {
+  const { theme, setTheme } = useTheme();
   const [name, setName] = useState("Alex");
   const [email, setEmail] = useState("alex@example.com");
   const [timezone, setTimezone] = useState("America/New_York");
-  const [theme, setTheme] = useState("dark");
   const [briefingSchedule, setBriefingSchedule] = useState("morning");
   const [saving, setSaving] = useState(false);
 
@@ -136,26 +135,27 @@ export default function SettingsPage() {
           </div>
 
           <div>
-            <label className="block text-on-surface-variant text-xs font-mono uppercase tracking-wider mb-1.5">
+            <label className="flex items-center gap-2 text-on-surface-variant text-xs font-mono uppercase tracking-wider mb-1.5">
+              <Palette className="w-4 h-4" />
               Appearance
             </label>
             <div className="grid grid-cols-3 gap-2">
-              {[
-                { value: "dark", label: "Dark" },
-                { value: "light", label: "Light" },
-                { value: "system", label: "System" },
-              ].map((opt) => (
+              {([
+                ["dark", "Dark"],
+                ["light", "Light"],
+                ["system", "System"],
+              ] as const).map(([value, label]) => (
                 <button
-                  key={opt.value}
-                  onClick={() => setTheme(opt.value)}
+                  key={value}
+                  onClick={() => setTheme(value)}
                   className={cn(
                     "px-4 py-2.5 rounded-lg text-sm font-medium transition-all border",
-                    theme === opt.value
+                    theme === value
                       ? "bg-primary text-on-primary border-primary"
                       : "bg-surface-container-high border-outline-variant text-on-surface-variant hover:border-primary/30"
                   )}
                 >
-                  {opt.label}
+                  {label}
                 </button>
               ))}
             </div>

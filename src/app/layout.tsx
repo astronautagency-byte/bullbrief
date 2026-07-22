@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Anybody, Geist, JetBrains_Mono } from "next/font/google";
+import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 const anybody = Anybody({
@@ -21,9 +22,25 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BullBrief — Market Updates. Stay Ahead.",
+  title: "BullBrief — Your Daily Market Brief is Here",
   description:
     "Follow the stocks that matter to you and get daily market updates, relevant headlines and podcast episodes in one focused briefing.",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "BullBrief",
+  },
+  icons: {
+    icon: "/BullBrief_App_Icon.png",
+    apple: "/BullBrief_App_Icon.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#051424",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({
@@ -34,10 +51,18 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${anybody.variable} ${geist.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className={`dark ${anybody.variable} ${geist.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="BullBrief" />
+        <link rel="apple-touch-icon" href="/BullBrief_App_Icon.png" />
+      </head>
       <body className="min-h-full bg-background text-foreground font-body">
-        {children}
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );

@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
-import { Search, Bell, Menu, X } from "lucide-react";
+import { Search, Bell, Menu, X, LogOut } from "lucide-react";
+import Link from "next/link";
 
 interface TopNavProps {
   onMobileMenuToggle?: () => void;
@@ -11,6 +13,15 @@ interface TopNavProps {
 
 export function TopNav({ onMobileMenuToggle, mobileMenuOpen }: TopNavProps) {
   const [searchFocused, setSearchFocused] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {}
+    router.push("/login");
+  };
 
   return (
     <header
@@ -21,7 +32,15 @@ export function TopNav({ onMobileMenuToggle, mobileMenuOpen }: TopNavProps) {
         "w-full flex items-center justify-between px-4 md:px-6"
       )}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
+        <Link href="/brief" className="md:hidden flex items-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/BullBrief_Logo_Mark_Transparent.png"
+            alt="BullBrief"
+            className="h-8 w-8"
+          />
+        </Link>
         <button
           onClick={onMobileMenuToggle}
           className="md:hidden p-2 text-on-surface-variant hover:text-primary transition-colors"
@@ -51,7 +70,7 @@ export function TopNav({ onMobileMenuToggle, mobileMenuOpen }: TopNavProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <button
           className="relative p-2 text-on-surface-variant hover:text-primary transition-colors"
           aria-label="Notifications"
@@ -59,10 +78,39 @@ export function TopNav({ onMobileMenuToggle, mobileMenuOpen }: TopNavProps) {
           <Bell className="w-5 h-5" />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
         </button>
-        <div className="w-8 h-8 rounded-full border border-outline-variant bg-surface-container overflow-hidden">
-          <div className="w-full h-full flex items-center justify-center text-on-surface-variant text-sm font-medium">
-            U
-          </div>
+        <div className="relative">
+          <button
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            className="w-8 h-8 rounded-full border border-outline-variant bg-surface-container overflow-hidden hover:border-primary/50 transition-colors"
+          >
+            <div className="w-full h-full flex items-center justify-center text-on-surface-variant text-sm font-medium">
+              U
+            </div>
+          </button>
+          {showUserMenu && (
+            <>
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setShowUserMenu(false)}
+              />
+              <div className="absolute right-0 top-full mt-2 w-48 bg-surface-container rounded-xl border border-outline-variant shadow-2xl z-50 overflow-hidden">
+                <Link
+                  href="/settings"
+                  onClick={() => setShowUserMenu(false)}
+                  className="flex items-center gap-2 px-4 py-3 text-sm text-on-surface hover:bg-surface-container-high transition-colors"
+                >
+                  Settings
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2 px-4 py-3 text-sm text-error hover:bg-surface-container-high transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Log out
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </header>
