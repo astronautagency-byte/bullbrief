@@ -39,7 +39,7 @@ export async function POST(
     );
   }
 
-  const maxSort = watchlist.items.reduce(
+  const maxSort = watchlist.items.reduce<number>(
     (max, item) => Math.max(max, item.sortOrder),
     -1
   );
