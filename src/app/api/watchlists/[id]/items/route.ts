@@ -39,8 +39,8 @@ export async function POST(
     );
   }
 
-  const maxSort = watchlist.items.reduce<number>(
-    (max, item) => Math.max(max, item.sortOrder),
+  const maxSort = (watchlist.items as Array<{ sortOrder: number }>).reduce<number>(
+    (max: number, item: { sortOrder: number }) => Math.max(max, item.sortOrder),
     -1
   );
 
