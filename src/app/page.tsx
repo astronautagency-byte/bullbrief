@@ -1,65 +1,248 @@
-import Image from "next/image";
+import Link from "next/link";
+import { ArrowRight, TrendingUp, Newspaper, Podcast } from "lucide-react";
+import { BrandLogo } from "@/components/ui/brand-logo";
 
-export default function Home() {
+export default function LandingPage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-outline-variant bg-surface-container-low/50 backdrop-blur-md">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <BrandLogo variant="horizontal" size="sm" />
+          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/login"
+              className="text-on-surface-variant hover:text-primary transition-colors font-medium px-4 py-2"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              Log in
+            </Link>
+            <Link
+              href="/signup"
+              className="bg-primary hover:bg-primary-fixed text-on-primary font-display font-bold px-5 py-2 rounded-lg glow-primary glow-primary-hover transition-all active:scale-95"
             >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              Get Started
+            </Link>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+      </header>
+
+      <main>
+        <section className="relative py-20 md:py-32 overflow-hidden">
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-[800px] h-[800px] bg-primary opacity-5 blur-[120px] rounded-full" />
+          </div>
+          <div className="relative max-w-4xl mx-auto px-4 text-center">
+            <h1 className="font-display font-black text-5xl md:text-7xl text-on-surface mb-6 italic tracking-tight leading-tight">
+              Your market,
+              <br />
+              <span className="text-primary">summarized.</span>
+            </h1>
+            <p className="text-on-surface-variant text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
+              Follow the stocks that matter to you and get daily market updates,
+              relevant headlines and podcast episodes in one focused briefing.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link
+                href="/signup"
+                className="bg-primary hover:bg-primary-fixed text-on-primary font-display font-bold text-lg px-8 py-4 rounded-lg glow-primary glow-primary-hover transition-all active:scale-95 flex items-center gap-2"
+              >
+                Build My Brief
+                <ArrowRight className="w-5 h-5" />
+              </Link>
+              <a
+                href="#how-it-works"
+                className="border border-outline-variant text-on-surface-variant hover:border-primary hover:text-primary font-display font-bold text-lg px-8 py-4 rounded-lg transition-all active:scale-95"
+              >
+                See How It Works
+              </a>
+            </div>
+          </div>
+        </section>
+
+        <section className="relative py-20 px-4">
+          <div className="max-w-5xl mx-auto">
+            <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6 md:p-8 shadow-2xl">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                {[
+                  { sym: "S&P 500", val: "5,432.10", chg: "+1.2%", up: true },
+                  { sym: "NASDAQ", val: "17,891.05", chg: "+1.8%", up: true },
+                  { sym: "DOW", val: "39,872.30", chg: "-0.3%", up: false },
+                  { sym: "TSX", val: "22,156.40", chg: "+0.5%", up: true },
+                ].map((idx) => (
+                  <div
+                    key={idx.sym}
+                    className="bg-surface-container border border-surface-container rounded-lg p-3"
+                  >
+                    <span className="font-mono text-xs text-on-surface-variant block">
+                      {idx.sym}
+                    </span>
+                    <span className="font-mono text-lg font-medium text-on-surface block mt-1">
+                      {idx.val}
+                    </span>
+                    <span
+                      className={`font-mono text-sm ${idx.up ? "text-primary" : "text-error"}`}
+                    >
+                      {idx.chg}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="h-48 bg-surface-container rounded-lg border border-surface-container flex items-center justify-center">
+                <svg className="w-full h-full" viewBox="0 0 600 160" fill="none">
+                  <path
+                    d="M0,120 L40,110 L80,115 L120,100 L160,90 L200,95 L240,80 L280,70 L320,60 L360,65 L400,50 L440,40 L480,35 L520,30 L560,25 L600,20"
+                    stroke="#22c55e"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M0,120 L40,110 L80,115 L120,100 L160,90 L200,95 L240,80 L280,70 L320,60 L360,65 L400,50 L440,40 L480,35 L520,30 L560,25 L600,20 L600,160 L0,160 Z"
+                    fill="url(#chartGradient)"
+                  />
+                  <defs>
+                    <linearGradient
+                      id="chartGradient"
+                      x1="0"
+                      x2="0"
+                      y1="0"
+                      y2="1"
+                    >
+                      <stop offset="0%" stopColor="#4be277" stopOpacity="0.2" />
+                      <stop
+                        offset="100%"
+                        stopColor="#0d1c2d"
+                        stopOpacity="0"
+                      />
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                  {
+                    icon: TrendingUp,
+                    title: "Market Snapshot",
+                    desc: "Major indexes and your watchlist at a glance",
+                  },
+                  {
+                    icon: Newspaper,
+                    title: "Top Stories",
+                    desc: "Personalized headlines from trusted sources",
+                  },
+                  {
+                    icon: Podcast,
+                    title: "Podcast Episodes",
+                    desc: "Relevant financial podcasts, curated for you",
+                  },
+                ].map((f) => (
+                  <div
+                    key={f.title}
+                    className="flex items-start gap-3 p-3 rounded-lg bg-surface-container"
+                  >
+                    <f.icon className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-on-surface text-sm">
+                        {f.title}
+                      </p>
+                      <p className="text-on-surface-variant text-xs mt-0.5">
+                        {f.desc}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="how-it-works" className="py-20 px-4">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="font-display font-bold text-3xl text-on-surface mb-4 italic">
+              Simple. Fast. Editorial.
+            </h2>
+            <p className="text-on-surface-variant text-lg mb-12">
+              Not a complicated trading terminal. Just the information you need.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                {
+                  step: "1",
+                  title: "Pick your stocks",
+                  desc: "Add the tickers you follow to your personal watchlist.",
+                },
+                {
+                  step: "2",
+                  title: "Choose topics",
+                  desc: "Select industries and podcast categories that interest you.",
+                },
+                {
+                  step: "3",
+                  title: "Get your brief",
+                  desc: "A focused daily summary with everything you need to know.",
+                },
+              ].map((s) => (
+                <div key={s.step} className="text-left">
+                  <div className="w-10 h-10 bg-primary/10 text-primary font-display font-bold rounded-lg flex items-center justify-center text-lg mb-3">
+                    {s.step}
+                  </div>
+                  <h3 className="font-display font-bold text-on-surface text-lg mb-1">
+                    {s.title}
+                  </h3>
+                  <p className="text-on-surface-variant">{s.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="py-20 px-4 border-t border-outline-variant">
+          <div className="max-w-3xl mx-auto text-center">
+            <h2 className="font-display font-bold text-3xl text-on-surface mb-6 italic">
+              Start your morning informed.
+            </h2>
+            <Link
+              href="/signup"
+              className="inline-flex items-center gap-2 bg-primary hover:bg-primary-fixed text-on-primary font-display font-bold text-lg px-8 py-4 rounded-lg glow-primary glow-primary-hover transition-all active:scale-95"
+            >
+              Build My Brief
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+          </div>
+        </section>
       </main>
+
+      <footer className="border-t border-outline-variant py-8 px-4">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <BrandLogo variant="wordmark" size="sm" />
+          </div>
+          <p className="text-on-surface-variant/60 text-xs text-center max-w-xl">
+            BullBrief provides market information and news for informational
+            purposes only. It does not provide investment, financial, legal or
+            tax advice. Market data may be delayed or incomplete. Always verify
+            information independently before making financial decisions.
+          </p>
+          <div className="flex items-center gap-4 text-on-surface-variant text-sm">
+            <Link href="/terms" className="hover:text-primary transition-colors">
+              Terms
+            </Link>
+            <Link
+              href="/privacy"
+              className="hover:text-primary transition-colors"
+            >
+              Privacy
+            </Link>
+            <Link
+              href="/disclaimer"
+              className="hover:text-primary transition-colors"
+            >
+              Disclaimer
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
