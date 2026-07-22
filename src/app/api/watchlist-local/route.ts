@@ -5,6 +5,7 @@ import {
   removeFromWatchlist,
 } from "@/lib/watchlist-store";
 import { getLatestPrices } from "@/lib/providers/marketstack/client";
+import { getStockPrices } from "@/lib/providers/yahoo/client";
 
 const STOCK_NAMES: Record<string, { name: string; exchange: string }> = {
   AAPL: { name: "Apple Inc.", exchange: "NASDAQ" },
@@ -51,8 +52,9 @@ export async function GET() {
   const symbols = getWatchlist();
 
   let priceMap: Record<string, { price: number; change: number; changePercent: number }> = {};
-  try {
-    if (symbols.length > 0) {
+
+  if (symbols.length > 0) {
+    try {
       const quotes = await getLatestPrices(symbols);
       for (const q of quotes) {
         priceMap[q.symbol] = {
@@ -61,9 +63,24 @@ export async function GET() {
           changePercent: q.changePercent ?? 0,
         };
       }
+    } catch (err) {
+      console.error("Marketstack failed, trying Yahoo Finance:", err);
     }
-  } catch (err) {
-    console.error("Failed to fetch stock prices:", err);
+
+    if (Object.keys(priceMap).length === 0) {
+      try {
+        const yahooQuotes = await getStockPrices(symbols);
+        for (const q of yahooQuotes) {
+          priceMap[q.symbol] = {
+            price: q.price ?? 0,
+            change: q.change ?? 0,
+            changePercent: q.changePercent ?? 0,
+          };
+        }
+      } catch (err) {
+        console.error("Yahoo Finance also failed:", err);
+      }
+    }
   }
 
   return NextResponse.json({
