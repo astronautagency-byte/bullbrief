@@ -1,32 +1,31 @@
 import { NextResponse } from "next/server";
-import { GeminiProvider } from "@/lib/providers/gemini/client";
-import { getLatestPrices } from "@/lib/providers/marketstack/client";
-import { getLatestNews } from "@/lib/providers/marketaux/client";
+import { groqChat } from "@/lib/providers/groq/client";
+import { getMultiQuotes } from "@/lib/providers/yahoo/client";
+import { fetchRSSNews } from "@/lib/providers/rss-news/client";
 
-const GEMINI_KEY = process.env.GEMINI_API_KEY;
+const GROQ_KEY = process.env.GROQ_API_KEY;
 
 const INDEXES = [
-  { symbol: "SPX", name: "S&P 500" },
-  { symbol: "IXIC", name: "Nasdaq" },
-  { symbol: "DJI", name: "Dow Jones" },
-  { symbol: "TSX", name: "TSX" },
+  { symbol: "^GSPC", name: "S&P 500" },
+  { symbol: "^IXIC", name: "Nasdaq" },
+  { symbol: "^DJI", name: "Dow Jones" },
+  { symbol: "^GSPTSE", name: "TSX" },
 ];
 
 async function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-async function callGeminiWithRetry(
-  gemini: GeminiProvider,
+async function callGroqWithRetry(
   message: string,
   context: { marketData: any[]; news: any[] },
   retries = 2
 ): Promise<string> {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      return await gemini.chat(message, context);
+      return await groqChat(message, context);
     } catch (err: any) {
-      if (err?.status === 429 && attempt < retries) {
+      if (err?.code === "RATE_LIMITED" && attempt < retries) {
         await sleep(2000 * (attempt + 1));
         continue;
       }
@@ -37,7 +36,7 @@ async function callGeminiWithRetry(
 }
 
 export async function POST(request: Request) {
-  if (!GEMINI_KEY) {
+  if (!GROQ_KEY) {
     return NextResponse.json(
       { error: "AI assistant is not configured" },
       { status: 503 }
@@ -57,35 +56,33 @@ export async function POST(request: Request) {
   }
 
   try {
-    const [indexData, newsResult] = await Promise.allSettled([
-      getLatestPrices(INDEXES.map((i) => i.symbol)),
-      getLatestNews({ limit: 5 }),
+    const symbols = INDEXES.map((i) => i.symbol);
+
+    const [quoteMap, newsResult] = await Promise.allSettled([
+      getMultiQuotes(symbols),
+      fetchRSSNews({ limit: 5 }),
     ]);
 
-    const marketData =
-      indexData.status === "fulfilled"
-        ? indexData.value.map((q, idx) => ({
-            symbol: INDEXES[idx].symbol,
-            name: INDEXES[idx].name,
-            price: q.price,
-            change: q.change,
-            changePercent: q.changePercent,
-          }))
-        : [];
-
-    const news =
-      newsResult.status === "fulfilled" ? newsResult.value.articles : [];
-
-    const gemini = new GeminiProvider(GEMINI_KEY);
-    const reply = await callGeminiWithRetry(gemini, message, {
-      marketData,
-      news,
+    const quotes = quoteMap.status === "fulfilled" ? quoteMap.value : new Map();
+    const marketData = INDEXES.map((def) => {
+      const q = quotes.get(def.symbol);
+      return {
+        symbol: def.symbol,
+        name: def.name,
+        price: q?.price ?? 0,
+        change: q?.change ?? 0,
+        changePercent: q?.changePercent ?? 0,
+      };
     });
+
+    const news = newsResult.status === "fulfilled" ? newsResult.value.articles : [];
+
+    const reply = await callGroqWithRetry(message, { marketData, news });
 
     return NextResponse.json({ reply });
   } catch (error: any) {
     console.error("Assistant error:", error?.message || error);
-    if (error?.status === 429) {
+    if (error?.code === "RATE_LIMITED") {
       return NextResponse.json(
         { error: "AI is rate-limited. Please try again in a moment." },
         { status: 429 }

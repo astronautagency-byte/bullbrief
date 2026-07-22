@@ -1,55 +1,50 @@
 import { NextResponse } from "next/server";
-import { getLatestPrices } from "@/lib/providers/marketstack/client";
-import { getLatestNews } from "@/lib/providers/marketaux/client";
-import { GeminiProvider } from "@/lib/providers/gemini/client";
+import { getMultiQuotes } from "@/lib/providers/yahoo/client";
+import { fetchRSSNews } from "@/lib/providers/rss-news/client";
+import { groqGenerateBriefSummary } from "@/lib/providers/groq/client";
 import type { BriefingData, WatchlistMovers, Article } from "@/lib/types";
 
-const GEMINI_KEY = process.env.GEMINI_API_KEY;
+const GROQ_KEY = process.env.GROQ_API_KEY;
 
 const INDEXES = [
-  { symbol: "SPX", name: "S&P 500" },
-  { symbol: "IXIC", name: "Nasdaq" },
-  { symbol: "DJI", name: "Dow Jones" },
-  { symbol: "TSX", name: "TSX" },
+  { symbol: "^GSPC", name: "S&P 500" },
+  { symbol: "^IXIC", name: "Nasdaq" },
+  { symbol: "^DJI", name: "Dow Jones" },
+  { symbol: "^GSPTSE", name: "TSX" },
 ];
 
 export async function GET() {
   try {
-    const watchlistSymbols: string[] = [];
+    const symbols = INDEXES.map((i) => i.symbol);
 
-    const [indexData, watchlistData, newsResult] = await Promise.allSettled([
-      getLatestPrices(INDEXES.map((i) => i.symbol)),
-      watchlistSymbols.length > 0
-        ? getLatestPrices(watchlistSymbols)
-        : Promise.resolve([]),
-      getLatestNews({ limit: 10 }),
+    const [quoteMap, newsResult] = await Promise.allSettled([
+      getMultiQuotes(symbols),
+      fetchRSSNews({ limit: 10 }),
     ]);
 
-    const indexes =
-      indexData.status === "fulfilled"
-        ? indexData.value.map((q, idx) => ({
-            symbol: INDEXES[idx].symbol,
-            name: INDEXES[idx].name,
-            value: q.price ?? 0,
-            change: q.change ?? 0,
-            changePercent: q.changePercent ?? 0,
-            isPositive: (q.change ?? 0) >= 0,
-          }))
-        : [];
-
-    const movers =
-      watchlistData.status === "fulfilled" && watchlistData.value.length > 0
-        ? computeMovers(watchlistData.value)
-        : {
-            topGainer: null,
-            topDecliner: null,
-            mostMentioned: null,
-            mostPositive: null,
-            mostNegative: null,
-          };
+    const quotes = quoteMap.status === "fulfilled" ? quoteMap.value : new Map();
+    const indexes = INDEXES.map((def) => {
+      const q = quotes.get(def.symbol);
+      return {
+        symbol: def.symbol,
+        name: def.name,
+        value: q?.price ?? 0,
+        change: q?.change ?? 0,
+        changePercent: q?.changePercent ?? 0,
+        isPositive: (q?.change ?? 0) >= 0,
+      };
+    });
 
     const articles: Article[] =
       newsResult.status === "fulfilled" ? newsResult.value.articles : [];
+
+    const movers: WatchlistMovers = {
+      topGainer: null,
+      topDecliner: null,
+      mostMentioned: null,
+      mostPositive: null,
+      mostNegative: null,
+    };
 
     const headlines = articles.slice(0, 5).map((a) => a.title);
 
@@ -57,25 +52,24 @@ export async function GET() {
     let aiConfidence: number | null = null;
     let keyInsights: string[] = [];
 
-    if (GEMINI_KEY) {
+    if (GROQ_KEY) {
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
-          const gemini = new GeminiProvider(GEMINI_KEY);
-          const aiResult = await gemini.generateBriefSummary(
+          const aiResult = await groqGenerateBriefSummary(
             indexes,
             articles,
-            watchlistSymbols
+            []
           );
           summary = aiResult.summary;
           aiConfidence = aiResult.confidence;
           keyInsights = aiResult.keyInsights;
           break;
         } catch (err: any) {
-          if (err?.status === 429 && attempt < 2) {
+          if (err?.code === "RATE_LIMITED" && attempt < 2) {
             await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
             continue;
           }
-          console.error("Gemini brief failed, falling back to template:", err);
+          console.error("Groq brief failed, falling back to template:", err);
           summary = generateSummary(indexes, movers, headlines);
           break;
         }
@@ -107,29 +101,6 @@ export async function GET() {
   }
 }
 
-function computeMovers(
-  quotes: Array<{ symbol: string; changePercent: number | null }>
-): WatchlistMovers {
-  const sorted = [...quotes].sort(
-    (a, b) => (b.changePercent ?? 0) - (a.changePercent ?? 0)
-  );
-
-  return {
-    topGainer: sorted[0]
-      ? { symbol: sorted[0].symbol, changePercent: sorted[0].changePercent ?? 0 }
-      : null,
-    topDecliner: sorted[sorted.length - 1]
-      ? {
-          symbol: sorted[sorted.length - 1].symbol,
-          changePercent: sorted[sorted.length - 1].changePercent ?? 0,
-        }
-      : null,
-    mostMentioned: null,
-    mostPositive: null,
-    mostNegative: null,
-  };
-}
-
 function generateSummary(
   indexes: Array<{
     name: string;
@@ -156,14 +127,6 @@ function generateSummary(
     summary += `, with ${up.map((i) => i.name).join(" and ")} advancing while ${down.map((i) => i.name).join(" and ")} decline${down.length === 1 ? "s" : ""}`;
   }
   summary += ". ";
-
-  if (movers.topGainer && movers.topGainer.changePercent > 1) {
-    summary += `${movers.topGainer.symbol} is your strongest mover at +${movers.topGainer.changePercent.toFixed(2)}%. `;
-  }
-
-  if (movers.topDecliner && movers.topDecliner.changePercent < -1) {
-    summary += `${movers.topDecliner.symbol} is your weakest at ${movers.topDecliner.changePercent.toFixed(2)}%. `;
-  }
 
   if (headlines.length > 0) {
     summary += `Today's top stories focus on ${headlines[0].toLowerCase().slice(0, 60)}.`;
