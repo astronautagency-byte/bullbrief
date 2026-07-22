@@ -9,14 +9,13 @@ const parser = new Parser({
 });
 
 const RSS_FEEDS = [
-  { url: "https://feeds.content.dowjones.io/public/rss/mw_topstories", source: "MarketWatch" },
-  { url: "https://feeds.content.dowjones.io/public/rss/mw_marketpulse", source: "MarketWatch" },
-  { url: "https://news.google.com/rss/search?q=stock+market&hl=en-US&gl=US&ceid=US:en", source: "Google News" },
-  { url: "https://news.google.com/rss/search?q=investing+finance&hl=en-US&gl=US&ceid=US:en", source: "Google News" },
-  { url: "https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC&region=US&lang=en-US", source: "Yahoo Finance" },
-  { url: "https://www.cnbc.com/id/100003114/device/rss/rss.html", source: "CNBC" },
-  { url: "https://www.cnbc.com/id/10001147/device/rss/rss.html", source: "CNBC" },
-  { url: "https://feeds.bloomberg.com/markets/news.rss", source: "Bloomberg" },
+  { url: "https://feeds.content.dowjones.io/public/rss/mw_topstories", source: "MarketWatch", domain: "marketwatch.com" },
+  { url: "https://feeds.content.dowjones.io/public/rss/mw_marketpulse", source: "MarketWatch", domain: "marketwatch.com" },
+  { url: "https://news.google.com/rss/search?q=stock+market&hl=en-US&gl=US&ceid=US:en", source: "Google News", domain: "news.google.com" },
+  { url: "https://news.google.com/rss/search?q=investing+finance&hl=en-US&gl=US&ceid=US:en", source: "Google News", domain: "news.google.com" },
+  { url: "https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC&region=US&lang=en-US", source: "Yahoo Finance", domain: "finance.yahoo.com" },
+  { url: "https://www.cnbc.com/id/100003114/device/rss/rss.html", source: "CNBC", domain: "cnbc.com" },
+  { url: "https://www.cnbc.com/id/10001147/device/rss/rss.html", source: "CNBC", domain: "cnbc.com" },
 ];
 
 function categorizeArticle(title: string, description: string): string {
@@ -44,6 +43,11 @@ function inferSentiment(title: string, description: string): "positive" | "negat
   return "neutral";
 }
 
+function extractImage(html: string): string | undefined {
+  const match = html.match(/<img[^>]+src="([^"]+)"/);
+  return match?.[1];
+}
+
 export async function fetchRSSNews(options: {
   keywords?: string;
   countries?: string[];
@@ -57,7 +61,7 @@ export async function fetchRSSNews(options: {
   if (keywords) {
     const kw = keywords.toLowerCase();
     feedsToFetch = [
-      { url: `https://news.google.com/rss/search?q=${encodeURIComponent(kw)}&hl=en-US&gl=US&ceid=US:en`, source: "Google News" },
+      { url: `https://news.google.com/rss/search?q=${encodeURIComponent(kw)}&hl=en-US&gl=US&ceid=US:en`, source: "Google News", domain: "news.google.com" },
       ...RSS_FEEDS.filter((f) => f.source === "MarketWatch" || f.source === "CNBC"),
     ];
   }
@@ -66,17 +70,21 @@ export async function fetchRSSNews(options: {
     feedsToFetch.map(async (feed) => {
       try {
         const parsed = await parser.parseURL(feed.url);
-        return (parsed.items || []).map((item) => ({
+        return (parsed.items || []).map((item): Article => ({
           providerId: item.guid || item.link || `${feed.source}-${item.title}`,
           title: item.title || "Untitled",
           description: item.contentSnippet || item.content || item.summary || "",
           url: item.link || "",
           sourceName: item.creator || feed.source,
-          imageUrl: item.enclosure?.url || extractImage(item.content || ""),
+          sourceDomain: feed.domain,
+          imageUrl: item.enclosure?.url || extractImage(item.content || "") || null,
           publishedAt: item.pubDate || item.isoDate || new Date().toISOString(),
+          relatedSymbols: [],
+          industries: [],
+          countries: ["US"],
           sentimentLabel: inferSentiment(item.title || "", item.contentSnippet || ""),
           sentimentScore: 0,
-          category: categorizeArticle(item.title || "", item.contentSnippet || ""),
+          retrievedAt: new Date().toISOString(),
         }));
       } catch {
         return [];
@@ -84,9 +92,13 @@ export async function fetchRSSNews(options: {
     })
   );
 
-  let allArticles: Article[] = [];
+  const allArticles: Article[] = [];
   for (const r of results) {
-    if (r.status === "fulfilled") allArticles.push(...r.value);
+    if (r.status === "fulfilled") {
+      for (const article of r.value) {
+        allArticles.push(article);
+      }
+    }
   }
 
   const seen = new Set<string>();
@@ -109,9 +121,4 @@ export async function fetchRSSNews(options: {
     articles: paginated,
     total: unique.length,
   };
-}
-
-function extractImage(html: string): string | undefined {
-  const match = html.match(/<img[^>]+src="([^"]+)"/);
-  return match?.[1];
 }
