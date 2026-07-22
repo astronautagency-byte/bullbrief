@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/cn";
-import { formatPrice, formatPercent, formatChange, formatRelativeTime, getTrendDirection, type Article } from "@/lib/types";
+import { formatRelativeTime, type Article } from "@/lib/types";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,12 +10,7 @@ import { InteractiveChart } from "@/components/ui/interactive-chart";
 import {
   TrendingUp,
   TrendingDown,
-  Clock,
-  ArrowRight,
-  Podcast,
   Loader2,
-  Globe,
-  MapPin,
 } from "lucide-react";
 
 type MarketRegion = "us" | "ca";
@@ -42,24 +37,6 @@ const CA_INDEXES: IndexData[] = [
   { symbol: "CADUSD", name: "CAD/USD", value: 0.7342, change: 0.0012, changePercent: 0.16, trend: "up" },
   { symbol: "BTC-CAD", name: "Bitcoin CAD", value: 92150.0, change: 1580.0, changePercent: 1.74, trend: "up" },
 ];
-
-const MOCK_WATCHLIST = [
-  { symbol: "AAPL", name: "Apple Inc.", price: 172.50, changePercent: 1.25 },
-  { symbol: "NVDA", name: "NVIDIA Corp", price: 852.12, changePercent: 3.42 },
-  { symbol: "TSLA", name: "Tesla Inc.", price: 198.45, changePercent: -0.85 },
-];
-
-const MOCK_NEWS = [
-  { category: "MACRO", title: "Fed signals potential rate cuts later this year as inflation cools", time: "12m ago" },
-  { category: "TECH", title: "Semiconductor rally continues; key players announce next-gen chips", time: "45m ago" },
-  { category: "EARNINGS", title: "Major retailers report mixed Q3 results amid shifting consumer habits", time: "2h ago" },
-];
-
-const MOCK_PODCAST = {
-  title: "Market Opening Bell",
-  source: "BullBrief Daily",
-  duration: "15 min",
-};
 
 function generateChartData(base: number, trend: number, points: number): number[] {
   const data: number[] = [];
@@ -111,11 +88,12 @@ function generateLabels(range: string): string[] {
 export default function MarketsPage() {
   const [region, setRegion] = useState<MarketRegion>("us");
   const [chartRange, setChartRange] = useState("1M");
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const [news, setNews] = useState<Article[]>([]);
   const [loadingNews, setLoadingNews] = useState(true);
 
   const indexes = region === "us" ? US_INDEXES : CA_INDEXES;
-  const primaryIndex = indexes[0];
+  const primaryIndex = indexes[selectedIndex] ?? indexes[0];
 
   const chartData = useMemo(
     () => generateChartData(primaryIndex.value, primaryIndex.changePercent, chartRange === "1D" ? 78 : chartRange === "1W" ? 35 : chartRange === "1M" ? 22 : 52),
@@ -129,6 +107,10 @@ export default function MarketsPage() {
   const periodChange = closePrice - openPrice;
   const periodChangePercent = (periodChange / openPrice) * 100;
   const isPositive = periodChange >= 0;
+
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [region]);
 
   useEffect(() => {
     setLoadingNews(true);
@@ -145,71 +127,97 @@ export default function MarketsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display font-bold text-3xl text-on-surface italic">
-          Market Overview
-        </h1>
-        <p className="text-on-surface-variant text-sm mt-1">
-          Live updates &middot; Last refreshed {timeStr} {tzStr}
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="font-display font-bold text-2xl md:text-3xl text-on-surface italic">
+            Market Overview
+          </h1>
+          <p className="text-on-surface-variant text-xs md:text-sm mt-1">
+            Live updates &middot; Last refreshed {timeStr} {tzStr}
+          </p>
+        </div>
+        <div className="flex items-center gap-1 bg-surface-container-low border border-outline-variant rounded-lg p-1">
+          {([
+            ["us", "USA"],
+            ["ca", "Canada"],
+          ] as const).map(([r, label]) => (
+            <button
+              key={r}
+              onClick={() => setRegion(r)}
+              className={cn(
+                "px-3 py-1.5 rounded-md text-xs font-mono transition-all",
+                region === r
+                  ? "bg-primary text-on-primary"
+                  : "text-on-surface-variant hover:text-on-surface"
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {indexes.map((idx) => {
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3">
+        {indexes.map((idx, i) => {
           const TrendIcon = idx.trend === "up" ? TrendingUp : idx.trend === "down" ? TrendingDown : null;
           const trendColor = idx.trend === "up" ? "text-primary" : idx.trend === "down" ? "text-error" : "text-on-surface-variant";
           return (
-            <div
+            <button
               key={idx.symbol}
+              onClick={() => setSelectedIndex(i)}
               className={cn(
-                "p-4 rounded-xl border transition-all cursor-pointer",
-                idx.symbol === primaryIndex.symbol
+                "p-3 md:p-4 rounded-xl border transition-all text-left",
+                i === selectedIndex
                   ? "bg-primary/5 border-primary/30"
                   : "bg-surface-container-low border-outline-variant hover:border-primary/20"
               )}
             >
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-on-surface-variant font-mono uppercase">{idx.name}</span>
-                {TrendIcon && <TrendIcon className={cn("w-4 h-4", trendColor)} />}
+                <span className="text-[10px] md:text-xs text-on-surface-variant font-mono uppercase truncate">{idx.name}</span>
+                {TrendIcon && <TrendIcon className={cn("w-3 h-3 md:w-4 md:h-4 flex-shrink-0", trendColor)} />}
               </div>
-              <span className="font-mono text-xl font-bold text-on-surface block">
-                {idx.value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <span className="font-mono text-base md:text-xl font-bold text-on-surface block">
+                {idx.symbol === "CADUSD"
+                  ? idx.value.toFixed(4)
+                  : idx.value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
-              <div className="flex items-center gap-2 mt-1">
-                <span className={cn("font-mono text-sm", trendColor)}>
+              <div className="flex items-center gap-1 md:gap-2 mt-1">
+                <span className={cn("font-mono text-xs md:text-sm", trendColor)}>
                   {idx.change >= 0 ? "+" : ""}{idx.change.toFixed(2)}
                 </span>
-                <span className={cn("font-mono text-xs px-1.5 py-0.5 rounded", isPositive ? "bg-primary/10 text-primary" : "bg-error/10 text-error")}>
+                <span className={cn("font-mono text-[10px] md:text-xs px-1 md:px-1.5 py-0.5 rounded", idx.changePercent >= 0 ? "bg-primary/10 text-primary" : "bg-error/10 text-error")}>
                   {idx.changePercent >= 0 ? "+" : ""}{idx.changePercent.toFixed(2)}%
                 </span>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         <div className="lg:col-span-2 space-y-4">
-          <Card className="p-4 overflow-hidden">
-            <div className="flex items-center justify-between mb-4">
+          <Card className="p-3 md:p-4 overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-on-surface-variant font-mono uppercase tracking-wider">
-                    Total Portfolio Value
+                <div className="flex items-center gap-2 md:gap-3">
+                  <span className="text-xs md:text-sm text-on-surface-variant font-mono uppercase tracking-wider">
+                    {primaryIndex.name}
                   </span>
-                  <Badge variant="outline" className="text-[10px]">
+                  <Badge variant="outline" className="text-[9px] md:text-[10px]">
                     {region === "us" ? "US Markets" : "Canada Markets"}
                   </Badge>
                 </div>
-                <div className="flex items-end gap-3 mt-1">
-                  <span className="font-mono text-3xl font-bold text-on-surface">
-                    ${primaryIndex.value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <div className="flex items-end gap-2 md:gap-3 mt-1">
+                  <span className="font-mono text-2xl md:text-3xl font-bold text-on-surface">
+                    {primaryIndex.symbol === "CADUSD"
+                      ? primaryIndex.value.toFixed(4)
+                      : primaryIndex.value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                   <div className="flex items-center gap-1 mb-1">
-                    <span className={cn("font-mono text-sm", isPositive ? "text-primary" : "text-error")}>
+                    <span className={cn("font-mono text-xs md:text-sm", isPositive ? "text-primary" : "text-error")}>
                       {isPositive ? "↑" : "↓"} {Math.abs(periodChangePercent).toFixed(1)}%
                     </span>
-                    <span className="text-xs text-on-surface-variant">Today</span>
+                    <span className="text-[10px] md:text-xs text-on-surface-variant">Today</span>
                   </div>
                 </div>
               </div>
@@ -219,7 +227,7 @@ export default function MarketsPage() {
                     key={r}
                     onClick={() => setChartRange(r)}
                     className={cn(
-                      "px-3 py-1.5 rounded-md text-xs font-mono transition-all",
+                      "px-2 md:px-3 py-1 md:py-1.5 rounded-md text-[10px] md:text-xs font-mono transition-all",
                       chartRange === r
                         ? "bg-primary/20 text-primary border border-primary/40"
                         : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
@@ -235,172 +243,70 @@ export default function MarketsPage() {
               data={chartData}
               labels={chartLabels}
               positive={isPositive}
-              height={320}
+              height={280}
               showGrid
               showTooltip
               showCrosshair
-              formatValue={(v) => `$${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              formatValue={(v) =>
+                primaryIndex.symbol === "CADUSD"
+                  ? v.toFixed(4)
+                  : `$${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              }
             />
-          </Card>
-
-          <Card className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-display font-bold text-on-surface uppercase tracking-wider text-sm">
-                Active Watchlist
-              </h3>
-              <a href="/watchlist" className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors">
-                View All <ArrowRight className="w-3 h-3" />
-              </a>
-            </div>
-            <div className="space-y-1">
-              {MOCK_WATCHLIST.map((stock) => {
-                const positive = stock.changePercent >= 0;
-                return (
-                  <a
-                    key={stock.symbol}
-                    href={`/markets/${stock.symbol}`}
-                    className="flex items-center justify-between p-3 rounded-lg hover:bg-surface-container-high transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-surface-container-high border border-outline-variant flex items-center justify-center">
-                        <span className="text-[10px] font-mono font-bold text-on-surface-variant">
-                          {stock.symbol.slice(0, 2)}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-mono font-medium text-on-surface block text-sm">
-                          {stock.symbol}
-                        </span>
-                        <span className="text-xs text-on-surface-variant">
-                          {stock.name}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <span className="font-mono text-on-surface text-sm block">
-                        ${stock.price.toFixed(2)}
-                      </span>
-                      <span className={cn("font-mono text-xs px-1.5 py-0.5 rounded", positive ? "bg-primary/10 text-primary" : "bg-error/10 text-error")}>
-                        {positive ? "+" : ""}{stock.changePercent.toFixed(2)}%
-                      </span>
-                    </div>
-                  </a>
-                );
-              })}
-            </div>
           </Card>
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-lg">⚡</span>
-            <h2 className="font-display font-bold text-xl text-on-surface italic">
-              The Daily Brief
+          <div>
+            <h2 className="font-display font-bold text-base md:text-lg text-on-surface italic mb-3">
+              Top Stories
             </h2>
-          </div>
 
-          <div className="space-y-3">
-            {loadingNews ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-5 h-5 text-primary animate-spin" />
-              </div>
-            ) : news.length > 0 ? (
-              news.map((article, i) => {
-                const sentimentColor =
-                  article.sentimentLabel === "positive"
-                    ? "bg-primary/20 text-primary"
-                    : article.sentimentLabel === "negative"
-                      ? "bg-error/20 text-error"
-                      : "bg-surface-container-high text-on-surface-variant";
-                return (
-                  <a
-                    key={article.providerId}
-                    href={article.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block p-3 rounded-xl bg-surface-container-low border border-outline-variant hover:border-primary/30 transition-all"
-                  >
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span className={cn("px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase", sentimentColor)}>
-                        {article.sentimentLabel === "positive" ? "BULLISH" : article.sentimentLabel === "negative" ? "BEARISH" : "MARKET"}
-                      </span>
-                      <span className="text-[10px] text-on-surface-variant font-mono">
-                        {formatRelativeTime(article.publishedAt)}
-                      </span>
-                    </div>
-                    <p className="text-sm text-on-surface font-medium line-clamp-2">
-                      {article.title}
-                    </p>
-                  </a>
-                );
-              })
-            ) : (
-              MOCK_NEWS.map((item, i) => {
-                const catColor =
-                  item.category === "MACRO"
-                    ? "bg-primary/20 text-primary"
-                    : item.category === "TECH"
-                      ? "bg-blue-500/20 text-blue-400"
-                      : "bg-amber-500/20 text-amber-400";
-                return (
-                  <div
-                    key={i}
-                    className="p-3 rounded-xl bg-surface-container-low border border-outline-variant"
-                  >
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span className={cn("px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase", catColor)}>
-                        {item.category}
-                      </span>
-                      <span className="text-[10px] text-on-surface-variant font-mono">
-                        {item.time}
-                      </span>
-                    </div>
-                    <p className="text-sm text-on-surface font-medium line-clamp-2">
-                      {item.title}
-                    </p>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          <a href="/brief">
-            <Button variant="secondary" className="w-full">
-              Read Full Brief
-            </Button>
-          </a>
-
-          <div className="mt-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Podcast className="w-4 h-4 text-primary" />
-              <h3 className="font-display font-bold text-on-surface uppercase tracking-wider text-sm">
-                Trending Audio
-              </h3>
+            <div className="space-y-2 md:space-y-3">
+              {loadingNews ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                </div>
+              ) : news.length > 0 ? (
+                news.map((article) => {
+                  const sentimentColor =
+                    article.sentimentLabel === "positive"
+                      ? "bg-primary/20 text-primary"
+                      : article.sentimentLabel === "negative"
+                        ? "bg-error/20 text-error"
+                        : "bg-surface-container-high text-on-surface-variant";
+                  return (
+                    <a
+                      key={article.providerId}
+                      href={article.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block p-3 rounded-xl bg-surface-container-low border border-outline-variant hover:border-primary/30 transition-all"
+                    >
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className={cn("px-1.5 md:px-2 py-0.5 rounded text-[9px] md:text-[10px] font-mono font-bold uppercase", sentimentColor)}>
+                          {article.sentimentLabel === "positive" ? "BULLISH" : article.sentimentLabel === "negative" ? "BEARISH" : "MARKET"}
+                        </span>
+                        <span className="text-[9px] md:text-[10px] text-on-surface-variant font-mono">
+                          {formatRelativeTime(article.publishedAt)}
+                        </span>
+                      </div>
+                      <p className="text-xs md:text-sm text-on-surface font-medium line-clamp-2">
+                        {article.title}
+                      </p>
+                    </a>
+                  );
+                })
+              ) : (
+                <p className="text-on-surface-variant text-sm text-center py-8">No news available</p>
+              )}
             </div>
-            <div className="p-3 rounded-xl bg-surface-container-low border border-outline-variant hover:border-primary/30 transition-all cursor-pointer">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
-                  <Podcast className="w-5 h-5 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-on-surface truncate">
-                    {MOCK_PODCAST.title}
-                  </p>
-                  <p className="text-xs text-on-surface-variant">
-                    {MOCK_PODCAST.source} &middot; {MOCK_PODCAST.duration}
-                  </p>
-                </div>
-                <div className="flex items-end gap-0.5 h-6">
-                  {[3, 5, 4, 6, 5, 4, 3].map((h, i) => (
-                    <div
-                      key={i}
-                      className="w-1 bg-primary rounded-full"
-                      style={{ height: `${h * 3}px` }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
+
+            <a href="/news" className="block mt-3">
+              <Button variant="secondary" className="w-full" size="sm">
+                View All News
+              </Button>
+            </a>
           </div>
         </div>
       </div>

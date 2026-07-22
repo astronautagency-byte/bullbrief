@@ -3,14 +3,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/cn";
 import { formatRelativeTime, type Episode, type Podcast } from "@/lib/types";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AudioPlayer } from "@/components/ui/audio-player";
 import {
   Search,
   Podcast as PodcastIcon,
   Heart,
-  ExternalLink,
   Loader2,
   Play,
   ArrowLeft,
@@ -25,6 +23,19 @@ interface FavouritePodcast {
   addedAt: string;
 }
 
+const QUICK_TOPICS = [
+  "markets",
+  "investing",
+  "stocks",
+  "economy",
+  "Canadian markets",
+  "personal finance",
+  "crypto",
+  "retirement",
+  "real estate",
+  "tech stocks",
+];
+
 export default function PodcastsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchType, setSearchType] = useState<"episodes" | "podcasts">("episodes");
@@ -38,6 +49,8 @@ export default function PodcastsPage() {
 
   const [activeEpisode, setActiveEpisode] = useState<Episode | null>(null);
   const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set());
+
+  const [activeTopics, setActiveTopics] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetch("/api/podcast-favourites")
@@ -71,6 +84,28 @@ export default function PodcastsPage() {
     },
     []
   );
+
+  const toggleTopic = (topic: string) => {
+    setActiveTopics((prev) => {
+      const next = new Set(prev);
+      if (next.has(topic)) {
+        next.delete(topic);
+      } else {
+        next.add(topic);
+      }
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    if (activeTopics.size > 0) {
+      const query = Array.from(activeTopics).join(" ");
+      setSearchQuery(query);
+      setSelectedFavourite(null);
+    } else {
+      setSearchQuery("");
+    }
+  }, [activeTopics]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -124,6 +159,7 @@ export default function PodcastsPage() {
     setSelectedFavourite(fav);
     setSearchQuery("");
     setSearchResults([]);
+    setActiveTopics(new Set());
     setLoadingEpisodes(true);
     try {
       const res = await fetch(`/api/podcasts/${fav.id}`);
@@ -135,15 +171,6 @@ export default function PodcastsPage() {
       setLoadingEpisodes(false);
     }
   };
-
-  const quickSearches = [
-    "markets",
-    "investing",
-    "stocks",
-    "economy",
-    "Canadian markets",
-    "personal finance",
-  ];
 
   return (
     <div className="space-y-6">
@@ -162,7 +189,10 @@ export default function PodcastsPage() {
                   : "Search podcasts..."
               }
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setActiveTopics(new Set());
+              }}
               className="w-full bg-surface-container-low border border-outline-variant rounded-lg pl-10 pr-4 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
             />
             {loading && (
@@ -204,422 +234,286 @@ export default function PodcastsPage() {
         />
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-4">
-          {selectedFavourite && (
-            <div className="space-y-3">
-              <button
-                onClick={() => {
-                  setSelectedFavourite(null);
-                  setFavouriteEpisodes([]);
-                }}
-                className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back to favourites
-              </button>
+      <div className="flex flex-wrap items-center gap-2">
+        {QUICK_TOPICS.map((topic) => (
+          <button
+            key={topic}
+            onClick={() => toggleTopic(topic)}
+            className={cn(
+              "px-3 py-1.5 rounded-full text-xs font-mono transition-all border",
+              activeTopics.has(topic)
+                ? "bg-primary text-on-primary border-primary"
+                : "bg-surface-container-high border-outline-variant text-on-surface-variant hover:border-primary/30"
+            )}
+          >
+            {topic}
+          </button>
+        ))}
+      </div>
 
-              <div className="flex items-center gap-4 p-4 rounded-xl bg-surface-container-low border border-outline-variant">
-                <div className="w-16 h-16 rounded-lg bg-surface-container-high border border-outline-variant flex items-center justify-center flex-shrink-0 overflow-hidden">
-                  {selectedFavourite.artworkUrl ? (
-                    <img
-                      src={selectedFavourite.artworkUrl}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <PodcastIcon className="w-6 h-6 text-on-surface-variant" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h2 className="font-display font-bold text-lg text-on-surface">
-                    {selectedFavourite.title}
-                  </h2>
-                  {selectedFavourite.description && (
-                    <p className="text-sm text-on-surface-variant line-clamp-2 mt-0.5">
-                      {selectedFavourite.description}
-                    </p>
-                  )}
-                  {selectedFavourite.categories.length > 0 && (
-                    <div className="flex items-center gap-1.5 mt-1.5">
-                      {selectedFavourite.categories.map((cat) => (
-                        <Badge key={cat}>{cat}</Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <button
-                  onClick={() => {
-                    const podcast: Podcast = {
-                      id: selectedFavourite.id,
-                      title: selectedFavourite.title,
-                      author: null,
-                      description: selectedFavourite.description,
-                      artworkUrl: selectedFavourite.artworkUrl,
-                      websiteUrl: null,
-                      feedUrl: null,
-                      categories: selectedFavourite.categories,
-                    };
-                    toggleFavourite(podcast);
-                  }}
-                  className="p-2 text-error hover:text-error/80 transition-colors"
-                  aria-label="Remove from favourites"
-                >
-                  <Heart className="w-5 h-5 fill-current" />
-                </button>
-              </div>
+      {selectedFavourite && (
+        <div className="space-y-3">
+          <button
+            onClick={() => {
+              setSelectedFavourite(null);
+              setFavouriteEpisodes([]);
+            }}
+            className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to favourites
+          </button>
 
-              <h3 className="font-display font-bold text-on-surface">Episodes</h3>
-
-              {loadingEpisodes && (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-5 h-5 text-primary animate-spin mr-2" />
-                  <span className="text-on-surface-variant text-sm">
-                    Loading episodes...
-                  </span>
-                </div>
-              )}
-
-              {!loadingEpisodes && favouriteEpisodes.length === 0 && (
-                <div className="p-8 rounded-xl bg-surface-container-low border border-outline-variant text-center">
-                  <p className="text-on-surface-variant text-sm">
-                    No episodes found for this podcast
-                  </p>
-                </div>
-              )}
-
-              {favouriteEpisodes.map((episode) => (
-                <EpisodeCard
-                  key={episode.id}
-                  episode={episode}
-                  isActive={activeEpisode?.id === episode.id}
-                  onPlay={() => setActiveEpisode(episode)}
+          <div className="flex items-center gap-4 p-4 rounded-xl bg-surface-container-low border border-outline-variant">
+            <div className="w-16 h-16 rounded-lg bg-surface-container-high border border-outline-variant flex items-center justify-center flex-shrink-0 overflow-hidden">
+              {selectedFavourite.artworkUrl ? (
+                <img
+                  src={selectedFavourite.artworkUrl}
+                  alt=""
+                  className="w-full h-full object-cover"
                 />
-              ))}
+              ) : (
+                <PodcastIcon className="w-6 h-6 text-on-surface-variant" />
+              )}
             </div>
-          )}
-
-          {!selectedFavourite && !searchQuery && (
-            <div className="space-y-4">
-              {favourites.length > 0 && (
-                <div className="space-y-3">
-                  <h2 className="font-display font-bold text-lg text-on-surface">
-                    Your Favourites
-                  </h2>
-                  {favourites.map((fav) => (
-                    <div
-                      key={fav.id}
-                      onClick={() => openFavouriteEpisodes(fav)}
-                      className="flex items-center gap-4 p-4 rounded-xl bg-surface-container-low border border-outline-variant hover:border-primary/30 transition-all cursor-pointer"
-                    >
-                      <div className="w-12 h-12 rounded-lg bg-surface-container-high border border-outline-variant flex items-center justify-center flex-shrink-0 overflow-hidden">
-                        {fav.artworkUrl ? (
-                          <img
-                            src={fav.artworkUrl}
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <PodcastIcon className="w-5 h-5 text-on-surface-variant" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-on-surface line-clamp-1">
-                          {fav.title}
-                        </h3>
-                        {fav.description && (
-                          <p className="text-sm text-on-surface-variant line-clamp-1">
-                            {fav.description}
-                          </p>
-                        )}
-                        {fav.categories.length > 0 && (
-                          <div className="flex items-center gap-1.5 mt-1">
-                            {fav.categories.slice(0, 3).map((cat) => (
-                              <Badge key={cat}>{cat}</Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-primary font-mono">
-                          {favouriteIds.has(fav.id) ? "View episodes" : ""}
-                        </span>
-                        <Heart className="w-4 h-4 text-error fill-error" />
-                      </div>
-                    </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="font-display font-bold text-lg text-on-surface">
+                {selectedFavourite.title}
+              </h2>
+              {selectedFavourite.description && (
+                <p className="text-sm text-on-surface-variant line-clamp-2 mt-0.5">
+                  {selectedFavourite.description}
+                </p>
+              )}
+              {selectedFavourite.categories.length > 0 && (
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  {selectedFavourite.categories.map((cat) => (
+                    <Badge key={cat}>{cat}</Badge>
                   ))}
                 </div>
               )}
+            </div>
+            <button
+              onClick={() => {
+                const podcast: Podcast = {
+                  id: selectedFavourite.id,
+                  title: selectedFavourite.title,
+                  author: null,
+                  description: selectedFavourite.description,
+                  artworkUrl: selectedFavourite.artworkUrl,
+                  websiteUrl: null,
+                  feedUrl: null,
+                  categories: selectedFavourite.categories,
+                };
+                toggleFavourite(podcast);
+              }}
+              className="p-2 text-error hover:text-error/80 transition-colors"
+              aria-label="Remove from favourites"
+            >
+              <Heart className="w-5 h-5 fill-current" />
+            </button>
+          </div>
 
-              {favourites.length === 0 && (
-                <div className="p-12 rounded-xl bg-surface-container-low border border-outline-variant text-center">
-                  <Heart className="w-10 h-10 text-on-surface-variant/30 mx-auto mb-3" />
-                  <p className="text-on-surface-variant text-sm">
-                    Search for finance podcasts below and tap the heart to add
-                    them here
-                  </p>
-                </div>
-              )}
+          <h3 className="font-display font-bold text-on-surface">Episodes</h3>
+
+          {loadingEpisodes && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-5 h-5 text-primary animate-spin mr-2" />
+              <span className="text-on-surface-variant text-sm">
+                Loading episodes...
+              </span>
             </div>
           )}
 
-          {!selectedFavourite && searchQuery && (
-            <div className="space-y-3">
-              <h2 className="font-display font-bold text-lg text-on-surface">
-                {searchType === "episodes" ? "Episodes" : "Podcasts"} for &ldquo;
-                {searchQuery}&rdquo;
-              </h2>
-
-              {searchType === "podcasts" &&
-                (searchResults as Podcast[]).map((podcast) => (
-                  <div
-                    key={podcast.id}
-                    className="p-4 rounded-xl bg-surface-container-low border border-outline-variant hover:border-primary/30 transition-all"
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="w-16 h-16 rounded-lg bg-surface-container-high border border-outline-variant flex items-center justify-center flex-shrink-0 overflow-hidden">
-                        {podcast.artworkUrl ? (
-                          <img
-                            src={podcast.artworkUrl}
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <PodcastIcon className="w-6 h-6 text-on-surface-variant" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-on-surface line-clamp-1">
-                          {podcast.title}
-                        </h3>
-                        {podcast.description && (
-                          <p className="text-sm text-on-surface-variant mt-1 line-clamp-2">
-                            {podcast.description}
-                          </p>
-                        )}
-                        {podcast.categories.length > 0 && (
-                          <div className="flex items-center gap-1.5 mt-2">
-                            {podcast.categories.map((cat) => (
-                              <Badge key={cat}>{cat}</Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => toggleFavourite(podcast)}
-                          className={cn(
-                            "p-2 transition-colors",
-                            favouriteIds.has(podcast.id)
-                              ? "text-error"
-                              : "text-on-surface-variant hover:text-error"
-                          )}
-                          aria-label={
-                            favouriteIds.has(podcast.id)
-                              ? "Remove from favourites"
-                              : "Add to favourites"
-                          }
-                        >
-                          <Heart
-                            className={cn(
-                              "w-4 h-4",
-                              favouriteIds.has(podcast.id) && "fill-current"
-                            )}
-                          />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedFavourite({
-                              id: podcast.id,
-                              title: podcast.title,
-                              description: podcast.description,
-                              artworkUrl: podcast.artworkUrl,
-                              categories: podcast.categories,
-                              addedAt: new Date().toISOString(),
-                            });
-                            setSearchQuery("");
-                          }}
-                          className="p-2 text-on-surface-variant hover:text-primary transition-colors"
-                          aria-label="View episodes"
-                        >
-                          <Play className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-              {searchType === "episodes" &&
-                (searchResults as Episode[]).map((episode) => (
-                  <EpisodeCard
-                    key={episode.id}
-                    episode={episode}
-                    isActive={activeEpisode?.id === episode.id}
-                    onPlay={() => setActiveEpisode(episode)}
-                  />
-                ))}
-
-              {searchResults.length === 0 && !loading && (
-                <div className="p-8 rounded-xl bg-surface-container-low border border-outline-variant text-center">
-                  <p className="text-on-surface-variant text-sm">
-                    No {searchType} found
-                  </p>
-                </div>
-              )}
+          {!loadingEpisodes && favouriteEpisodes.length === 0 && (
+            <div className="p-8 rounded-xl bg-surface-container-low border border-outline-variant text-center">
+              <p className="text-on-surface-variant text-sm">
+                No episodes found for this podcast
+              </p>
             </div>
           )}
 
-          {!selectedFavourite && !searchQuery && favourites.length > 0 && (
-            <div className="space-y-3">
-              <h2 className="font-display font-bold text-lg text-on-surface">
-                Discover
-              </h2>
-              {loading && (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-5 h-5 text-primary animate-spin mr-2" />
-                  <span className="text-on-surface-variant text-sm">
-                    Searching...
-                  </span>
-                </div>
-              )}
-              {searchResults.length > 0 &&
-                !loading &&
-                searchType === "podcasts" &&
-                (searchResults as Podcast[]).map((podcast) => (
-                  <div
-                    key={podcast.id}
-                    className="p-4 rounded-xl bg-surface-container-low border border-outline-variant hover:border-primary/30 transition-all"
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="w-16 h-16 rounded-lg bg-surface-container-high border border-outline-variant flex items-center justify-center flex-shrink-0 overflow-hidden">
-                        {podcast.artworkUrl ? (
-                          <img
-                            src={podcast.artworkUrl}
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <PodcastIcon className="w-6 h-6 text-on-surface-variant" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-on-surface line-clamp-1">
-                          {podcast.title}
-                        </h3>
-                        {podcast.description && (
-                          <p className="text-sm text-on-surface-variant mt-1 line-clamp-2">
-                            {podcast.description}
-                          </p>
-                        )}
-                        {podcast.categories.length > 0 && (
-                          <div className="flex items-center gap-1.5 mt-2">
-                            {podcast.categories.map((cat) => (
-                              <Badge key={cat}>{cat}</Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => toggleFavourite(podcast)}
-                          className={cn(
-                            "p-2 transition-colors",
-                            favouriteIds.has(podcast.id)
-                              ? "text-error"
-                              : "text-on-surface-variant hover:text-error"
-                          )}
-                          aria-label={
-                            favouriteIds.has(podcast.id)
-                              ? "Remove from favourites"
-                              : "Add to favourites"
-                          }
-                        >
-                          <Heart
-                            className={cn(
-                              "w-4 h-4",
-                              favouriteIds.has(podcast.id) && "fill-current"
-                            )}
-                          />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedFavourite({
-                              id: podcast.id,
-                              title: podcast.title,
-                              description: podcast.description,
-                              artworkUrl: podcast.artworkUrl,
-                              categories: podcast.categories,
-                              addedAt: new Date().toISOString(),
-                            });
-                            setSearchQuery("");
-                          }}
-                          className="p-2 text-on-surface-variant hover:text-primary transition-colors"
-                          aria-label="View episodes"
-                        >
-                          <Play className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              {searchResults.length > 0 &&
-                !loading &&
-                searchType === "episodes" &&
-                (searchResults as Episode[]).map((episode) => (
-                  <EpisodeCard
-                    key={episode.id}
-                    episode={episode}
-                    isActive={activeEpisode?.id === episode.id}
-                    onPlay={() => setActiveEpisode(episode)}
-                  />
-                ))}
-            </div>
-          )}
+          {favouriteEpisodes.map((episode) => (
+            <EpisodeCard
+              key={episode.id}
+              episode={episode}
+              isActive={activeEpisode?.id === episode.id}
+              onPlay={() => setActiveEpisode(episode)}
+            />
+          ))}
         </div>
+      )}
 
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Searches</CardTitle>
-            </CardHeader>
-            <div className="space-y-2">
-              {quickSearches.map((topic) => (
-                <button
-                  key={topic}
-                  onClick={() => {
-                    setSearchQuery(topic);
-                    setSearchType("episodes");
-                    setSelectedFavourite(null);
-                  }}
-                  className="w-full text-left p-2 rounded-lg hover:bg-surface-container-high transition-colors text-sm text-on-surface-variant"
+      {!selectedFavourite && !searchQuery && (
+        <div className="space-y-4">
+          {favourites.length > 0 && (
+            <div className="space-y-3">
+              <h2 className="font-display font-bold text-lg text-on-surface">
+                Your Favourites
+              </h2>
+              {favourites.map((fav) => (
+                <div
+                  key={fav.id}
+                  onClick={() => openFavouriteEpisodes(fav)}
+                  className="flex items-center gap-4 p-4 rounded-xl bg-surface-container-low border border-outline-variant hover:border-primary/30 transition-all cursor-pointer"
                 >
-                  {topic}
-                </button>
+                  <div className="w-12 h-12 rounded-lg bg-surface-container-high border border-outline-variant flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {fav.artworkUrl ? (
+                      <img
+                        src={fav.artworkUrl}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <PodcastIcon className="w-5 h-5 text-on-surface-variant" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-on-surface line-clamp-1">
+                      {fav.title}
+                    </h3>
+                    {fav.description && (
+                      <p className="text-sm text-on-surface-variant line-clamp-1">
+                        {fav.description}
+                      </p>
+                    )}
+                    {fav.categories.length > 0 && (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        {fav.categories.slice(0, 3).map((cat) => (
+                          <Badge key={cat}>{cat}</Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-primary font-mono">
+                      {favouriteIds.has(fav.id) ? "View episodes" : ""}
+                    </span>
+                    <Heart className="w-4 h-4 text-error fill-error" />
+                  </div>
+                </div>
               ))}
             </div>
-          </Card>
+          )}
 
-          {favourites.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Favourite Podcasts</CardTitle>
-              </CardHeader>
-              <div className="space-y-2">
-                {favourites.slice(0, 5).map((fav) => (
-                  <button
-                    key={fav.id}
-                    onClick={() => openFavouriteEpisodes(fav)}
-                    className="w-full text-left p-2 rounded-lg hover:bg-surface-container-high transition-colors text-sm text-on-surface-variant flex items-center gap-2"
-                  >
-                    <Heart className="w-3 h-3 text-error fill-error flex-shrink-0" />
-                    <span className="truncate">{fav.title}</span>
-                  </button>
-                ))}
-              </div>
-            </Card>
+          {favourites.length === 0 && (
+            <div className="p-12 rounded-xl bg-surface-container-low border border-outline-variant text-center">
+              <Heart className="w-10 h-10 text-on-surface-variant/30 mx-auto mb-3" />
+              <p className="text-on-surface-variant text-sm">
+                Search for finance podcasts below and tap the heart to add
+                them here
+              </p>
+            </div>
           )}
         </div>
-      </div>
+      )}
+
+      {!selectedFavourite && searchQuery && (
+        <div className="space-y-3">
+          <h2 className="font-display font-bold text-lg text-on-surface">
+            {searchType === "episodes" ? "Episodes" : "Podcasts"} for &ldquo;
+            {searchQuery}&rdquo;
+          </h2>
+
+          {searchType === "podcasts" &&
+            (searchResults as Podcast[]).map((podcast) => (
+              <div
+                key={podcast.id}
+                className="p-4 rounded-xl bg-surface-container-low border border-outline-variant hover:border-primary/30 transition-all"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-16 h-16 rounded-lg bg-surface-container-high border border-outline-variant flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {podcast.artworkUrl ? (
+                      <img
+                        src={podcast.artworkUrl}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <PodcastIcon className="w-6 h-6 text-on-surface-variant" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-on-surface line-clamp-1">
+                      {podcast.title}
+                    </h3>
+                    {podcast.description && (
+                      <p className="text-sm text-on-surface-variant mt-1 line-clamp-2">
+                        {podcast.description}
+                      </p>
+                    )}
+                    {podcast.categories.length > 0 && (
+                      <div className="flex items-center gap-1.5 mt-2">
+                        {podcast.categories.map((cat) => (
+                          <Badge key={cat}>{cat}</Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => toggleFavourite(podcast)}
+                      className={cn(
+                        "p-2 transition-colors",
+                        favouriteIds.has(podcast.id)
+                          ? "text-error"
+                          : "text-on-surface-variant hover:text-error"
+                      )}
+                      aria-label={
+                        favouriteIds.has(podcast.id)
+                          ? "Remove from favourites"
+                          : "Add to favourites"
+                      }
+                    >
+                      <Heart
+                        className={cn(
+                          "w-4 h-4",
+                          favouriteIds.has(podcast.id) && "fill-current"
+                        )}
+                      />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedFavourite({
+                          id: podcast.id,
+                          title: podcast.title,
+                          description: podcast.description,
+                          artworkUrl: podcast.artworkUrl,
+                          categories: podcast.categories,
+                          addedAt: new Date().toISOString(),
+                        });
+                        setSearchQuery("");
+                        setActiveTopics(new Set());
+                      }}
+                      className="p-2 text-on-surface-variant hover:text-primary transition-colors"
+                      aria-label="View episodes"
+                    >
+                      <Play className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+          {searchType === "episodes" &&
+            (searchResults as Episode[]).map((episode) => (
+              <EpisodeCard
+                key={episode.id}
+                episode={episode}
+                isActive={activeEpisode?.id === episode.id}
+                onPlay={() => setActiveEpisode(episode)}
+              />
+            ))}
+
+          {searchResults.length === 0 && !loading && (
+            <div className="p-8 rounded-xl bg-surface-container-low border border-outline-variant text-center">
+              <p className="text-on-surface-variant text-sm">
+                No {searchType} found
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

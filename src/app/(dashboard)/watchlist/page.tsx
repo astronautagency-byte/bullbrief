@@ -3,14 +3,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/cn";
 import { formatPrice, formatPercent, formatChange, getTrendDirection } from "@/lib/types";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sparkline } from "@/components/ui/sparkline";
 import {
   Search,
   Plus,
   X,
-  ArrowUpDown,
   GripVertical,
   Download,
   Trash2,
@@ -70,8 +68,6 @@ const POPULAR_STOCKS = [
   { symbol: "UBER", name: "Uber Technologies", exchange: "NYSE" },
   { symbol: "ABNB", name: "Airbnb Inc.", exchange: "NASDAQ" },
   { symbol: "SPOT", name: "Spotify Technology", exchange: "NYSE" },
-  { symbol: "SQSP", name: "Squarespace Inc.", exchange: "NYSE" },
-  { symbol: "LMND", name: "Lemonade Inc.", exchange: "NYSE" },
 ];
 
 export default function WatchlistPage() {
@@ -93,7 +89,7 @@ export default function WatchlistPage() {
       setWatchlist(
         (json.data ?? []).map((s: any, i: number) => ({
           ...s,
-          sparkline: generateSparkline(s.price, s.changePercent),
+          sparkline: generateSparkline(s.price || 0, s.changePercent || 0),
           addedAt: new Date(Date.now() - i * 86400000).toISOString(),
         }))
       );
@@ -109,6 +105,7 @@ export default function WatchlistPage() {
   }, [fetchWatchlist]);
 
   const generateSparkline = (base: number, trend: number): number[] => {
+    if (base === 0) return [0, 0, 0, 0, 0, 0];
     const data: number[] = [];
     let current = base * (1 - trend * 0.02);
     for (let i = 0; i < 6; i++) {
@@ -185,8 +182,8 @@ export default function WatchlistPage() {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           {isEditing ? (
             <input
@@ -196,11 +193,11 @@ export default function WatchlistPage() {
               onBlur={() => setIsEditing(false)}
               onKeyDown={(e) => e.key === "Enter" && setIsEditing(false)}
               autoFocus
-              className="bg-surface-container-low border border-primary rounded-lg px-3 py-1 text-on-surface font-display font-bold text-xl focus:outline-none"
+              className="bg-surface-container-low border border-primary rounded-lg px-3 py-1 text-on-surface font-display font-bold text-lg focus:outline-none"
             />
           ) : (
             <h1
-              className="font-display font-bold text-2xl text-on-surface italic cursor-pointer hover:text-primary transition-colors"
+              className="font-display font-bold text-xl md:text-2xl text-on-surface italic cursor-pointer hover:text-primary transition-colors"
               onClick={() => setIsEditing(true)}
             >
               {watchlistName}
@@ -211,7 +208,7 @@ export default function WatchlistPage() {
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm">
             <Download className="w-4 h-4" />
-            Export CSV
+            <span className="hidden sm:inline">Export CSV</span>
           </Button>
           <Button size="sm" onClick={() => setShowAddModal(true)}>
             <Plus className="w-4 h-4" />
@@ -221,7 +218,7 @@ export default function WatchlistPage() {
       </div>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative flex-1 max-w-sm w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
           <input
             type="text"
@@ -231,7 +228,7 @@ export default function WatchlistPage() {
             className="w-full bg-surface-container-low border border-outline-variant rounded-lg pl-10 pr-4 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
           />
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
           {(
             [
               ["custom", "Custom"],
@@ -245,7 +242,7 @@ export default function WatchlistPage() {
               key={mode}
               onClick={() => setSortMode(mode)}
               className={cn(
-                "px-3 py-1.5 rounded-full text-xs font-mono transition-all border",
+                "px-3 py-1.5 rounded-full text-xs font-mono transition-all border whitespace-nowrap",
                 sortMode === mode
                   ? "bg-primary text-on-primary border-primary"
                   : "bg-surface-container-high border-outline-variant text-on-surface-variant hover:border-primary/30"
@@ -258,8 +255,8 @@ export default function WatchlistPage() {
       </div>
 
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-surface-container rounded-xl border border-outline-variant w-full max-w-md mx-4 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-surface-container rounded-xl border border-outline-variant w-full max-w-md shadow-2xl">
             <div className="flex items-center justify-between p-4 border-b border-outline-variant">
               <h2 className="font-display font-bold text-lg text-on-surface">Add Stock</h2>
               <button
@@ -346,53 +343,55 @@ export default function WatchlistPage() {
           return (
             <div
               key={stock.symbol}
-              className={cn(
-                "grid grid-cols-12 gap-2 px-5 py-3 items-center hover:bg-surface-container-high transition-colors group",
-                "border-b border-outline-variant/50 last:border-b-0"
-              )}
+              className="border-b border-outline-variant/50 last:border-b-0 hover:bg-surface-container-high transition-colors group"
             >
-              <div className="col-span-1 hidden md:flex items-center">
-                <GripVertical className="w-4 h-4 text-on-surface-variant/30 group-hover:text-on-surface-variant cursor-grab" />
-              </div>
-              <div className="col-span-5 md:col-span-3">
-                <a href={`/markets/${stock.symbol}`} className="block hover:text-primary transition-colors">
-                  <span className="font-mono font-medium text-on-surface block">
-                    {stock.symbol}
+              <div className="md:grid md:grid-cols-12 md:gap-2 md:px-5 md:py-3 md:items-center flex flex-col p-3 gap-2">
+                <div className="hidden md:flex md:col-span-1 items-center">
+                  <GripVertical className="w-4 h-4 text-on-surface-variant/30 group-hover:text-on-surface-variant cursor-grab" />
+                </div>
+                <div className="md:col-span-3">
+                  <a href={`/markets/${stock.symbol}`} className="block hover:text-primary transition-colors">
+                    <span className="font-mono font-medium text-on-surface block">
+                      {stock.symbol}
+                    </span>
+                    <span className="text-xs text-on-surface-variant">
+                      {stock.companyName} · {stock.exchangeCode}
+                    </span>
+                  </a>
+                </div>
+                <div className="md:col-span-2 md:text-right">
+                  <span className="text-xs text-on-surface-variant md:hidden mr-2">Price:</span>
+                  <span className="font-mono text-on-surface">
+                    {stock.price > 0 ? formatPrice(stock.price) : "—"}
                   </span>
-                  <span className="text-xs text-on-surface-variant">
-                    {stock.companyName} · {stock.exchangeCode}
-                  </span>
-                </a>
-              </div>
-              <div className="col-span-3 md:col-span-2 text-right">
-                <span className="font-mono text-on-surface">
-                  {stock.price > 0 ? formatPrice(stock.price) : "—"}
-                </span>
-              </div>
-              <div className={cn("col-span-2 text-right font-mono text-sm", trendColor)}>
-                {stock.price > 0 ? formatChange(stock.change) : "—"}
-              </div>
-              <div className={cn("col-span-2 text-right font-mono text-sm", trendColor)}>
-                {stock.price > 0 ? formatPercent(stock.changePercent) : "—"}
-              </div>
-              <div className="col-span-1 hidden md:flex justify-end">
-                {stock.sparkline && stock.price > 0 && (
-                  <Sparkline
-                    data={stock.sparkline}
-                    positive={trend === "up"}
-                    width={60}
-                    height={24}
-                  />
-                )}
-              </div>
-              <div className="col-span-2 md:col-span-1 flex justify-end">
-                <button
-                  onClick={() => removeStock(stock.symbol)}
-                  className="p-1.5 text-on-surface-variant/30 hover:text-error opacity-0 group-hover:opacity-100 transition-all"
-                  aria-label={`Remove ${stock.symbol} from watchlist`}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                </div>
+                <div className={cn("md:col-span-2 md:text-right font-mono text-sm", trendColor)}>
+                  <span className="text-xs text-on-surface-variant md:hidden mr-2">Change:</span>
+                  {stock.price > 0 ? formatChange(stock.change) : "—"}
+                </div>
+                <div className={cn("md:col-span-2 md:text-right font-mono text-sm", trendColor)}>
+                  <span className="text-xs text-on-surface-variant md:hidden mr-2">%</span>
+                  {stock.price > 0 ? formatPercent(stock.changePercent) : "—"}
+                </div>
+                <div className="hidden md:flex md:col-span-1 justify-end">
+                  {stock.sparkline && stock.price > 0 && (
+                    <Sparkline
+                      data={stock.sparkline}
+                      positive={trend === "up"}
+                      width={60}
+                      height={24}
+                    />
+                  )}
+                </div>
+                <div className="md:col-span-1 flex justify-end">
+                  <button
+                    onClick={() => removeStock(stock.symbol)}
+                    className="p-1.5 text-on-surface-variant/30 hover:text-error md:opacity-0 md:group-hover:opacity-100 transition-all"
+                    aria-label={`Remove ${stock.symbol} from watchlist`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           );

@@ -4,6 +4,7 @@ import {
   addToWatchlist,
   removeFromWatchlist,
 } from "@/lib/watchlist-store";
+import { getLatestPrices } from "@/lib/providers/marketstack/client";
 
 const STOCK_NAMES: Record<string, { name: string; exchange: string }> = {
   AAPL: { name: "Apple Inc.", exchange: "NASDAQ" },
@@ -48,11 +49,31 @@ const STOCK_NAMES: Record<string, { name: string; exchange: string }> = {
 
 export async function GET() {
   const symbols = getWatchlist();
+
+  let priceMap: Record<string, { price: number; change: number; changePercent: number }> = {};
+  try {
+    if (symbols.length > 0) {
+      const quotes = await getLatestPrices(symbols);
+      for (const q of quotes) {
+        priceMap[q.symbol] = {
+          price: q.price ?? 0,
+          change: q.change ?? 0,
+          changePercent: q.changePercent ?? 0,
+        };
+      }
+    }
+  } catch (err) {
+    console.error("Failed to fetch stock prices:", err);
+  }
+
   return NextResponse.json({
     data: symbols.map((s) => ({
       symbol: s,
       companyName: STOCK_NAMES[s]?.name ?? s,
       exchangeCode: STOCK_NAMES[s]?.exchange ?? "NASDAQ",
+      price: priceMap[s]?.price ?? 0,
+      change: priceMap[s]?.change ?? 0,
+      changePercent: priceMap[s]?.changePercent ?? 0,
     })),
   });
 }
