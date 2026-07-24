@@ -11,6 +11,7 @@ import {
   Podcast,
   Bookmark,
   Settings,
+  Sparkles,
   X,
 } from "lucide-react";
 import { BrandLogo } from "@/components/ui/brand-logo";
@@ -19,6 +20,7 @@ const navItems = [
   { href: "/brief", label: "Brief", icon: LayoutDashboard },
   { href: "/watchlist", label: "Watchlist", icon: ListFilter },
   { href: "/markets", label: "Markets", icon: TrendingUp },
+  { href: "/picks", label: "Bull Picks", icon: Sparkles },
   { href: "/news", label: "News", icon: Newspaper },
   { href: "/podcasts", label: "Podcasts", icon: Podcast },
   { href: "/saved", label: "Saved", icon: Bookmark },
