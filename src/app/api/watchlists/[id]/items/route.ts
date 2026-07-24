@@ -6,6 +6,10 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!prisma) {
+    return NextResponse.json({ error: "Database not configured" }, { status: 503 });
+  }
+
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -61,6 +65,10 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!prisma) {
+    return NextResponse.json({ error: "Database not configured" }, { status: 503 });
+  }
+
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -74,6 +82,10 @@ export async function PATCH(
     return NextResponse.json({ error: "items array required" }, { status: 400 });
   }
 
+  if (!prisma) {
+    return NextResponse.json({ error: "Database not configured" }, { status: 503 });
+  }
+
   const watchlist = await prisma.watchlist.findUnique({ where: { id } });
   if (!watchlist || watchlist.userId !== session.user.id) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -81,7 +93,7 @@ export async function PATCH(
 
   await prisma.$transaction(
     items.map((item: { id: string; sortOrder: number }) =>
-      prisma.watchlistItem.update({
+      prisma!.watchlistItem.update({
         where: { id: item.id },
         data: { sortOrder: item.sortOrder },
       })
@@ -95,6 +107,10 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!prisma) {
+    return NextResponse.json({ error: "Database not configured" }, { status: 503 });
+  }
+
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

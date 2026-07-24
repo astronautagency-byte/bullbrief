@@ -31,6 +31,7 @@ async function isDbAvailable(): Promise<boolean> {
   if (dbAvailable !== null) return dbAvailable;
   try {
     const { prisma } = await import("@/lib/prisma");
+    if (!prisma) throw new Error("no db");
     await prisma.$queryRaw`SELECT 1`;
     dbAvailable = true;
   } catch {
@@ -76,6 +77,7 @@ export async function signIn(
 ): Promise<{ user: AuthUser; token: string } | null> {
   if (await isDbAvailable()) {
     const { prisma } = await import("@/lib/prisma");
+    if (!prisma) return null;
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user || !user.hashedPassword) return null;
 
@@ -116,6 +118,7 @@ export async function register(
 ): Promise<{ success: boolean; error?: string }> {
   if (await isDbAvailable()) {
     const { prisma } = await import("@/lib/prisma");
+    if (!prisma) return { success: false, error: "Database not available" };
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {

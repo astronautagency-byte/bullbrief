@@ -3,6 +3,10 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
+  if (!prisma) {
+    return NextResponse.json({ data: { articles: [], episodes: [] } });
+  }
+
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -23,6 +27,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!prisma) {
+    return NextResponse.json({ error: "Database not configured" }, { status: 503 });
+  }
+
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -94,6 +102,10 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  if (!prisma) {
+    return NextResponse.json({ error: "Database not configured" }, { status: 503 });
+  }
+
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

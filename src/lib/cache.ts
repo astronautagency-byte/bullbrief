@@ -18,6 +18,7 @@ export async function getCached<T>(
   const ttl = CACHE_DURATIONS[cacheType] ?? 10 * 60 * 1000;
 
   try {
+    if (!prisma) throw new Error("no db");
     const cached = await prisma.providerCache.findUnique({
       where: { key },
     });
@@ -32,6 +33,7 @@ export async function getCached<T>(
   const data = await fetcher();
 
   try {
+    if (!prisma) throw new Error("no db");
     await prisma.providerCache.upsert({
       where: { key },
       create: {
@@ -53,6 +55,7 @@ export async function getCached<T>(
 
 export async function getStaleCached<T>(key: string): Promise<T | null> {
   try {
+    if (!prisma) return null;
     const cached = await prisma.providerCache.findUnique({
       where: { key },
     });
