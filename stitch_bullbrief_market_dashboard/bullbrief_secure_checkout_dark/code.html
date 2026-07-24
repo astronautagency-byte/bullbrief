@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Checkout - BullBrief</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Anybody:ital,wght@0,400..900;1,400..900&amp;family=Geist:wght@100..900&amp;family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed": "#dae2fd",
+                        "on-tertiary-container": "#840025",
+                        "on-surface": "#d4e4fa",
+                        "on-tertiary-fixed-variant": "#92002a",
+                        "primary-fixed": "#6bff8f",
+                        "surface": "#051424",
+                        "on-surface-variant": "#bccbb9",
+                        "surface-tint": "#4ae176",
+                        "outline-variant": "#3d4a3d",
+                        "inverse-primary": "#006e2f",
+                        "on-primary": "#003915",
+                        "inverse-surface": "#d4e4fa",
+                        "tertiary-fixed-dim": "#ffb2b7",
+                        "on-secondary-container": "#adb4ce",
+                        "on-tertiary-fixed": "#40000d",
+                        "tertiary-fixed": "#ffdadb",
+                        "on-background": "#d4e4fa",
+                        "primary-container": "#22c55e",
+                        "outline": "#869585",
+                        "on-secondary-fixed": "#131b2e",
+                        "surface-container-low": "#0d1c2d",
+                        "primary": "#4be277",
+                        "on-error": "#690005",
+                        "surface-container": "#122131",
+                        "on-primary-container": "#004b1e",
+                        "background": "#051424",
+                        "primary-fixed-dim": "#4ae176",
+                        "tertiary-container": "#ff8892",
+                        "surface-variant": "#273647",
+                        "on-primary-fixed-variant": "#005321",
+                        "secondary": "#bec6e0",
+                        "error": "#ffb4ab",
+                        "tertiary": "#ffb3b7",
+                        "surface-dim": "#051424",
+                        "surface-bright": "#2c3a4c",
+                        "on-primary-fixed": "#002109",
+                        "secondary-fixed-dim": "#bec6e0",
+                        "error-container": "#93000a",
+                        "inverse-on-surface": "#233143",
+                        "surface-container-lowest": "#010f1f",
+                        "on-secondary-fixed-variant": "#3f465c",
+                        "on-tertiary": "#67001b",
+                        "surface-container-highest": "#273647",
+                        "surface-container-high": "#1c2b3c",
+                        "secondary-container": "#3f465c",
+                        "on-secondary": "#283044",
+                        "on-error-container": "#ffdad6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "unit": "4px",
+                        "container-margin": "1rem",
+                        "card-padding": "1.25rem",
+                        "gutter": "1rem",
+                        "stack-gap": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Anybody"],
+                        "display-lg": ["Anybody"],
+                        "label-md": ["JetBrains Mono"],
+                        "body-md": ["Geist"],
+                        "label-sm": ["JetBrains Mono"],
+                        "headline-md": ["Anybody"],
+                        "headline-lg-mobile": ["Anybody"],
+                        "body-lg": ["Geist"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "display-lg": ["48px", { "lineHeight": "1.1", "fontWeight": "800" }],
+                        "label-md": ["14px", { "lineHeight": "1.4", "fontWeight": "500" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "label-sm": ["12px", { "lineHeight": "1.4", "letterSpacing": "0.05em", "fontWeight": "500" }],
+                        "headline-md": ["24px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Geist', sans-serif; }
+        .font-anybody { font-family: 'Anybody', sans-serif; }
+        .font-jetbrains { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Custom input focus ring */
+        input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(75, 226, 119, 0.5); /* primary color with opacity */
+            border-color: #4be277;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen flex flex-col items-center justify-center p-gutter">
+<!-- Suppressed TopNavBar & SideNavBar because this is a Transactional/Checkout page -->
+<main class="w-full max-w-lg bg-surface-container-high rounded-xl border border-surface-variant p-card-padding shadow-2xl relative overflow-hidden">
+<!-- Subtle Glow Effect -->
+<div class="absolute -top-20 -right-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
+<header class="flex items-center justify-between mb-8 border-b border-surface-variant pb-6">
+<div>
+<h1 class="font-headline-lg text-headline-lg font-anybody italic text-on-surface">Secure Checkout</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Upgrade to BullBrief Pro</p>
+</div>
+<div class="w-16 h-16 rounded-lg bg-surface-container flex items-center justify-center border border-outline-variant p-2">
+<img alt="BullBrief Trust Mark" class="w-full h-full object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDnsSLmhB8Itqcfn8c8xaoYE8exOWZnyhUAWaRPEgpfFMUgQYgb5cWTLKItDEjzMP7O4ofLsl444PJ8OGBzVYnyebiiU59WQNNFm-FggmDIAVhZQDPdN4NI30sEu_JbVWMlcdKC96WPTIFS2BI-XX91XBw4GJgieAmjB65SvXOt1lkiAt7aZqVRs-PHK5KU1jWjdWntsnsWsWr1CbdqXQoYD1BeNh3uUf-V5pRXiTPtGi3jroZiZF611TXdaMzASuhjFw"/>
+</div>
+</header>
+<div class="mb-8 p-4 bg-surface-container rounded-lg border border-surface-variant flex justify-between items-center">
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Plan</p>
+<p class="font-headline-md text-headline-md text-primary font-anybody italic">Pro Annual</p>
+</div>
+<div class="text-right">
+<p class="font-headline-lg text-headline-lg text-on-surface font-anybody">$199<span class="text-body-md font-body-md text-on-surface-variant font-normal">/yr</span></p>
+</div>
+</div>
+<form class="space-y-stack-gap">
+<!-- Digital Wallets -->
+<div class="flex gap-4 mb-6">
+<button class="flex-1 bg-surface-container hover:bg-surface-variant border border-outline-variant rounded-lg py-3 flex items-center justify-center transition-colors" type="button">
+<span class="font-label-md text-label-md text-on-surface font-jetbrains">Pay with <span class="font-bold">Apple</span></span>
+</button>
+<button class="flex-1 bg-surface-container hover:bg-surface-variant border border-outline-variant rounded-lg py-3 flex items-center justify-center transition-colors" type="button">
+<span class="font-label-md text-label-md text-on-surface font-jetbrains">Pay with <span class="font-bold">Google</span></span>
+</button>
+</div>
+<div class="relative flex items-center py-4">
+<div class="flex-grow border-t border-surface-variant"></div>
+<span class="flex-shrink-0 mx-4 text-on-surface-variant font-label-sm text-label-sm font-jetbrains">or pay with card</span>
+<div class="flex-grow border-t border-surface-variant"></div>
+</div>
+<!-- Card Information -->
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-2 font-jetbrains" for="email">Email Address</label>
+<input class="w-full bg-surface-container-low border border-surface-variant rounded-lg px-4 py-3 text-on-surface font-body-md text-body-md transition-all placeholder:text-on-surface-variant/50" id="email" placeholder="trader@example.com" type="email"/>
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-2 font-jetbrains" for="card">Card Information</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">credit_card</span>
+<input class="w-full bg-surface-container-low border border-surface-variant rounded-lg pl-10 pr-4 py-3 text-on-surface font-jetbrains text-label-md transition-all placeholder:text-on-surface-variant/50" id="card" placeholder="0000 0000 0000 0000" type="text"/>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="flex-1">
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-2 font-jetbrains" for="expiry">Expiry</label>
+<input class="w-full bg-surface-container-low border border-surface-variant rounded-lg px-4 py-3 text-on-surface font-jetbrains text-label-md transition-all placeholder:text-on-surface-variant/50" id="expiry" placeholder="MM/YY" type="text"/>
+</div>
+<div class="flex-1">
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-2 font-jetbrains" for="cvc">CVC</label>
+<input class="w-full bg-surface-container-low border border-surface-variant rounded-lg px-4 py-3 text-on-surface font-jetbrains text-label-md transition-all placeholder:text-on-surface-variant/50" id="cvc" placeholder="123" type="text"/>
+</div>
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-2 font-jetbrains" for="name">Name on Card</label>
+<input class="w-full bg-surface-container-low border border-surface-variant rounded-lg px-4 py-3 text-on-surface font-body-md text-body-md transition-all placeholder:text-on-surface-variant/50" id="name" placeholder="John Doe" type="text"/>
+</div>
+<button class="w-full bg-primary hover:bg-primary-fixed-dim text-on-primary font-headline-md text-headline-md font-anybody italic py-4 rounded-lg mt-8 transition-colors shadow-[0_0_15px_rgba(75,226,119,0.2)] hover:shadow-[0_0_25px_rgba(75,226,119,0.4)] flex items-center justify-center gap-2" type="submit">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">lock</span>
+                Subscribe Now
+            </button>
+<p class="text-center font-label-sm text-label-sm text-on-surface-variant mt-4 font-jetbrains flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-[16px]">verified_user</span>
+                Secure 256-bit SSL Encryption
+            </p>
+</form>
+</main>
+</body></html>

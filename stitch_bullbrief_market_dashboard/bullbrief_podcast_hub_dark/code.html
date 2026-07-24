@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BullBrief - Podcasts</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Anybody:ital,wght@0,100..900;1,100..900&amp;family=Geist:wght@100..900&amp;family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed": "#dae2fd",
+                        "on-tertiary-container": "#840025",
+                        "on-surface": "#d4e4fa",
+                        "on-tertiary-fixed-variant": "#92002a",
+                        "primary-fixed": "#6bff8f",
+                        "surface": "#051424",
+                        "on-surface-variant": "#bccbb9",
+                        "surface-tint": "#4ae176",
+                        "outline-variant": "#3d4a3d",
+                        "inverse-primary": "#006e2f",
+                        "on-primary": "#003915",
+                        "inverse-surface": "#d4e4fa",
+                        "tertiary-fixed-dim": "#ffb2b7",
+                        "on-secondary-container": "#adb4ce",
+                        "on-tertiary-fixed": "#40000d",
+                        "tertiary-fixed": "#ffdadb",
+                        "on-background": "#d4e4fa",
+                        "primary-container": "#22c55e",
+                        "outline": "#869585",
+                        "on-secondary-fixed": "#131b2e",
+                        "surface-container-low": "#0d1c2d",
+                        "primary": "#4be277",
+                        "on-error": "#690005",
+                        "surface-container": "#122131",
+                        "on-primary-container": "#004b1e",
+                        "background": "#051424",
+                        "primary-fixed-dim": "#4ae176",
+                        "tertiary-container": "#ff8892",
+                        "surface-variant": "#273647",
+                        "on-primary-fixed-variant": "#005321",
+                        "secondary": "#bec6e0",
+                        "error": "#ffb4ab",
+                        "tertiary": "#ffb3b7",
+                        "surface-dim": "#051424",
+                        "surface-bright": "#2c3a4c",
+                        "on-primary-fixed": "#002109",
+                        "secondary-fixed-dim": "#bec6e0",
+                        "error-container": "#93000a",
+                        "inverse-on-surface": "#233143",
+                        "surface-container-lowest": "#010f1f",
+                        "on-secondary-fixed-variant": "#3f465c",
+                        "on-tertiary": "#67001b",
+                        "surface-container-highest": "#273647",
+                        "surface-container-high": "#1c2b3c",
+                        "secondary-container": "#3f465c",
+                        "on-secondary": "#283044",
+                        "on-error-container": "#ffdad6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "unit": "4px",
+                        "container-margin": "1rem",
+                        "card-padding": "1.25rem",
+                        "gutter": "1rem",
+                        "stack-gap": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["anybody"],
+                        "display-lg": ["anybody"],
+                        "label-md": ["jetbrainsMono"],
+                        "body-md": ["geist"],
+                        "label-sm": ["jetbrainsMono"],
+                        "headline-md": ["anybody"],
+                        "headline-lg-mobile": ["anybody"],
+                        "body-lg": ["geist"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "display-lg": ["48px", { "lineHeight": "1.1", "fontWeight": "800" }],
+                        "label-md": ["14px", { "lineHeight": "1.4", "fontWeight": "500" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "label-sm": ["12px", { "lineHeight": "1.4", "letterSpacing": "0.05em", "fontWeight": "500" }],
+                        "headline-md": ["24px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+        }
+    </style>
+</head>
+<body class="flex min-h-screen font-body-md text-body-md overflow-hidden">
+<!-- SideNavBar -->
+<nav class="hidden md:flex flex-col h-full py-gutter w-64 fixed left-0 top-0 z-40 bg-surface dark:bg-surface border-r border-outline-variant">
+<div class="px-gutter mb-8">
+<h1 class="font-headline-md text-headline-md italic font-black text-primary dark:text-primary">BullBrief</h1>
+<p class="text-on-surface-variant font-label-sm text-label-sm uppercase tracking-widest mt-1">Market Intel</p>
+</div>
+<ul class="flex flex-col gap-2 flex-grow px-unit">
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high dark:hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">dashboard</span>
+                    Dashboard
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high dark:hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">list_alt</span>
+                    Watchlist
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high dark:hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">newspaper</span>
+                    News
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-primary font-bold border-r-4 border-primary bg-primary/10 transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">podcasts</span>
+                    Podcasts
+                </a>
+</li>
+<li class="mt-auto">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high dark:hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
+                    Settings
+                </a>
+</li>
+</ul>
+<div class="px-gutter mt-4">
+<button class="w-full py-2 px-4 rounded font-headline-md text-[14px] bg-primary text-on-primary hover:brightness-110 transition-all font-bold">Upgrade to Pro</button>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 md:ml-64 flex flex-col h-screen overflow-hidden">
+<!-- TopNavBar -->
+<header class="flex justify-between items-center px-gutter h-16 fixed top-0 right-0 w-full md:w-[calc(100%-16rem)] z-50 bg-surface/80 dark:bg-surface/80 backdrop-blur-md border-b border-outline-variant">
+<div class="flex items-center gap-4">
+<button class="md:hidden text-on-surface-variant">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors">search</span>
+<input class="w-64 md:w-96 bg-surface-container-high border-outline-variant border text-on-surface rounded-full py-1.5 pl-10 pr-4 font-label-md text-label-md focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="Search markets, symbols, podcasts..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-all relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-primary rounded-full"></span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-all">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+</button>
+<img alt="Professional trader avatar" class="w-8 h-8 rounded-full border border-outline-variant" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAhrBOKeKR_HDGt8TYWI3uQJ4KFacgFued-5aV_B0or0Yj-iekUTNgvmPFpSawcuI75uqehF2hV4IJ2E670mypeNZy-QQExEPr5m35wuY07pqFKACH3bZpGgKZxlD5vhDL1iTcB3v1oNomDAyaF2aVTejVn5BeKHHqupSwCHUoj-mB20olv1SVsS1yzbHBP3J8537XuuGVF_zqSss0MUbgQiLYUFeZao63zfKCy80TYatypprElpGcl"/>
+</div>
+</header>
+<!-- Scrollable Canvas -->
+<main class="flex-1 overflow-y-auto pt-16 p-container-margin pb-24 md:pb-container-margin bg-background">
+<!-- Category Filters -->
+<div class="flex gap-2 overflow-x-auto pb-4 hide-scrollbar mb-6">
+<button class="px-4 py-1.5 rounded-full bg-primary text-on-primary font-label-sm text-label-sm whitespace-nowrap">All Episodes</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container-high border border-outline-variant text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm whitespace-nowrap transition-colors">Market Analysis</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container-high border border-outline-variant text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm whitespace-nowrap transition-colors">Interviews</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container-high border border-outline-variant text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm whitespace-nowrap transition-colors">Crypto</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container-high border border-outline-variant text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm whitespace-nowrap transition-colors">Macro Economics</button>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Main Featured Area -->
+<div class="lg:col-span-2 flex flex-col gap-6">
+<!-- Now Playing / Featured Card -->
+<div class="bg-surface-container rounded-xl border border-outline-variant p-card-padding relative overflow-hidden group">
+<!-- Abstract Background element -->
+<div class="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 pointer-events-none"></div>
+<div class="flex flex-col md:flex-row gap-6 relative z-10">
+<!-- Podcast Cover Art Placeholder -->
+<div class="w-32 h-32 md:w-48 md:h-48 rounded-lg bg-surface-container-high border border-outline-variant flex-shrink-0 flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-6xl text-primary/20">podcasts</span>
+</div>
+<div class="flex flex-col flex-1">
+<div class="flex items-center gap-2 mb-2">
+<span class="bg-primary/10 text-primary px-2 py-0.5 rounded font-label-sm text-label-sm border border-primary/20">NEW</span>
+<span class="text-on-surface-variant font-label-sm text-label-sm">Market Analysis • 45 min</span>
+</div>
+<h2 class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mb-2">The Fed's Next Move: Rates &amp; Tech Stocks</h2>
+<p class="text-on-surface-variant font-body-md text-body-md mb-6 line-clamp-2">Deep dive into the latest Federal Reserve meeting minutes and what they mean for the tech sector's valuation models in Q3.</p>
+<!-- Player Controls -->
+<div class="mt-auto flex items-center gap-4 bg-surface-container-highest p-3 rounded-lg border border-outline-variant">
+<button class="w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center hover:brightness-110 transition-all flex-shrink-0">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+<div class="flex-1 flex flex-col gap-1">
+<div class="h-1.5 w-full bg-surface-variant rounded-full overflow-hidden relative cursor-pointer">
+<div class="absolute top-0 left-0 h-full bg-primary w-1/3 rounded-full"></div>
+</div>
+<div class="flex justify-between text-on-surface-variant font-label-sm text-[10px]">
+<span>15:20</span>
+<span>-29:40</span>
+</div>
+</div>
+<div class="flex gap-2 text-on-surface-variant">
+<button class="hover:text-primary transition-colors"><span class="material-symbols-outlined text-xl">replay_10</span></button>
+<button class="hover:text-primary transition-colors"><span class="material-symbols-outlined text-xl">forward_30</span></button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Recent Episodes List -->
+<div class="bg-surface-container rounded-xl border border-outline-variant overflow-hidden">
+<div class="px-card-padding py-4 border-b border-outline-variant flex justify-between items-center">
+<h3 class="font-headline-md text-lg text-on-surface">Recent Episodes</h3>
+<button class="text-primary font-label-md text-label-md hover:underline">View All</button>
+</div>
+<div class="flex flex-col divide-y divide-outline-variant">
+<!-- Episode Row -->
+<div class="p-4 hover:bg-surface-container-high transition-colors group cursor-pointer flex gap-4 items-start">
+<div class="w-12 h-12 rounded bg-surface-variant border border-outline-variant flex-shrink-0 flex items-center justify-center relative">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">play_circle</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-1">
+<h4 class="font-body-lg text-on-surface font-medium group-hover:text-primary transition-colors">Q2 Earnings Roundup: The AI Boom</h4>
+<span class="text-on-surface-variant font-label-sm text-label-sm whitespace-nowrap ml-4">Aug 12</span>
+</div>
+<p class="text-on-surface-variant font-body-md text-sm line-clamp-1">Analyzing the surprising earnings from major semiconductor players.</p>
+<div class="flex gap-3 mt-2 font-label-sm text-[11px] text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">schedule</span> 32 min</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">download</span> 1.2k</span>
+</div>
+</div>
+</div>
+<!-- Episode Row -->
+<div class="p-4 hover:bg-surface-container-high transition-colors group cursor-pointer flex gap-4 items-start">
+<div class="w-12 h-12 rounded bg-surface-variant border border-outline-variant flex-shrink-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">play_circle</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-1">
+<h4 class="font-body-lg text-on-surface font-medium group-hover:text-primary transition-colors">Crypto Regulation: What's Next?</h4>
+<span class="text-on-surface-variant font-label-sm text-label-sm whitespace-nowrap ml-4">Aug 10</span>
+</div>
+<p class="text-on-surface-variant font-body-md text-sm line-clamp-1">Interview with former SEC commissioner on upcoming regulatory frameworks.</p>
+<div class="flex gap-3 mt-2 font-label-sm text-[11px] text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">schedule</span> 55 min</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">download</span> 850</span>
+</div>
+</div>
+</div>
+<!-- Episode Row -->
+<div class="p-4 hover:bg-surface-container-high transition-colors group cursor-pointer flex gap-4 items-start">
+<div class="w-12 h-12 rounded bg-surface-variant border border-outline-variant flex-shrink-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">play_circle</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-1">
+<h4 class="font-body-lg text-on-surface font-medium group-hover:text-primary transition-colors">Energy Markets: Winter Supply Concerns</h4>
+<span class="text-on-surface-variant font-label-sm text-label-sm whitespace-nowrap ml-4">Aug 05</span>
+</div>
+<p class="text-on-surface-variant font-body-md text-sm line-clamp-1">How geopolitical tensions are setting up natural gas for a volatile winter.</p>
+<div class="flex gap-3 mt-2 font-label-sm text-[11px] text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">schedule</span> 41 min</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">download</span> 920</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Sidebar Area -->
+<div class="flex flex-col gap-6">
+<!-- Up Next Queue -->
+<div class="bg-surface-container rounded-xl border border-outline-variant p-card-padding">
+<h3 class="font-headline-md text-lg text-on-surface mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">queue_music</span>
+                            Up Next
+                        </h3>
+<div class="flex flex-col gap-4">
+<div class="flex gap-3 group cursor-pointer">
+<div class="w-10 h-10 rounded bg-surface-variant flex-shrink-0"></div>
+<div>
+<h4 class="font-label-md text-on-surface group-hover:text-primary transition-colors line-clamp-1">Options Trading Basics</h4>
+<p class="font-label-sm text-[11px] text-on-surface-variant">Educational • 22 min</p>
+</div>
+</div>
+<div class="flex gap-3 group cursor-pointer">
+<div class="w-10 h-10 rounded bg-surface-variant flex-shrink-0"></div>
+<div>
+<h4 class="font-label-md text-on-surface group-hover:text-primary transition-colors line-clamp-1">The EV Market Shakeout</h4>
+<p class="font-label-sm text-[11px] text-on-surface-variant">Automotive • 38 min</p>
+</div>
+</div>
+<div class="flex gap-3 group cursor-pointer">
+<div class="w-10 h-10 rounded bg-surface-variant flex-shrink-0"></div>
+<div>
+<h4 class="font-label-md text-on-surface group-hover:text-primary transition-colors line-clamp-1">Navigating Bear Markets</h4>
+<p class="font-label-sm text-[11px] text-on-surface-variant">Strategy • 45 min</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Top Hosts / Guests -->
+<div class="bg-surface-container rounded-xl border border-outline-variant p-card-padding">
+<h3 class="font-headline-md text-lg text-on-surface mb-4">Top Voices</h3>
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1 bg-surface-container-high border border-outline-variant rounded-full font-label-sm text-on-surface-variant flex items-center gap-2">
+<img class="w-4 h-4 rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDM6VxSw5Y8lOOiWThseEFPL3eW61_paV6aFrMP9pht3W0QIydsANUDWLHtAqbz2ZFkXpuVUGBkYWIBzjJg8c_chkTtrqcrEQO7bcjrhmDta1brlW-0VoDqiFzyiYquNWDGMysrJq9gY2IMXN_TrRe2WVa62KqNm90fooMtXXGmI06Skx1QbGdNQC-I7PdH6f6ARe-aMfqN3mZLbrAVGiXchHoqXyD4vq_nUynN0jO-hrnAwfke0ApD"/>
+                                 Sarah Jenkins
+                             </span>
+<span class="px-3 py-1 bg-surface-container-high border border-outline-variant rounded-full font-label-sm text-on-surface-variant flex items-center gap-2">
+<img class="w-4 h-4 rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBSX3mQblFj7sVR8oum2wEOJNux7wJehnzLyFEaq3eyYMS4qGBayBZxjKN5MNmM3QIFiv8CkKFHKzw8LN7Tx4f-ECvvr4vWeJqjV6-GgwL6P_fKF_D3hy-dOEwiJrNdf60JlsmmxbNrPeciiUIFlTpzP1o7_o1P-zxi9NZFTknoyebCfslapNgnD9E95xxJyjQl0uYs5eraFE7JvlhJMNQIgNg515MXRXIarX-Ctide0aeaSkbJPA-h"/>
+                                 Dr. Alex Chen
+                             </span>
+<span class="px-3 py-1 bg-surface-container-high border border-outline-variant rounded-full font-label-sm text-on-surface-variant flex items-center gap-2">
+<img class="w-4 h-4 rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCKL3PXckwcEftQmreu52WUYtchCrCNILFyeP108Mq_o_3eqasOfND_j6nyRZ7car1X8HLXe5i9e7pmZrJ00_hG1up9DizTrDh4AsRKez4GFQmntO4II9jia_VNnNe6n0r0ZIp2BGT7IQp5PHHOTI866zD0BMHqFGb0EzDh-tl73MqI8-vtOpFtdsnWqKFAL7u7u3M6VDAtoeohE2z0fZDuTGgTGobqrLA8arczqbSI9MnLLH3egpf7"/>
+                                 Mike Torres
+                             </span>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<style>
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: theme('colors.background');
+        }
+        ::-webkit-scrollbar-thumb {
+            background: theme('colors.surface-variant');
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: theme('colors.outline');
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</body></html>

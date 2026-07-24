@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BullBrief - Market News</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Anybody:ital,wght@0,100..900;1,100..900&amp;family=Geist:wght@100..900&amp;family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed": "#dae2fd",
+                        "on-tertiary-container": "#840025",
+                        "on-surface": "#d4e4fa",
+                        "on-tertiary-fixed-variant": "#92002a",
+                        "primary-fixed": "#6bff8f",
+                        "surface": "#051424",
+                        "on-surface-variant": "#bccbb9",
+                        "surface-tint": "#4ae176",
+                        "outline-variant": "#3d4a3d",
+                        "inverse-primary": "#006e2f",
+                        "on-primary": "#003915",
+                        "inverse-surface": "#d4e4fa",
+                        "tertiary-fixed-dim": "#ffb2b7",
+                        "on-secondary-container": "#adb4ce",
+                        "on-tertiary-fixed": "#40000d",
+                        "tertiary-fixed": "#ffdadb",
+                        "on-background": "#d4e4fa",
+                        "primary-container": "#22c55e",
+                        "outline": "#869585",
+                        "on-secondary-fixed": "#131b2e",
+                        "surface-container-low": "#0d1c2d",
+                        "primary": "#4be277",
+                        "on-error": "#690005",
+                        "surface-container": "#122131",
+                        "on-primary-container": "#004b1e",
+                        "background": "#051424",
+                        "primary-fixed-dim": "#4ae176",
+                        "tertiary-container": "#ff8892",
+                        "surface-variant": "#273647",
+                        "on-primary-fixed-variant": "#005321",
+                        "secondary": "#bec6e0",
+                        "error": "#ffb4ab",
+                        "tertiary": "#ffb3b7",
+                        "surface-dim": "#051424",
+                        "surface-bright": "#2c3a4c",
+                        "on-primary-fixed": "#002109",
+                        "secondary-fixed-dim": "#bec6e0",
+                        "error-container": "#93000a",
+                        "inverse-on-surface": "#233143",
+                        "surface-container-lowest": "#010f1f",
+                        "on-secondary-fixed-variant": "#3f465c",
+                        "on-tertiary": "#67001b",
+                        "surface-container-highest": "#273647",
+                        "surface-container-high": "#1c2b3c",
+                        "secondary-container": "#3f465c",
+                        "on-secondary": "#283044",
+                        "on-error-container": "#ffdad6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "unit": "4px",
+                        "container-margin": "1rem",
+                        "card-padding": "1.25rem",
+                        "gutter": "1rem",
+                        "stack-gap": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Anybody", "sans-serif"],
+                        "display-lg": ["Anybody", "sans-serif"],
+                        "label-md": ["JetBrains Mono", "monospace"],
+                        "body-md": ["Geist", "sans-serif"],
+                        "label-sm": ["JetBrains Mono", "monospace"],
+                        "headline-md": ["Anybody", "sans-serif"],
+                        "headline-lg-mobile": ["Anybody", "sans-serif"],
+                        "body-lg": ["Geist", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "display-lg": ["48px", { "lineHeight": "1.1", "fontWeight": "800" }],
+                        "label-md": ["14px", { "lineHeight": "1.4", "fontWeight": "500" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "label-sm": ["12px", { "lineHeight": "1.4", "letterSpacing": "0.05em", "fontWeight": "500" }],
+                        "headline-md": ["24px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+        }
+    </style>
+</head>
+<body class="flex flex-col md:flex-row min-h-screen antialiased bg-background text-on-background">
+<!-- SideNavBar (Desktop) -->
+<nav class="hidden md:flex bg-surface dark:bg-surface h-screen w-64 fixed left-0 top-0 flex-col py-gutter border-r border-outline-variant z-40 shadow-none">
+<div class="px-6 mb-8 flex items-center justify-between">
+<img alt="BullBrief Wordmark" class="h-8 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZPp55A-NvnFKgGtSnqtq_RMnVxsDivqVe6MrG40PYDO-c9_tdq-mxgHmXgASKdBiHcKz74qJXTBQ26IUDxWb0_zX7zO7zlAlyh5DrcFy_tMiBcWZNjvxyFGkrX-FraluQiah2mh_NI__zKdMs5aSA9btPfFabDudrJ-X5tL1lmbQX0BCsqSbZyff1w4vNLORvirBhvb7M_EnbGCtC4STUVb67Tv9ftGbDczZQtNosOazX_tj-p1u3h08pudbzSHelwg"/>
+</div>
+<ul class="flex flex-col flex-grow space-y-1 px-4">
+<li>
+<a class="flex items-center space-x-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high dark:hover:bg-surface-container-high transition-colors Active: scale-95 duration-100" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span>Dashboard</span>
+</a>
+</li>
+<li>
+<a class="flex items-center space-x-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high dark:hover:bg-surface-container-high transition-colors Active: scale-95 duration-100" href="#">
+<span class="material-symbols-outlined">list_alt</span>
+<span>Watchlist</span>
+</a>
+</li>
+<li>
+<a class="flex items-center space-x-3 px-4 py-3 rounded-lg text-primary font-bold border-r-4 border-primary bg-primary/10 hover:bg-surface-container-high dark:hover:bg-surface-container-high transition-colors Active: scale-95 duration-100" href="#">
+<span class="material-symbols-outlined text-primary">newspaper</span>
+<span class="text-primary">News</span>
+</a>
+</li>
+<li>
+<a class="flex items-center space-x-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high dark:hover:bg-surface-container-high transition-colors Active: scale-95 duration-100" href="#">
+<span class="material-symbols-outlined">podcasts</span>
+<span>Podcasts</span>
+</a>
+</li>
+<li>
+<a class="flex items-center space-x-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high dark:hover:bg-surface-container-high transition-colors Active: scale-95 duration-100" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span>Settings</span>
+</a>
+</li>
+</ul>
+<div class="mt-auto px-4 pt-4">
+<button class="w-full bg-primary text-on-primary font-body-md font-bold py-3 px-4 rounded-lg hover:bg-primary-fixed-dim transition-colors">
+                Upgrade to Pro
+            </button>
+</div>
+</nav>
+<!-- TopNavBar (Desktop) -->
+<header class="hidden md:flex bg-surface/80 dark:bg-surface/80 backdrop-blur-md fixed top-0 right-0 w-[calc(100%-16rem)] z-50 justify-between items-center px-gutter h-16 border-b border-outline-variant shadow-none">
+<div class="flex-1 flex items-center">
+<div class="relative w-64 focus-within:ring-2 focus-within:ring-primary/50 rounded-lg">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full bg-surface-container-low border border-outline-variant text-on-surface text-body-md pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:border-primary focus:ring-0" placeholder="Search markets, tickers..." type="text"/>
+</div>
+</div>
+<div class="flex items-center space-x-4">
+<button class="text-on-surface-variant hover:text-primary transition-all relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-0 right-0 h-2 w-2 bg-error rounded-full"></span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-all">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-surface-container-high border border-outline-variant overflow-hidden">
+<img alt="Professional trader avatar" class="h-full w-full object-cover" data-alt="A professional headshot of a stock trader in a high-tech modern office environment with subtle green lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAhdaJYA7ZK8WtL32W032Zozd1StBu68I_sn5bcPxo11yS9nbf_J2WdrFsvP0YkycbF313vPauEQVuNWgZIb9nTR4U8YtQQjB0eaPuO0H3C5mCIpX3wGXxewZtLWti55miiig8owVuZRGuVnxszYZea18XQYyCfthKmFOo3fEQfKzGDa0y1hZAn2D93rd47sJ8SiIlt5NLhwsxFxLwi-zLpdNZQFx7IXdu7d7zqyhJTBTdLbY2cMNbY"/>
+</div>
+</div>
+</header>
+<!-- Mobile Nav Header -->
+<header class="md:hidden flex items-center justify-between bg-surface px-4 py-3 sticky top-0 z-50 border-b border-outline-variant">
+<img alt="BullBrief Wordmark" class="h-6 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBQNKIRGIR4VPoTtPUJHzwhqPgI8KN3lzRdHQoHWIt0OgTnHDP-dIw7P8BUVnZkHqJSB3ePGfeIGfiZI2sUDmlwuehIQmx-83asBNt0vzSEkkulODOuzoeiRT__wgTMTBGeB2n8KduwigJKf0SlP4M_W8MbO_FRPCVSKxg5xIkQcwKLQn6ivlF8roWJaGjv4OPvg5ye38xBLDK8kbHdj70xcIjEMB5eeZ66lzvEjvtLY09J_b-ksRdMChonfFUmCWmgew"/>
+<button class="text-on-surface">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</header>
+<!-- Main Content -->
+<main class="flex-1 md:ml-64 pt-16 md:pt-24 px-4 md:px-8 pb-24 md:pb-8 max-w-7xl mx-auto w-full">
+<!-- Header & Sentiment -->
+<div class="flex flex-col lg:flex-row lg:items-end justify-between mb-8 gap-6">
+<div>
+<h1 class="font-headline-lg-mobile md:font-headline-lg text-on-surface italic tracking-tight mb-2">MARKET PULSE</h1>
+<p class="font-body-md text-on-surface-variant">Real-time analysis &amp; breaking news for professional traders.</p>
+</div>
+<!-- Market Sentiment Gauge -->
+<div class="bg-surface-container border border-outline-variant rounded-xl p-4 flex items-center gap-4 min-w-[280px]">
+<div class="flex-1">
+<p class="font-label-sm text-on-surface-variant uppercase tracking-wider mb-1">Market Sentiment</p>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-md text-primary italic">Bullish</span>
+<span class="font-label-md text-primary">+68%</span>
+</div>
+</div>
+<div class="w-16 h-16 relative">
+<!-- Placeholder for gauge chart -->
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 36 36">
+<path class="text-surface-container-highest" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="4"></path>
+<path class="text-primary" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="68, 100" stroke-width="4"></path>
+</svg>
+<span class="material-symbols-outlined absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary text-xl">trending_up</span>
+</div>
+</div>
+</div>
+<!-- Featured Breaking News Bento -->
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-8">
+<!-- Main Story -->
+<div class="lg:col-span-8 bg-surface-container border border-outline-variant rounded-xl overflow-hidden relative group hover:drop-shadow-[0_0_12px_rgba(34,197,94,0.15)] transition-all">
+<div class="absolute inset-0 z-0">
+<div class="absolute inset-0 bg-gradient-to-t from-surface via-surface/80 to-transparent z-10"></div>
+<img class="w-full h-full object-cover opacity-40 group-hover:opacity-50 transition-opacity duration-500" data-alt="A dramatic high-contrast image of the New York Stock Exchange trading floor during a busy session, illuminated by digital screens displaying stock charts in glowing green and deep charcoal tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB1P_TeJBdsQnu3iIvh-cvFTFgSNAKuOibGhrCsQTlEDSZ4qo0kVL3BPdprI1480Le1ZDtmpEDWvf8sgfbrwgMav5QFOxxzr1enxPJKwJbCqa20SRH9fjyzByLY-yeJByoVSuXXAuI7Av6nTHjI3DyErUTzp4D4cDgpRA1DatxEYIpx9dhlzJ9KWmAC9iIIQxoleKow_E2MIFcVqnExHPZrDjsVuMOtOuwSjp0-4nHrYFIywHxlL03A"/>
+</div>
+<div class="relative z-20 p-6 flex flex-col h-full min-h-[400px] justify-end">
+<div class="flex items-center gap-3 mb-4">
+<span class="bg-error text-on-error px-2 py-1 rounded font-label-sm uppercase tracking-wider font-bold animate-pulse">Breaking</span>
+<span class="font-label-md text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">schedule</span> 10m ago</span>
+</div>
+<h2 class="font-headline-lg-mobile md:font-headline-lg text-on-surface mb-3 italic hover:text-primary transition-colors cursor-pointer">Fed Signals Potential Rate Cut in Q3 as Inflation Cools</h2>
+<p class="font-body-md text-on-surface-variant line-clamp-2 max-w-2xl mb-4">Central bank officials note significant progress toward 2% target, sparking a broad tech rally across major indices this morning.</p>
+<div class="flex gap-2">
+<span class="bg-surface-container-high border border-outline-variant text-on-surface px-3 py-1 rounded-full font-label-sm">Macro</span>
+<span class="bg-surface-container-high border border-outline-variant text-primary px-3 py-1 rounded-full font-label-sm flex items-center gap-1">SPY <span class="material-symbols-outlined text-[14px]">arrow_drop_up</span>1.2%</span>
+</div>
+</div>
+</div>
+<!-- Side Stories Grid -->
+<div class="lg:col-span-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
+<!-- Story 2 -->
+<div class="bg-surface-container border border-outline-variant rounded-xl p-5 hover:border-primary/50 transition-colors cursor-pointer flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-3">
+<span class="bg-surface-variant text-on-surface px-2 py-1 rounded font-label-sm">Earnings</span>
+<span class="font-label-sm text-on-surface-variant">1h ago</span>
+</div>
+<h3 class="font-headline-md text-on-surface italic mb-2 line-clamp-3">Nvidia Crushes Estimates, Data Center Revenue Up 150% YoY</h3>
+</div>
+<div class="mt-4 flex items-center justify-between border-t border-outline-variant pt-3">
+<span class="font-label-md text-on-surface">NVDA</span>
+<span class="font-label-md text-primary">+8.45%</span>
+</div>
+</div>
+<!-- Story 3 -->
+<div class="bg-surface-container border border-outline-variant rounded-xl p-5 hover:border-error/50 transition-colors cursor-pointer flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-3">
+<span class="bg-surface-variant text-on-surface px-2 py-1 rounded font-label-sm">Regulation</span>
+<span class="font-label-sm text-on-surface-variant">2h ago</span>
+</div>
+<h3 class="font-headline-md text-on-surface italic mb-2 line-clamp-3">SEC Proposes Stricter Rules for High-Frequency Crypto Trading</h3>
+</div>
+<div class="mt-4 flex items-center justify-between border-t border-outline-variant pt-3">
+<span class="font-label-md text-on-surface">COIN</span>
+<span class="font-label-md text-error">-4.20%</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Feed List & Market Movers -->
+<section class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+<!-- Latest News Feed -->
+<div class="xl:col-span-2">
+<div class="flex items-center justify-between mb-6 border-b border-outline-variant pb-2">
+<h2 class="font-headline-md text-on-surface italic">LATEST WIRE</h2>
+<div class="flex gap-2">
+<button class="text-primary font-label-md hover:underline">All</button>
+<span class="text-outline-variant">|</span>
+<button class="text-on-surface-variant font-label-md hover:text-on-surface">Equities</button>
+<span class="text-outline-variant">|</span>
+<button class="text-on-surface-variant font-label-md hover:text-on-surface">Crypto</button>
+</div>
+</div>
+<div class="space-y-4">
+<!-- News Item 1 -->
+<div class="group flex flex-col sm:flex-row gap-4 p-4 rounded-xl hover:bg-surface-container-low border border-transparent hover:border-outline-variant transition-all cursor-pointer">
+<div class="w-full sm:w-48 h-32 bg-surface-container-high rounded-lg overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" data-alt="A sleek minimalist chart showing an upward trend line on a dark digital display, reflecting corporate growth in the tech sector." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC3OA2x5LpWd_7J3GdW9WGB9M25RC7LWJFuBivGywYDl5S2xwOCGTyHkKzeL8IvI0uq3aRsnQcHnbvi9UxNwjeZmtVfr5sK62GkWbgc51xjFrpH68VtWUhZPeIJfRIeUmlQObpqTExJBP9K4e1bbXM4m3MHozcQL2QaUbChz5R6jU1HLTGNNu0eVo5s3JaoXXGouzxERSu4BgHKZ_33UjnLJ5temrzutbuGk3fXYaAhskscRNHaZobs"/>
+</div>
+<div class="flex flex-col justify-between py-1">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="font-label-sm text-on-surface-variant">Tech</span>
+<span class="w-1 h-1 bg-outline rounded-full"></span>
+<span class="font-label-sm text-on-surface-variant">3h ago</span>
+</div>
+<h4 class="font-body-lg font-bold text-on-surface group-hover:text-primary transition-colors mb-2">Apple Announces AI Integration Across Entire Product Line</h4>
+<p class="font-body-md text-on-surface-variant line-clamp-2">New partnership with OpenAI brings ChatGPT capabilities to iOS 18, driving shares to all-time highs.</p>
+</div>
+<div class="flex gap-2 mt-3">
+<span class="bg-surface-container-high text-on-surface px-2 py-0.5 rounded text-xs font-label-sm">AAPL</span>
+</div>
+</div>
+</div>
+<!-- News Item 2 -->
+<div class="group flex flex-col sm:flex-row gap-4 p-4 rounded-xl hover:bg-surface-container-low border border-transparent hover:border-outline-variant transition-all cursor-pointer">
+<div class="w-full sm:w-48 h-32 bg-surface-container-high rounded-lg overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" data-alt="An industrial electric vehicle manufacturing plant with robotic arms assembling car chassis in a modern, dark high-tech factory setting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCX8A1TUGJH1msGKmHOqPUwoQ1NBSafkbsnZd3NvCHwkHZwUmmc4MXW5jSvFO085Z4FxtsSWzvj83BZPp3Z4dbx3KVKMmVhttp1V_mDPZaLnaqWN0R42e0_vNWM6F3RxfgYunyQ8fkp83rB94Tz6coAM2R4KX2mHRFUPdHNIPnYyMKJ4Xuj6ENoWb-p36Ki0WpIyrzQ1_RMZMaDA_NqUmC4iJ86pEaARVvDexPMQOJYjfsl8owOJc66"/>
+</div>
+<div class="flex flex-col justify-between py-1">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="font-label-sm text-on-surface-variant">Automotive</span>
+<span class="w-1 h-1 bg-outline rounded-full"></span>
+<span class="font-label-sm text-on-surface-variant">4h ago</span>
+</div>
+<h4 class="font-body-lg font-bold text-on-surface group-hover:text-primary transition-colors mb-2">Tesla Deliveries Miss Estimates, Q2 Margins Squeezed</h4>
+<p class="font-body-md text-on-surface-variant line-clamp-2">Increased competition in the Chinese market and supply chain issues weigh heavily on the automaker's quarterly performance.</p>
+</div>
+<div class="flex gap-2 mt-3">
+<span class="bg-surface-container-high text-on-surface px-2 py-0.5 rounded text-xs font-label-sm">TSLA</span>
+<span class="bg-surface-container-high text-error px-2 py-0.5 rounded text-xs font-label-sm flex items-center"><span class="material-symbols-outlined text-[12px]">arrow_drop_down</span> 2.1%</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Market Movers -->
+<div class="xl:col-span-1">
+<div class="bg-surface-container border border-outline-variant rounded-xl p-5 sticky top-24">
+<h3 class="font-headline-md text-on-surface italic mb-4">TOP MOVERS</h3>
+<div class="space-y-1">
+<!-- Mover 1 -->
+<div class="flex items-center justify-between p-3 hover:bg-surface-container-high rounded-lg transition-colors cursor-pointer group">
+<div class="flex items-center gap-3">
+<div class="w-8 text-center font-label-md text-on-surface-variant group-hover:text-primary">1</div>
+<div>
+<div class="font-label-md text-on-surface font-bold">PLTR</div>
+<div class="font-label-sm text-on-surface-variant">Palantir Tech</div>
+</div>
+</div>
+<div class="text-right">
+<div class="font-label-md text-on-surface">$24.50</div>
+<div class="font-label-md text-primary">+12.4%</div>
+</div>
+</div>
+<!-- Mover 2 -->
+<div class="flex items-center justify-between p-3 hover:bg-surface-container-high rounded-lg transition-colors cursor-pointer group bg-surface-container-high/50">
+<div class="flex items-center gap-3">
+<div class="w-8 text-center font-label-md text-on-surface-variant group-hover:text-primary">2</div>
+<div>
+<div class="font-label-md text-on-surface font-bold">AMD</div>
+<div class="font-label-sm text-on-surface-variant">Adv Micro Devices</div>
+</div>
+</div>
+<div class="text-right">
+<div class="font-label-md text-on-surface">$162.80</div>
+<div class="font-label-md text-primary">+6.2%</div>
+</div>
+</div>
+<!-- Mover 3 -->
+<div class="flex items-center justify-between p-3 hover:bg-surface-container-high rounded-lg transition-colors cursor-pointer group">
+<div class="flex items-center gap-3">
+<div class="w-8 text-center font-label-md text-on-surface-variant group-hover:text-error">3</div>
+<div>
+<div class="font-label-md text-on-surface font-bold">SNOW</div>
+<div class="font-label-sm text-on-surface-variant">Snowflake Inc</div>
+</div>
+</div>
+<div class="text-right">
+<div class="font-label-md text-on-surface">$145.20</div>
+<div class="font-label-md text-error">-8.5%</div>
+</div>
+</div>
+</div>
+<button class="w-full mt-4 py-2 border border-outline-variant text-on-surface-variant font-label-md rounded-lg hover:border-primary hover:text-primary transition-colors">
+                        View Full Screener
+                    </button>
+</div>
+</div>
+</section>
+</main>
+</body></html>

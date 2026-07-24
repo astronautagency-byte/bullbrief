@@ -1,0 +1,92 @@
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..700&family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=Inter:ital,wght@0,300..800;1,300..800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-headline: "Inter", sans-serif;
+  --font-serif: "Lora", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Custom Spacing Tokens to resolve gap-lg, p-md, py-xs etc. across the application */
+  --spacing-xs: 0.25rem; /* 4px */
+  --spacing-sm: 0.5rem;  /* 8px */
+  --spacing-md: 1rem;    /* 16px */
+  --spacing-lg: 1.5rem;  /* 24px */
+  --spacing-xl: 2.5rem;  /* 40px */
+
+  /* Define standard widths explicitly to avoid spacing overrides bleeding into max-w-* rules */
+  --width-xs: 20rem;
+  --width-sm: 24rem;
+  --width-md: 28rem;
+  --width-lg: 32rem;
+  --width-xl: 36rem;
+  --width-2xl: 42rem;
+  --width-3xl: 48rem;
+  --width-4xl: 56rem;
+
+  /* Polished Wealthsimple-Style Dark Theme Color Palette */
+  --color-primary: #12D162; /* Vibrant Bull Electric Green */
+  --color-primary-container: rgba(18, 209, 98, 0.08); /* Sleek translucent dark-green */
+  --color-on-primary-container: #12D162;
+  --color-secondary: #A3A3A3; /* Warm modern text gray (neutral-400) */
+  --color-tertiary: #737373; /* Clean medium text gray (neutral-500) */
+  --color-tertiary-container: #171717; /* Sleek slate card color (neutral-900) */
+  --color-background: #090909; /* Wealthsimple Extremely Dark Warm Gray-Black */
+  --color-surface: #121212; /* Solid dark card background */
+  --color-surface-container-lowest: #050505;
+  --color-surface-container-low: #151515;
+  --color-surface-container: #1C1C1C; /* Distinct slate layer */
+  --color-surface-container-high: #262626; /* Distinct lighter slate layer */
+  --color-surface-container-highest: #404040;
+  --color-on-surface: #F5F5F5; /* Crisp warm white (neutral-100) */
+  --color-on-surface-variant: #E5E5E5;
+  --color-outline: rgba(255, 255, 255, 0.08); /* Minimal borders to match screenshots */
+  --color-outline-variant: rgba(255, 255, 255, 0.04);
+  --color-error: #FF5C5C; /* Modern Bearish Coral/Red */
+  --color-error-container: rgba(255, 92, 92, 0.1);
+  --color-on-error-container: #FF5C5C;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-background);
+    color: var(--color-on-surface);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Make default headers look beautifully modern and geometric */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-headline);
+    font-weight: 600;
+  }
+}
+
+/* Custom visual utilities for Editorial Theme */
+.sentiment-gradient {
+  background: linear-gradient(90deg, #FF503A 0%, #1C1C1E 50%, #10B981 100%);
+}
+
+.pro-glow {
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+/* Slick Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: #09090B;
+  border-left: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
