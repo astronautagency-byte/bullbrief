@@ -104,12 +104,65 @@ export default function WatchlistPage() {
   const fetchWatchlist = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/watchlist-local");
+      const stored = localStorage.getItem("bullbrief_watchlist");
+      const symbols: string[] = stored ? JSON.parse(stored) : [];
+
+      if (symbols.length === 0) {
+        setWatchlist([]);
+        return;
+      }
+
+      const meta: Record<string, { name: string; exchange: string }> = {
+        AAPL: { name: "Apple Inc.", exchange: "NASDAQ" },
+        MSFT: { name: "Microsoft Corp.", exchange: "NASDAQ" },
+        GOOGL: { name: "Alphabet Inc.", exchange: "NASDAQ" },
+        AMZN: { name: "Amazon.com Inc.", exchange: "NASDAQ" },
+        NVDA: { name: "NVIDIA Corp.", exchange: "NASDAQ" },
+        META: { name: "Meta Platforms", exchange: "NASDAQ" },
+        TSLA: { name: "Tesla Inc.", exchange: "NASDAQ" },
+        NFLX: { name: "Netflix Inc.", exchange: "NASDAQ" },
+        AMD: { name: "Advanced Micro Devices", exchange: "NASDAQ" },
+        INTC: { name: "Intel Corp.", exchange: "NASDAQ" },
+        JPM: { name: "JPMorgan Chase", exchange: "NYSE" },
+        V: { name: "Visa Inc.", exchange: "NYSE" },
+        JNJ: { name: "Johnson & Johnson", exchange: "NYSE" },
+        WMT: { name: "Walmart Inc.", exchange: "NYSE" },
+        UNH: { name: "UnitedHealth Group", exchange: "NYSE" },
+        XOM: { name: "Exxon Mobil", exchange: "NYSE" },
+        "BRK.B": { name: "Berkshire Hathaway", exchange: "NYSE" },
+        PG: { name: "Procter & Gamble", exchange: "NYSE" },
+        MA: { name: "Mastercard Inc.", exchange: "NYSE" },
+        HD: { name: "Home Depot", exchange: "NYSE" },
+        DIS: { name: "Walt Disney Co.", exchange: "NYSE" },
+        BAC: { name: "Bank of America", exchange: "NYSE" },
+        PFE: { name: "Pfizer Inc.", exchange: "NYSE" },
+        CRM: { name: "Salesforce Inc.", exchange: "NYSE" },
+        COST: { name: "Costco Wholesale", exchange: "NASDAQ" },
+        COIN: { name: "Coinbase Global", exchange: "NASDAQ" },
+        PLTR: { name: "Palantir Technologies", exchange: "NYSE" },
+        UBER: { name: "Uber Technologies", exchange: "NYSE" },
+        ABNB: { name: "Airbnb Inc.", exchange: "NASDAQ" },
+        SHOP: { name: "Shopify Inc.", exchange: "TSX" },
+        BABA: { name: "Alibaba Group", exchange: "NYSE" },
+        SQ: { name: "Block Inc.", exchange: "NYSE" },
+      };
+
+      const res = await fetch(`/api/watchlist-local`);
       const json = await res.json();
+      const priceData: Record<string, { price: number; change: number; changePercent: number }> = {};
+      for (const s of json.data ?? []) {
+        priceData[s.symbol] = { price: s.price, change: s.change, changePercent: s.changePercent };
+      }
+
       setWatchlist(
-        (json.data ?? []).map((s: any, i: number) => ({
-          ...s,
-          sparkline: generateSparkline(s.price || 0, s.changePercent || 0),
+        symbols.map((sym, i) => ({
+          symbol: sym,
+          companyName: meta[sym]?.name ?? sym,
+          exchangeCode: meta[sym]?.exchange ?? "NASDAQ",
+          price: priceData[sym]?.price ?? 0,
+          change: priceData[sym]?.change ?? 0,
+          changePercent: priceData[sym]?.changePercent ?? 0,
+          sparkline: generateSparkline(priceData[sym]?.price ?? 0, priceData[sym]?.changePercent ?? 0),
           addedAt: new Date(Date.now() - i * 86400000).toISOString(),
         }))
       );
@@ -147,24 +200,12 @@ export default function WatchlistPage() {
   const addStock = async (symbol: string, name: string, exchange: string) => {
     setAdding(symbol);
     try {
-      await fetch("/api/watchlist-local", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ symbol }),
-      });
-      setWatchlist((prev) => [
-        {
-          symbol,
-          companyName: name,
-          exchangeCode: exchange,
-          price: 0,
-          change: 0,
-          changePercent: 0,
-          sparkline: [0, 0, 0, 0, 0, 0],
-          addedAt: new Date().toISOString(),
-        },
-        ...prev,
-      ]);
+      const stored = localStorage.getItem("bullbrief_watchlist");
+      const symbols: string[] = stored ? JSON.parse(stored) : [];
+      if (!symbols.includes(symbol)) {
+        symbols.push(symbol);
+        localStorage.setItem("bullbrief_watchlist", JSON.stringify(symbols));
+      }
       setShowAddModal(false);
       setAddSearch("");
       fetchWatchlist();
@@ -174,11 +215,9 @@ export default function WatchlistPage() {
   };
 
   const removeStock = async (symbol: string) => {
-    await fetch("/api/watchlist-local", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ symbol }),
-    });
+    const stored = localStorage.getItem("bullbrief_watchlist");
+    const symbols: string[] = stored ? JSON.parse(stored) : [];
+    localStorage.setItem("bullbrief_watchlist", JSON.stringify(symbols.filter((s) => s !== symbol)));
     setWatchlist((prev) => prev.filter((s) => s.symbol !== symbol));
   };
 

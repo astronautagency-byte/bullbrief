@@ -51,7 +51,7 @@ export default function PodcastsPage() {
   const [activeEpisode, setActiveEpisode] = useState<Episode | null>(null);
   const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set());
 
-  const [activeTopics, setActiveTopics] = useState<Set<string>>(new Set());
+  const [activeTopics, setActiveTopics] = useState<Set<string>>(new Set(["markets", "investing", "economy"]));
 
   useEffect(() => {
     fetch("/api/podcast-favourites")

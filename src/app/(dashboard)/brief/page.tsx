@@ -19,14 +19,12 @@ import { AudioPlayer } from "@/components/ui/audio-player";
 import { Badge, SentimentBadge } from "@/components/ui/badge";
 import {
   RefreshCw,
-  Bookmark,
   ExternalLink,
   Newspaper,
   Loader2,
   Send,
   Podcast,
-  TrendingUp,
-  TrendingDown,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHead } from "@/components/page-head";
@@ -56,6 +54,7 @@ const STOCK_NAMES: Record<string, string> = {
 export default function BriefPage() {
   const [briefing, setBriefing] = useState<BriefingData | null>(null);
   const [articles, setArticles] = useState<Article[]>([]);
+  const [keyInsights, setKeyInsights] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { addNotification } = useNotifications();
@@ -113,6 +112,7 @@ export default function BriefPage() {
           return aYf - bYf;
         });
         setArticles(yahooFirst.slice(0, 4));
+        setKeyInsights(json.keyInsights ?? []);
         addNotification({
           type: "briefing_ready",
           title: "Daily Brief Ready",
