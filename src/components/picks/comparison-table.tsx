@@ -23,24 +23,18 @@ interface StockData {
   price: number | null;
   change: number | null;
   changePercent: number | null;
+  marketCap: number | null;
   starRating: number | null;
   starOutOf: number;
   pe: number | null;
-  pegRatio: number | null;
-  marketCap: number | null;
-  dividendYield: number | null;
   priceToBook: number | null;
   priceToSales: number | null;
-  totalReturn1Y: number | null;
-  totalReturn3Y: number | null;
-  totalReturn5Y: number | null;
-  morningstarRating3Y: number | null;
-  morningstarRating5Y: number | null;
-  morningstarRating10Y: number | null;
-  processRating: string | null;
-  peopleRating: string | null;
-  parentRating: string | null;
-  esgRiskRating: string | null;
+  priceToCashFlow: number | null;
+  dividendYield: number | null;
+  sector: string | null;
+  industry: string | null;
+  fairValue: number | null;
+  economicMoat: string | null;
 }
 
 type AssetType = "stock" | "fund";
@@ -123,11 +117,6 @@ const POPULAR_FUNDS = [
   { symbol: "TRBCX", name: "T. Rowe Price Blue Chip Growth" },
 ];
 
-interface ComparisonTableProps {
-  assetType: AssetType;
-  onAssetTypeChange: (type: AssetType) => void;
-}
-
 const STORAGE_KEY_SELECTED = "bb-compare-selected";
 const STORAGE_KEY_ASSET_TYPE = "bb-compare-asset-type";
 const STORAGE_KEY_EXPANDED = "bb-compare-expanded";
@@ -166,18 +155,23 @@ function saveAssetType(type: AssetType) {
 }
 
 function loadExpanded(): Record<string, boolean> {
-  if (typeof window === "undefined") return { rating: true, valuation: true, performance: false, sustainability: false };
+  if (typeof window === "undefined") return { rating: true, company: true, valuation: true };
   try {
     const stored = localStorage.getItem(STORAGE_KEY_EXPANDED);
     if (stored) return JSON.parse(stored);
   } catch {}
-  return { rating: true, valuation: true, performance: false, sustainability: false };
+  return { rating: true, company: true, valuation: true };
 }
 
 function saveExpanded(sections: Record<string, boolean>) {
   try {
     localStorage.setItem(STORAGE_KEY_EXPANDED, JSON.stringify(sections));
   } catch {}
+}
+
+interface ComparisonTableProps {
+  assetType: AssetType;
+  onAssetTypeChange: (type: AssetType) => void;
 }
 
 export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTableProps) {
@@ -189,36 +183,11 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
   const [showSearch, setShowSearch] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     rating: true,
+    company: true,
     valuation: true,
-    performance: false,
-    sustainability: false,
   });
   const hydratedRef = useRef(false);
   const searchRef = useRef<HTMLDivElement>(null);
-
-  // Hydrate from localStorage after mount (single read, no cascading setState)
-  useEffect(() => {
-    if (hydratedRef.current) return;
-    hydratedRef.current = true;
-    const storedSelected = loadSelected();
-    const storedAssetType = loadAssetType();
-    const storedExpanded = loadExpanded();
-    // Batch state updates into a single render
-    setSelected(storedSelected.length > 0 ? storedSelected : []);
-    setExpandedSections(storedExpanded);
-    if (storedAssetType) onAssetTypeChange(storedAssetType);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Persist to localStorage on changes
-  useEffect(() => {
-    if (hydratedRef.current) saveSelected(selected);
-  }, [selected]);
-  useEffect(() => {
-    if (hydratedRef.current) saveAssetType(assetType);
-  }, [assetType]);
-  useEffect(() => {
-    if (hydratedRef.current) saveExpanded(expandedSections);
-  }, [expandedSections]);
 
   const popularList = assetType === "stock" ? POPULAR_STOCKS : POPULAR_FUNDS;
 
@@ -229,6 +198,29 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
       return next;
     });
   };
+
+  useEffect(() => {
+    if (hydratedRef.current) return;
+    hydratedRef.current = true;
+    const storedSelected = loadSelected();
+    const storedAssetType = loadAssetType();
+    const storedExpanded = loadExpanded();
+    setSelected(storedSelected.length > 0 ? storedSelected : []);
+    setExpandedSections(storedExpanded);
+    if (storedAssetType) onAssetTypeChange(storedAssetType);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (hydratedRef.current) saveSelected(selected);
+  }, [selected]);
+  useEffect(() => {
+    if (hydratedRef.current) saveAssetType(assetType);
+  }, [assetType]);
+  useEffect(() => {
+    if (hydratedRef.current) saveExpanded(expandedSections);
+  }, [expandedSections]);
+
+  const popularListStable = assetType === "stock" ? POPULAR_STOCKS : POPULAR_FUNDS;
 
   const fetchData = useCallback(async () => {
     if (selected.length < 2) {
@@ -284,7 +276,7 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
     setSelected(selected.filter((s) => s !== sym));
   };
 
-  const filtered = popularList.filter(
+  const filtered = popularListStable.filter(
     (s) =>
       !selected.includes(s.symbol) &&
       (s.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -303,44 +295,22 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
     return `$${val.toLocaleString()}`;
   };
 
-  const formatPercent = (val: number | null): string => {
-    if (val === null) return "—";
-    const sign = val > 0 ? "+" : "";
-    return `${sign}${val.toFixed(2)}%`;
-  };
-
   const formatRatio = (val: number | null): string => {
     if (val === null) return "—";
     return val.toFixed(2);
   };
 
-  const getRatingBadge = (rating: string | null) => {
-    if (!rating) return <span className="text-on-surface-variant/30 text-xs">—</span>;
-    const variantMap: Record<string, "positive" | "default" | "warning" | "negative"> = {
-      High: "positive",
-      "Above Average": "positive",
-      Average: "default",
-      "Below Average": "warning",
-      Low: "negative",
+  const getMoatBadge = (moat: string | null) => {
+    if (!moat) return <span className="text-on-surface-variant/30 text-xs">—</span>;
+    const normalized = moat.toLowerCase();
+    const variantMap: Record<string, "positive" | "default" | "warning"> = {
+      wide: "positive",
+      narrow: "default",
+      none: "warning",
     };
     return (
-      <Badge variant={variantMap[rating] ?? "default"} className="text-[10px]">
-        {rating}
-      </Badge>
-    );
-  };
-
-  const getEsgBadge = (rating: string | null) => {
-    if (!rating) return <span className="text-on-surface-variant/30 text-xs">—</span>;
-    const variantMap: Record<string, "positive" | "default" | "warning" | "negative"> = {
-      Low: "positive",
-      Medium: "default",
-      High: "warning",
-      Severe: "negative",
-    };
-    return (
-      <Badge variant={variantMap[rating] ?? "default"} className="text-[10px]">
-        {rating}
+      <Badge variant={variantMap[normalized] ?? "default"} className="text-[10px] capitalize">
+        {moat}
       </Badge>
     );
   };
@@ -452,7 +422,6 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
       {!loading && stocks.length >= 2 && (
         <div className="bg-surface-container-low border border-outline-variant rounded-xl overflow-x-auto">
           <table className="w-full min-w-[600px]">
-            {/* Header row - Stock names */}
             <thead>
               <tr>
                 <th className="bg-surface-container px-4 py-3 text-left text-xs font-mono uppercase tracking-wider text-on-surface-variant w-[180px] sticky left-0 z-10">
@@ -489,7 +458,7 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
             </thead>
 
             <tbody>
-              {/* Price & Change Row */}
+              {/* Price */}
               <tr className="border-b border-outline-variant/50">
                 <td className="bg-surface-container-low px-4 py-3 text-xs font-mono uppercase tracking-wider text-on-surface-variant sticky left-0 z-10">
                   Price
@@ -505,6 +474,7 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
                 ))}
               </tr>
 
+              {/* Change */}
               <tr className="border-b border-outline-variant/50">
                 <td className="bg-surface-container-low px-4 py-3 text-xs font-mono uppercase tracking-wider text-on-surface-variant sticky left-0 z-10">
                   Change
@@ -531,6 +501,20 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
                 })}
               </tr>
 
+              {/* Market Cap */}
+              <tr className="border-b border-outline-variant/50">
+                <td className="bg-surface-container-low px-4 py-3 text-xs font-mono uppercase tracking-wider text-on-surface-variant sticky left-0 z-10">
+                  Market Cap
+                </td>
+                {stocks.map((stock) => (
+                  <td key={stock.symbol} className="px-4 py-3 text-center">
+                    <span className="font-mono text-xs text-on-surface">
+                      {formatMarketCap(stock.marketCap)}
+                    </span>
+                  </td>
+                ))}
+              </tr>
+
               {/* Morningstar Rating Section */}
               <tr className="border-b border-outline-variant/50">
                 <td
@@ -550,15 +534,50 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
               </tr>
 
               {expandedSections.rating && (
+                <tr className="border-b border-outline-variant/50">
+                  <td className="bg-surface-container-low px-4 py-3 pl-8 text-xs text-on-surface-variant sticky left-0 z-10">
+                    Star Rating
+                  </td>
+                  {stocks.map((stock) => (
+                    <td key={stock.symbol} className="px-4 py-3 text-center">
+                      {stock.starRating ? (
+                        <StarRating rating={stock.starRating} size="sm" />
+                      ) : (
+                        <span className="text-on-surface-variant/30 text-xs">—</span>
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              )}
+
+              {/* Company Info Section */}
+              <tr className="border-b border-outline-variant/50">
+                <td
+                  colSpan={stocks.length + 1}
+                  className="bg-surface-container px-4 py-2 cursor-pointer select-none print:cursor-default"
+                  onClick={() => toggleSection("company")}
+                >
+                  <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-on-surface-variant">
+                    {expandedSections.company ? (
+                      <ChevronDown className="w-3 h-3" />
+                    ) : (
+                      <ChevronRight className="w-3 h-3" />
+                    )}
+                    Company Info
+                  </div>
+                </td>
+              </tr>
+
+              {expandedSections.company && (
                 <>
                   <tr className="border-b border-outline-variant/50">
                     <td className="bg-surface-container-low px-4 py-3 pl-8 text-xs text-on-surface-variant sticky left-0 z-10">
-                      Overall Rating
+                      Sector
                     </td>
                     {stocks.map((stock) => (
                       <td key={stock.symbol} className="px-4 py-3 text-center">
-                        {stock.starRating ? (
-                          <StarRating rating={stock.starRating} size="sm" />
+                        {stock.sector ? (
+                          <Badge variant="outline" className="text-[10px]">{stock.sector}</Badge>
                         ) : (
                           <span className="text-on-surface-variant/30 text-xs">—</span>
                         )}
@@ -567,14 +586,12 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
                   </tr>
                   <tr className="border-b border-outline-variant/50">
                     <td className="bg-surface-container-low px-4 py-3 pl-8 text-xs text-on-surface-variant sticky left-0 z-10">
-                      3-Year Rating
+                      Industry
                     </td>
                     {stocks.map((stock) => (
                       <td key={stock.symbol} className="px-4 py-3 text-center">
-                        {stock.morningstarRating3Y ? (
-                          <StarRating rating={stock.morningstarRating3Y} size="sm" />
-                        ) : stock.starRating ? (
-                          <StarRating rating={stock.starRating} size="sm" />
+                        {stock.industry ? (
+                          <span className="text-xs text-on-surface">{stock.industry}</span>
                         ) : (
                           <span className="text-on-surface-variant/30 text-xs">—</span>
                         )}
@@ -583,61 +600,11 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
                   </tr>
                   <tr className="border-b border-outline-variant/50">
                     <td className="bg-surface-container-low px-4 py-3 pl-8 text-xs text-on-surface-variant sticky left-0 z-10">
-                      5-Year Rating
+                      Economic Moat
                     </td>
                     {stocks.map((stock) => (
                       <td key={stock.symbol} className="px-4 py-3 text-center">
-                        {stock.morningstarRating5Y ? (
-                          <StarRating rating={stock.morningstarRating5Y} size="sm" />
-                        ) : stock.starRating ? (
-                          <StarRating rating={stock.starRating} size="sm" />
-                        ) : (
-                          <span className="text-on-surface-variant/30 text-xs">—</span>
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                  <tr className="border-b border-outline-variant/50">
-                    <td className="bg-surface-container-low px-4 py-3 pl-8 text-xs text-on-surface-variant sticky left-0 z-10">
-                      10-Year Rating
-                    </td>
-                    {stocks.map((stock) => (
-                      <td key={stock.symbol} className="px-4 py-3 text-center">
-                        {stock.morningstarRating10Y ? (
-                          <StarRating rating={stock.morningstarRating10Y} size="sm" />
-                        ) : (
-                          <span className="text-on-surface-variant/30 text-xs">—</span>
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                  <tr className="border-b border-outline-variant/50">
-                    <td className="bg-surface-container-low px-4 py-3 pl-8 text-xs text-on-surface-variant sticky left-0 z-10">
-                      Process
-                    </td>
-                    {stocks.map((stock) => (
-                      <td key={stock.symbol} className="px-4 py-3 text-center">
-                        {getRatingBadge(stock.processRating)}
-                      </td>
-                    ))}
-                  </tr>
-                  <tr className="border-b border-outline-variant/50">
-                    <td className="bg-surface-container-low px-4 py-3 pl-8 text-xs text-on-surface-variant sticky left-0 z-10">
-                      People
-                    </td>
-                    {stocks.map((stock) => (
-                      <td key={stock.symbol} className="px-4 py-3 text-center">
-                        {getRatingBadge(stock.peopleRating)}
-                      </td>
-                    ))}
-                  </tr>
-                  <tr className="border-b border-outline-variant/50">
-                    <td className="bg-surface-container-low px-4 py-3 pl-8 text-xs text-on-surface-variant sticky left-0 z-10">
-                      Parent
-                    </td>
-                    {stocks.map((stock) => (
-                      <td key={stock.symbol} className="px-4 py-3 text-center">
-                        {getRatingBadge(stock.parentRating)}
+                        {getMoatBadge(stock.economicMoat)}
                       </td>
                     ))}
                   </tr>
@@ -678,18 +645,6 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
                   </tr>
                   <tr className="border-b border-outline-variant/50">
                     <td className="bg-surface-container-low px-4 py-3 pl-8 text-xs text-on-surface-variant sticky left-0 z-10">
-                      PEG Ratio
-                    </td>
-                    {stocks.map((stock) => (
-                      <td key={stock.symbol} className="px-4 py-3 text-center">
-                        <span className="font-mono text-xs text-on-surface">
-                          {formatRatio(stock.pegRatio)}
-                        </span>
-                      </td>
-                    ))}
-                  </tr>
-                  <tr className="border-b border-outline-variant/50">
-                    <td className="bg-surface-container-low px-4 py-3 pl-8 text-xs text-on-surface-variant sticky left-0 z-10">
                       Price / Book
                     </td>
                     {stocks.map((stock) => (
@@ -714,12 +669,12 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
                   </tr>
                   <tr className="border-b border-outline-variant/50">
                     <td className="bg-surface-container-low px-4 py-3 pl-8 text-xs text-on-surface-variant sticky left-0 z-10">
-                      Market Cap
+                      Price / Cash Flow
                     </td>
                     {stocks.map((stock) => (
                       <td key={stock.symbol} className="px-4 py-3 text-center">
                         <span className="font-mono text-xs text-on-surface">
-                          {formatMarketCap(stock.marketCap)}
+                          {formatRatio(stock.priceToCashFlow)}
                         </span>
                       </td>
                     ))}
@@ -738,118 +693,30 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
                       </td>
                     ))}
                   </tr>
-                </>
-              )}
-
-              {/* Performance Section */}
-              <tr className="border-b border-outline-variant/50">
-                <td
-                  colSpan={stocks.length + 1}
-                  className="bg-surface-container px-4 py-2 cursor-pointer select-none print:cursor-default"
-                  onClick={() => toggleSection("performance")}
-                >
-                  <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-on-surface-variant">
-                    {expandedSections.performance ? (
-                      <ChevronDown className="w-3 h-3" />
-                    ) : (
-                      <ChevronRight className="w-3 h-3" />
-                    )}
-                    Performance
-                  </div>
-                </td>
-              </tr>
-
-              {expandedSections.performance && (
-                <>
                   <tr className="border-b border-outline-variant/50">
                     <td className="bg-surface-container-low px-4 py-3 pl-8 text-xs text-on-surface-variant sticky left-0 z-10">
-                      1-Year Return
+                      Fair Value
                     </td>
                     {stocks.map((stock) => (
                       <td key={stock.symbol} className="px-4 py-3 text-center">
-                        <span className={cn(
-                          "font-mono text-xs",
-                          stock.totalReturn1Y !== null
-                            ? stock.totalReturn1Y >= 0
+                        {stock.fairValue !== null ? (
+                          <span className={cn(
+                            "font-mono text-xs font-medium",
+                            stock.price !== null && stock.fairValue > stock.price
                               ? "text-primary"
-                              : "text-error"
-                            : "text-on-surface-variant/30"
-                        )}>
-                          {formatPercent(stock.totalReturn1Y)}
-                        </span>
-                      </td>
-                    ))}
-                  </tr>
-                  <tr className="border-b border-outline-variant/50">
-                    <td className="bg-surface-container-low px-4 py-3 pl-8 text-xs text-on-surface-variant sticky left-0 z-10">
-                      3-Year Return
-                    </td>
-                    {stocks.map((stock) => (
-                      <td key={stock.symbol} className="px-4 py-3 text-center">
-                        <span className={cn(
-                          "font-mono text-xs",
-                          stock.totalReturn3Y !== null
-                            ? stock.totalReturn3Y >= 0
-                              ? "text-primary"
-                              : "text-error"
-                            : "text-on-surface-variant/30"
-                        )}>
-                          {formatPercent(stock.totalReturn3Y)}
-                        </span>
-                      </td>
-                    ))}
-                  </tr>
-                  <tr className="border-b border-outline-variant/50">
-                    <td className="bg-surface-container-low px-4 py-3 pl-8 text-xs text-on-surface-variant sticky left-0 z-10">
-                      5-Year Return
-                    </td>
-                    {stocks.map((stock) => (
-                      <td key={stock.symbol} className="px-4 py-3 text-center">
-                        <span className={cn(
-                          "font-mono text-xs",
-                          stock.totalReturn5Y !== null
-                            ? stock.totalReturn5Y >= 0
-                              ? "text-primary"
-                              : "text-error"
-                            : "text-on-surface-variant/30"
-                        )}>
-                          {formatPercent(stock.totalReturn5Y)}
-                        </span>
+                              : stock.price !== null && stock.fairValue < stock.price
+                                ? "text-error"
+                                : "text-on-surface"
+                          )}>
+                            ${stock.fairValue.toFixed(2)}
+                          </span>
+                        ) : (
+                          <span className="text-on-surface-variant/30 text-xs">—</span>
+                        )}
                       </td>
                     ))}
                   </tr>
                 </>
-              )}
-
-              {/* Sustainability Section */}
-              <tr className="border-b border-outline-variant/50">
-                <td
-                  colSpan={stocks.length + 1}
-                  className="bg-surface-container px-4 py-2 cursor-pointer select-none print:cursor-default"
-                  onClick={() => toggleSection("sustainability")}
-                >
-                  <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-on-surface-variant">
-                    {expandedSections.sustainability ? (
-                      <ChevronDown className="w-3 h-3" />
-                    ) : (
-                      <ChevronRight className="w-3 h-3" />
-                    )}
-                    Sustainability
-                  </div>
-                </td>
-              </tr>
-
-              {expandedSections.sustainability && (
-                <tr className="border-b border-outline-variant/50">
-                  <td className="bg-surface-container-low px-4 py-3 pl-8 text-xs text-on-surface-variant sticky left-0 z-10">
-                    ESG Risk Rating
-                  </td>
-                  {stocks.map((stock) => (
-                    <td key={stock.symbol} className="px-4 py-3 text-center">
-                      {getEsgBadge(stock.esgRiskRating)}
-                    </td>
-                  ))}
-                </tr>
               )}
             </tbody>
           </table>

@@ -28,6 +28,7 @@ export interface StockDetails {
   dividendYield: number | null;
   priceToBook: number | null;
   priceToSales: number | null;
+  priceToCashFlow: number | null;
   totalReturn1Y: number | null;
   totalReturn3Y: number | null;
   totalReturn5Y: number | null;
@@ -38,7 +39,20 @@ export interface StockDetails {
   peopleRating: string | null;
   parentRating: string | null;
   esgRiskRating: string | null;
+  sector: string | null;
+  industry: string | null;
+  fairValue: number | null;
+  economicMoat: string | null;
 }
+
+const EMPTY_RESULT = (ticker: string): StockDetails => ({
+  symbol: ticker, pe: null, pegRatio: null, starRating: null, starOutOf: 5, name: null,
+  marketCap: null, dividendYield: null, priceToBook: null, priceToSales: null, priceToCashFlow: null,
+  totalReturn1Y: null, totalReturn3Y: null, totalReturn5Y: null,
+  morningstarRating3Y: null, morningstarRating5Y: null, morningstarRating10Y: null,
+  processRating: null, peopleRating: null, parentRating: null, esgRiskRating: null,
+  sector: null, industry: null, fairValue: null, economicMoat: null,
+});
 
 const EXCHANGE_MAP: Record<string, string> = {
   NASDAQ: "XNAS",
@@ -93,7 +107,7 @@ export async function getStockDetails(
   ticker: string,
   exchange?: string
 ): Promise<StockDetails> {
-  if (!KEY) return { symbol: ticker, pe: null, pegRatio: null, starRating: null, starOutOf: 5, name: null, marketCap: null, dividendYield: null, priceToBook: null, priceToSales: null, totalReturn1Y: null, totalReturn3Y: null, totalReturn5Y: null, morningstarRating3Y: null, morningstarRating5Y: null, morningstarRating10Y: null, processRating: null, peopleRating: null, parentRating: null, esgRiskRating: null };
+  if (!KEY) return EMPTY_RESULT(ticker);
   const cacheKey = `${ticker}:${exchange || ""}`;
   if (detailsCache.has(cacheKey)) return detailsCache.get(cacheKey)!;
 
@@ -104,95 +118,106 @@ export async function getStockDetails(
       `${BASE}/stock/details?ticker=${encodeURIComponent(ticker)}&exchange=${ex}`,
       { headers: headers(), next: { revalidate: 3600 } }
     );
-    if (!res.ok) return { symbol: ticker, pe: null, pegRatio: null, starRating: null, starOutOf: 5, name: null, marketCap: null, dividendYield: null, priceToBook: null, priceToSales: null, totalReturn1Y: null, totalReturn3Y: null, totalReturn5Y: null, morningstarRating3Y: null, morningstarRating5Y: null, morningstarRating10Y: null, processRating: null, peopleRating: null, parentRating: null, esgRiskRating: null };
+    if (!res.ok) return EMPTY_RESULT(ticker);
     const json = await res.json();
     const comps = json.components || {};
 
     let pe: number | null = null;
-    let pegRatio: number | null = null;
+    let priceToSales: number | null = null;
+    let dividendYield: number | null = null;
     let starRating: number | null = null;
     let name: string | null = null;
-    let marketCap: number | null = null;
-    let dividendYield: number | null = null;
     let priceToBook: number | null = null;
-    let priceToSales: number | null = null;
+    let priceToCashFlow: number | null = null;
+    let sector: string | null = null;
+    let industry: string | null = null;
+    let fairValue: number | null = null;
+    let economicMoat: string | null = null;
 
-    // P/E from keyStatistics
+    // === keyStatistics: P/E, P/S, Dividend Yield ===
     const ks = comps.keyStatistics?.payload?.dataPoints;
     if (ks) {
       const peEntry = ks["priceToEarnings[normalized]"] || ks["priceToEarnings[trailing]"];
       if (peEntry?.value != null) pe = peEntry.value;
 
-      const pegEntry = ks["priceToEarningsGrowth[trailing]"];
-      if (pegEntry?.value != null) pegRatio = pegEntry.value;
-
-      const mcEntry = ks["marketCapitalization"];
-      if (mcEntry?.value != null) marketCap = mcEntry.value;
-
-      const divEntry = ks["dividendYieldFactored"];
-      if (divEntry?.value != null) dividendYield = divEntry.value;
-
-      const pbEntry = ks["priceToBook"];
-      if (pbEntry?.value != null) priceToBook = pbEntry.value;
-
       const psEntry = ks["priceToSales"];
       if (psEntry?.value != null) priceToSales = psEntry.value;
+
+      // Dividend yield: try trailing, then forward
+      const divEntry = ks["dividendYield[trailing]"] || ks["dividendYield[forward]"];
+      if (divEntry?.value != null) dividendYield = divEntry.value;
     }
 
-    // P/E fallback from valuationVsBenchmarks
-    if (pe === null) {
-      const vvb = comps.valuationVsBenchmarks?.payload?.dataPoints;
-      if (Array.isArray(vvb)) {
-        for (const dp of vvb) {
-          const vals = dp.values || {};
-          const peVal = vals["priceToEarnings[normalized]"] || vals["priceToEarnings[trailing]"];
-          if (peVal?.value != null) { pe = peVal.value; break; }
-        }
+    // === valuationVsBenchmarks: P/E fallback, P/B, P/S fallback, P/CF ===
+    const vvb = comps.valuationVsBenchmarks?.payload?.dataPoints;
+    if (Array.isArray(vvb) && vvb.length > 0) {
+      const vals = vvb[0].values || {};
+
+      if (pe === null) {
+        const peVal = vals["priceToEarnings[normalized]"] || vals["priceToEarnings[trailing]"];
+        if (peVal?.value != null) pe = peVal.value;
       }
+
+      if (priceToSales === null) {
+        const psVal = vals["priceToSales"];
+        if (psVal?.value != null) priceToSales = psVal.value;
+      }
+
+      const pbVal = vals["priceToBook"];
+      if (pbVal?.value != null) priceToBook = pbVal.value;
+
+      const pcfVal = vals["priceToCashFlow"];
+      if (pcfVal?.value != null) priceToCashFlow = pcfVal.value;
     }
 
-    // Star rating from priceToFairValueSummary
+    // === priceToFairValueSummary: Star rating (0-100 scale, divide by 20 for 1-5) ===
     const pfv = comps.priceToFairValueSummary?.payload?.capsule?.stockStarRating;
-    if (pfv) {
-      const rawVal = pfv.value;
-      if (rawVal != null && typeof rawVal === "number") {
-        starRating = Math.round(rawVal / 5);
-      }
+    if (pfv?.value != null && typeof pfv.value === "number") {
+      starRating = Math.round(pfv.value / 20);
+      if (starRating < 1) starRating = 1;
+      if (starRating > 5) starRating = 5;
     }
 
-    // Name from profile
-    const profile = comps.profile?.payload;
-    if (profile?.name) name = profile.name;
-
-    // Extract additional ratings from sustainability/process data if available
-    const processRating: string | null = null;
-    const peopleRating: string | null = null;
-    const parentRating: string | null = null;
-    let esgRiskRating: string | null = null;
-
-    const sustainability = comps.sustainability?.payload;
-    if (sustainability) {
-      const esgScore = sustainability.morningstarSustainabilityScore;
-      if (esgScore?.value != null) {
-        const val = esgScore.value;
-        if (val <= 10) esgRiskRating = "Low";
-        else if (val <= 20) esgRiskRating = "Medium";
-        else if (val <= 30) esgRiskRating = "High";
-        else esgRiskRating = "Severe";
-      }
+    // === profile: Name, Sector, Industry ===
+    const profileDP = comps.profile?.payload?.dataPoints;
+    if (profileDP) {
+      if (profileDP.sector?.value) sector = profileDP.sector.value;
+      if (profileDP.industry?.value) industry = profileDP.industry.value;
     }
+    const profileName = comps.profile?.payload?.companyProfile;
+    // Name comes from profile or from the top-level page data
+    name = comps.profile?.payload?.name || null;
+
+    // === companyReport: Fair value, Economic moat ===
+    const crDP = comps.companyReport?.payload?.dataPoints;
+    if (crDP) {
+      const fvEntry = crDP.fairValue;
+      if (fvEntry?.value != null) fairValue = fvEntry.value;
+
+      const moatEntry = crDP.economicMoat;
+      if (moatEntry?.value != null) economicMoat = moatEntry.value;
+    }
+
+    // === Fields NOT available in this API ===
+    const pegRatio = null;       // Not in keyStatistics
+    const marketCap = null;      // Not in keyStatistics
+    const processRating = null;  // Not in this API
+    const peopleRating = null;   // Not in this API
+    const parentRating = null;   // Not in this API
+    let esgRiskRating = null;    // Not in this API (no sustainability component)
 
     const result: StockDetails = {
       symbol: ticker, pe, pegRatio, starRating, starOutOf: 5, name,
-      marketCap, dividendYield, priceToBook, priceToSales,
+      marketCap, dividendYield, priceToBook, priceToSales, priceToCashFlow,
       totalReturn1Y: null, totalReturn3Y: null, totalReturn5Y: null,
       morningstarRating3Y: null, morningstarRating5Y: null, morningstarRating10Y: null,
       processRating, peopleRating, parentRating, esgRiskRating,
+      sector, industry, fairValue, economicMoat,
     };
     detailsCache.set(cacheKey, result);
     return result;
   } catch {
-    return { symbol: ticker, pe: null, pegRatio: null, starRating: null, starOutOf: 5, name: null, marketCap: null, dividendYield: null, priceToBook: null, priceToSales: null, totalReturn1Y: null, totalReturn3Y: null, totalReturn5Y: null, morningstarRating3Y: null, morningstarRating5Y: null, morningstarRating10Y: null, processRating: null, peopleRating: null, parentRating: null, esgRiskRating: null };
+    return EMPTY_RESULT(ticker);
   }
 }
 
