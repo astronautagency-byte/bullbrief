@@ -98,21 +98,21 @@ export function IndexCard({
       )}
     >
       <div className="flex items-center justify-between mb-1">
-        <span className="font-mono text-xs text-on-surface-variant font-medium">
+        <span className="font-body text-xs text-on-surface-variant font-medium">
           {symbol}
         </span>
         {dataType && (
-          <span className="font-mono text-[10px] text-on-surface-variant/60 uppercase">
+          <span className="font-body text-[10px] text-on-surface-variant/60 uppercase">
             {dataType === "real_time" ? "Live" : dataType === "end_of_day" ? "EOD" : "Delayed"}
           </span>
         )}
       </div>
       <div className="flex items-end justify-between">
         <div>
-          <span className="font-mono text-lg font-medium text-on-surface block">
+          <span className="font-body text-lg font-medium text-on-surface block">
             {formatPrice(value)}
           </span>
-          <span className={cn("font-mono text-sm", trendColor)}>
+          <span className={cn("font-body text-sm", trendColor)}>
             {formatChange(change)} ({formatPercent(changePercent)})
           </span>
         </div>

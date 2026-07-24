@@ -116,14 +116,14 @@ function StockDetailClient({ symbol }: { symbol: string }) {
 
       {quote && (
         <div className="flex items-end gap-4">
-          <span className="font-mono text-4xl font-bold text-on-surface">
+          <span className="font-body text-4xl font-bold text-on-surface">
             {formatPrice(quote.price ?? 0)}
           </span>
           <div className="flex items-center gap-2 mb-1">
-            <span className={cn("font-mono text-xl", trendColor)}>
+            <span className={cn("font-body text-xl", trendColor)}>
               {formatChange(quote.change ?? 0)}
             </span>
-            <span className={cn("font-mono text-xl", trendColor)}>
+            <span className={cn("font-body text-xl", trendColor)}>
               ({formatPercent(quote.changePercent ?? 0)})
             </span>
           </div>
@@ -183,7 +183,7 @@ function StockDetailClient({ symbol }: { symbol: string }) {
               <span className="text-xs text-on-surface-variant font-mono uppercase block mb-1">
                 {item.label}
               </span>
-              <span className="font-mono text-on-surface font-medium">{item.value}</span>
+              <span className="font-body text-on-surface font-medium">{item.value}</span>
             </div>
           ))}
         </div>

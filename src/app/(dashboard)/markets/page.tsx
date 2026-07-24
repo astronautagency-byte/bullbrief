@@ -13,6 +13,7 @@ import {
   TrendingDown,
   Loader2,
   RefreshCw,
+  Radio,
 } from "lucide-react";
 
 type MarketRegion = "us" | "ca";
@@ -206,19 +207,19 @@ export default function MarketsPage() {
                 )}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] md:text-xs text-on-surface-variant font-mono uppercase truncate">{idx.name}</span>
+                  <span className="text-[10px] md:text-xs text-on-surface-variant font-body uppercase truncate">{idx.name}</span>
                   {TrendIcon && <TrendIcon className={cn("w-3 h-3 md:w-4 md:h-4 flex-shrink-0", trendColor)} />}
                 </div>
-                <span className="font-mono text-base md:text-xl font-bold text-on-surface block">
+                <span className="font-body text-base md:text-xl font-bold text-on-surface block">
                   {isCurrency
                     ? idx.value.toFixed(4)
                     : idx.value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
                 <div className="flex items-center gap-1 md:gap-2 mt-1">
-                  <span className={cn("font-mono text-xs md:text-sm", trendColor)}>
+                  <span className={cn("font-body text-xs md:text-sm", trendColor)}>
                     {idx.change >= 0 ? "+" : ""}{idx.change.toFixed(2)}
                   </span>
-                  <span className={cn("font-mono text-[10px] md:text-xs px-1 md:px-1.5 py-0.5 rounded", idx.changePercent >= 0 ? "bg-primary/10 text-primary" : "bg-error/10 text-error")}>
+                  <span className={cn("font-body text-[10px] md:text-xs px-1 md:px-1.5 py-0.5 rounded", idx.changePercent >= 0 ? "bg-primary/10 text-primary" : "bg-error/10 text-error")}>
                     {idx.changePercent >= 0 ? "+" : ""}{idx.changePercent.toFixed(2)}%
                   </span>
                 </div>
@@ -242,7 +243,7 @@ export default function MarketsPage() {
                   </Badge>
                 </div>
                 <div className="flex items-end gap-2 md:gap-3 mt-1">
-                  <span className="font-mono text-2xl md:text-3xl font-bold text-on-surface">
+                  <span className="font-body text-2xl md:text-3xl font-bold text-on-surface">
                     {primaryIndex
                       ? primaryIndex.symbol === "CADUSD=X"
                         ? primaryIndex.value.toFixed(4)

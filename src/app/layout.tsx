@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Anybody, Geist, JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
+import { NotificationProvider } from "@/components/notification-provider";
 import "./globals.css";
 
 const anybody = Anybody({
@@ -153,7 +154,9 @@ export default function RootLayout({
             }),
           }}
         />
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <NotificationProvider>{children}</NotificationProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

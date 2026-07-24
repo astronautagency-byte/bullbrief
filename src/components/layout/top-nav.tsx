@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
-import { Search, Bell, Menu, X, LogOut } from "lucide-react";
+import { Search, Menu, X, LogOut } from "lucide-react";
+import { NotificationPanel } from "@/components/notification-panel";
 import Link from "next/link";
 
 interface TopNavProps {
@@ -71,13 +72,7 @@ export function TopNav({ onMobileMenuToggle, mobileMenuOpen }: TopNavProps) {
       </div>
 
       <div className="flex items-center gap-2">
-        <button
-          className="relative p-2 text-on-surface-variant hover:text-primary transition-colors"
-          aria-label="Notifications"
-        >
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
-        </button>
+        <NotificationPanel />
         <div className="relative">
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
