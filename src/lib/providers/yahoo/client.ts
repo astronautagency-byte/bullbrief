@@ -66,6 +66,8 @@ export async function getStockPrice(symbol: string): Promise<Quote | null> {
       change,
       changePercent,
       volume: meta.regularMarketVolume ?? null,
+      pe: meta.trailingPE ?? null,
+      marketCap: meta.marketCap ?? null,
       marketTimestamp: new Date(meta.regularMarketTime * 1000).toISOString(),
       retrievedAt: new Date().toISOString(),
       dataType: "real_time",

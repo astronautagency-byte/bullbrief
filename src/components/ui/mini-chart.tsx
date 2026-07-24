@@ -12,8 +12,6 @@ interface MiniChartProps {
   symbol: string;
   positive?: boolean;
   className?: string;
-  width?: number;
-  height?: number;
 }
 
 interface DataPoint {
@@ -25,11 +23,8 @@ export function MiniChart({
   symbol,
   positive = true,
   className,
-  width = 120,
-  height = 40,
 }: MiniChartProps) {
   const [data, setData] = useState<DataPoint[]>([]);
-  const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const mountedRef = useRef(true);
 
@@ -46,7 +41,6 @@ export function MiniChart({
           value: p.value,
         }));
         setData(points);
-        setCurrentPrice(points[points.length - 1].value);
       }
     } catch {
     } finally {
@@ -63,7 +57,6 @@ export function MiniChart({
 
       if (json.quote?.price && mountedRef.current) {
         const newPrice = json.quote.price;
-        setCurrentPrice(newPrice);
 
         setData((prev) => {
           if (prev.length === 0) return prev;
@@ -109,16 +102,15 @@ export function MiniChart({
   if (isLoading || data.length < 2) {
     return (
       <div
-        className={cn("rounded bg-surface-container-low border border-outline-variant", className)}
-        style={{ width, height }}
+        className={cn("rounded bg-surface-container-low border border-outline-variant h-10 w-full", className)}
       />
     );
   }
 
   return (
-    <div className={cn("relative flex-shrink-0", className)} style={{ width, height }}>
+    <div className={cn("relative flex-shrink-0 w-full h-10", className)}>
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
+        <AreaChart data={data} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
           <defs>
             <linearGradient id={fillId} x1="0" x2="0" y1="0" y2="1">
               <stop offset="0%" stopColor={strokeColor} stopOpacity={0.35} />
@@ -140,23 +132,18 @@ export function MiniChart({
             strokeWidth={1.5}
             fill={`url(#${fillId})`}
             dot={false}
-            activeDot={false}
+            activeDot={{
+              r: 3,
+              fill: strokeColor,
+              stroke: "#0E0E12",
+              strokeWidth: 1,
+              style: { filter: `drop-shadow(0 0 4px ${glowColor})` },
+            }}
             animationDuration={300}
             animationEasing="ease-out"
           />
         </AreaChart>
       </ResponsiveContainer>
-
-      {/* Current price dot */}
-      <div
-        className="absolute right-0 w-1.5 h-1.5 rounded-full border border-on-surface z-10"
-        style={{
-          top: "50%",
-          transform: "translateY(-50%)",
-          backgroundColor: strokeColor,
-          boxShadow: `0 0 6px ${glowColor}, 0 0 12px ${glowColor}`,
-        }}
-      />
     </div>
   );
 }

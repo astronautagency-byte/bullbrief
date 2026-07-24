@@ -653,8 +653,6 @@ export default function WatchlistPage() {
                     <MiniChart
                       symbol={stock.symbol}
                       positive={trend === "up"}
-                      width={120}
-                      height={40}
                     />
                   )}
                 </div>

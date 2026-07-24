@@ -5,20 +5,22 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 import {
   LayoutDashboard,
-  ListFilter,
+  BarChart3,
   Newspaper,
-  Podcast,
+  Mic,
   Bookmark,
+  Target,
   Settings,
+  ListFilter,
   TrendingUp,
-  Sparkles,
+  Podcast,
 } from "lucide-react";
 
 const navItems = [
   { href: "/brief", label: "Brief", icon: LayoutDashboard },
   { href: "/watchlist", label: "Watchlist", icon: ListFilter },
   { href: "/markets", label: "Markets", icon: TrendingUp },
-  { href: "/picks", label: "Bull Picks", icon: Sparkles },
+  { href: "/picks", label: "Bull Picks", icon: Target },
   { href: "/news", label: "News", icon: Newspaper },
   { href: "/podcasts", label: "Podcasts", icon: Podcast },
   { href: "/saved", label: "Saved", icon: Bookmark },

@@ -33,6 +33,8 @@ export function mapQuote(raw: MarketstackQuoteResponse["data"][0]): Quote {
     change,
     changePercent,
     volume: raw.volume,
+    pe: null,
+    marketCap: null,
     marketTimestamp: new Date(raw.timestamp * 1000).toISOString(),
     retrievedAt: now.toISOString(),
     dataType,

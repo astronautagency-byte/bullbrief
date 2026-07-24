@@ -292,8 +292,6 @@ export function StockComparison() {
                     <MiniChart
                       symbol={stock.symbol}
                       positive={positive}
-                      width={120}
-                      height={30}
                     />
                   </div>
 

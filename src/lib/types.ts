@@ -11,6 +11,8 @@ export type Quote = {
   change: number | null;
   changePercent: number | null;
   volume: number | null;
+  pe: number | null;
+  marketCap: number | null;
   marketTimestamp: string | null;
   retrievedAt: string;
   dataType: "real_time" | "intraday" | "delayed" | "end_of_day";

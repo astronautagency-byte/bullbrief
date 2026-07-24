@@ -82,6 +82,8 @@ export async function getTickerDetails(
       change: null,
       changePercent: null,
       volume: null,
+      pe: null,
+      marketCap: null,
       marketTimestamp: null,
       retrievedAt: new Date().toISOString(),
       dataType: "end_of_day",
