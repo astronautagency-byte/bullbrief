@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/cn";
 import { formatPrice, formatPercent, formatChange, getTrendDirection } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
-import { Sparkline } from "@/components/ui/sparkline";
+import { MiniChart } from "@/components/ui/mini-chart";
 import { PageHead } from "@/components/page-head";
 import {
   Search,
@@ -145,9 +145,24 @@ export default function WatchlistPage() {
         SHOP: { name: "Shopify Inc.", exchange: "TSX" },
         BABA: { name: "Alibaba Group", exchange: "NYSE" },
         SQ: { name: "Block Inc.", exchange: "NYSE" },
+        TD: { name: "Toronto-Dominion Bank", exchange: "TSX" },
+        RY: { name: "Royal Bank of Canada", exchange: "TSX" },
+        BNS: { name: "Bank of Nova Scotia", exchange: "TSX" },
+        BMO: { name: "Bank of Montreal", exchange: "TSX" },
+        ENB: { name: "Enbridge Inc.", exchange: "TSX" },
+        CNR: { name: "Canadian National Railway", exchange: "TSX" },
+        SU: { name: "Suncor Energy", exchange: "TSX" },
+        CNQ: { name: "Canadian Natural Resources", exchange: "TSX" },
+        BAM: { name: "Brookfield Asset Management", exchange: "TSX" },
+        L: { name: "Loblaw Companies", exchange: "TSX" },
+        ATD: { name: "Alimentation Couche-Tard", exchange: "TSX" },
+        T: { name: "BCE Inc.", exchange: "TSX" },
+        DOL: { name: "Dollarama Inc.", exchange: "TSX" },
+        CSU: { name: "Constellation Software", exchange: "TSX" },
+        BB: { name: "BlackBerry Ltd.", exchange: "TSX" },
       };
 
-      const res = await fetch(`/api/watchlist-local`);
+      const res = await fetch(`/api/watchlist-local?symbols=${symbols.join(",")}`);
       const json = await res.json();
       const priceData: Record<string, { price: number; change: number; changePercent: number }> = {};
       for (const s of json.data ?? []) {
@@ -173,6 +188,29 @@ export default function WatchlistPage() {
     }
   }, []);
 
+  const refreshPrices = useCallback(async () => {
+    try {
+      const stored = localStorage.getItem("bullbrief_watchlist");
+      const symbols: string[] = stored ? JSON.parse(stored) : [];
+      if (symbols.length === 0) return;
+
+      const res = await fetch(`/api/watchlist-local?symbols=${symbols.join(",")}`);
+      const json = await res.json();
+      const priceData: Record<string, { price: number; change: number; changePercent: number }> = {};
+      for (const s of json.data ?? []) {
+        priceData[s.symbol] = { price: s.price, change: s.change, changePercent: s.changePercent };
+      }
+
+      setWatchlist((prev) =>
+        prev.map((item) => {
+          const p = priceData[item.symbol];
+          if (!p) return item;
+          return { ...item, price: p.price, change: p.change, changePercent: p.changePercent };
+        })
+      );
+    } catch {}
+  }, []);
+
   const fetchAlerts = useCallback(async () => {
     try {
       const res = await fetch("/api/alerts");
@@ -184,7 +222,13 @@ export default function WatchlistPage() {
   useEffect(() => {
     fetchWatchlist();
     fetchAlerts();
-  }, [fetchWatchlist, fetchAlerts]);
+    const priceInterval = setInterval(refreshPrices, 3000);
+    const alertInterval = setInterval(fetchAlerts, 30000);
+    return () => {
+      clearInterval(priceInterval);
+      clearInterval(alertInterval);
+    };
+  }, [fetchWatchlist, refreshPrices, fetchAlerts]);
 
   const generateSparkline = (base: number, trend: number): number[] => {
     if (base === 0) return [0, 0, 0, 0, 0, 0];
@@ -605,12 +649,12 @@ export default function WatchlistPage() {
                   {stock.price > 0 ? formatPercent(stock.changePercent) : "—"}
                 </div>
                 <div className="hidden md:flex md:col-span-1 justify-end">
-                  {stock.sparkline && stock.price > 0 && (
-                    <Sparkline
-                      data={stock.sparkline}
+                  {stock.price > 0 && (
+                    <MiniChart
+                      symbol={stock.symbol}
                       positive={trend === "up"}
-                      width={60}
-                      height={24}
+                      width={120}
+                      height={40}
                     />
                   )}
                 </div>

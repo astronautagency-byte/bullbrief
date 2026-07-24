@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   AreaChart,
   Area,
@@ -8,12 +8,12 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  ReferenceDot,
 } from "recharts";
 import { cn } from "@/lib/cn";
 
 interface LiveChartProps {
   symbol: string;
+  range?: string;
   interval?: number;
   height?: number;
   className?: string;
@@ -28,68 +28,122 @@ interface DataPoint {
 
 export function LiveChart({
   symbol,
-  interval = 5000,
+  range = "1M",
+  interval = 3000,
   height = 300,
   className,
   formatValue,
 }: LiveChartProps) {
   const [data, setData] = useState<DataPoint[]>([]);
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
-  const [previousPrice, setPreviousPrice] = useState<number | null>(null);
-  const [isPositive, setIsPositive] = useState(true);
+  const [prevPrice, setPrevPrice] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const mountedRef = useRef(true);
 
-  const fetchPrice = async () => {
+  const RANGE_MAP: Record<string, string> = {
+    "1D": "1d",
+    "1W": "5d",
+    "1M": "1mo",
+    "1Y": "1y",
+  };
+
+  const loadHistoricalData = useCallback(async () => {
+    try {
+      const apiRange = RANGE_MAP[range] || "1mo";
+      const res = await fetch(
+        `/api/markets/history?symbol=${encodeURIComponent(symbol)}&range=${apiRange}`
+      );
+      const json = await res.json();
+
+      if (json.data && json.data.length > 0 && mountedRef.current) {
+        const points: DataPoint[] = json.data.map((p: { date: string; value: number }) => {
+          const d = new Date(p.date);
+          return {
+            time: p.date,
+            value: p.value,
+            label: d.toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+            }),
+          };
+        });
+        setData(points);
+        const lastPrice = points[points.length - 1].value;
+        setCurrentPrice(lastPrice);
+      }
+    } catch {
+    } finally {
+      if (mountedRef.current) setIsLoading(false);
+    }
+  }, [symbol, range]);
+
+  const pollPrice = useCallback(async () => {
     try {
       const res = await fetch(
         `/api/markets/stock?symbol=${encodeURIComponent(symbol)}&range=1d`
       );
       const json = await res.json();
 
-      if (json.quote?.price) {
+      if (json.quote?.price && mountedRef.current) {
         const newPrice = json.quote.price;
         const now = new Date();
-        const timeStr = now.toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        });
-        const label = now.toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-        });
 
-        setPreviousPrice(currentPrice);
+        setPrevPrice((prev) => {
+          if (prev === null) return currentPrice;
+          return prev;
+        });
         setCurrentPrice(newPrice);
 
         setData((prev) => {
-          const newPoint: DataPoint = { time: timeStr, value: newPrice, label };
+          if (prev.length === 0) return prev;
+
+          const lastPoint = prev[prev.length - 1];
+          const lastVal = lastPoint.value;
+
+          if (Math.abs(newPrice - lastVal) < 0.001) return prev;
+
+          const label = now.toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+          });
+          const time = now.toISOString();
+
+          const newPoint: DataPoint = { time, value: newPrice, label };
           const updated = [...prev, newPoint];
-          if (updated.length > 120) updated.shift();
+          if (updated.length > 200) updated.shift();
           return updated;
         });
       }
     } catch {}
-  };
+  }, [symbol, currentPrice]);
 
   useEffect(() => {
-    fetchPrice();
-    intervalRef.current = setInterval(fetchPrice, interval);
+    mountedRef.current = true;
+    loadHistoricalData();
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      mountedRef.current = false;
     };
-  }, [symbol, interval]);
+  }, [loadHistoricalData]);
 
   useEffect(() => {
-    if (currentPrice !== null && previousPrice !== null) {
-      setIsPositive(currentPrice >= previousPrice);
+    if (!isLoading) {
+      intervalRef.current = setInterval(pollPrice, interval);
+      return () => {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+      };
     }
-  }, [currentPrice, previousPrice]);
+  }, [isLoading, pollPrice, interval]);
 
   const chartData = useMemo(() => data, [data]);
 
-  const strokeColor = isPositive ? "#12D162" : "#FF5C5C";
-  const glowColor = isPositive ? "rgba(18,209,98,0.5)" : "rgba(255,92,92,0.5)";
+  const strokeColor = (currentPrice ?? 0) >= (prevPrice ?? currentPrice ?? 0)
+    ? "#12D162"
+    : "#FF5C5C";
+  const glowColor = strokeColor === "#12D162"
+    ? "rgba(18,209,98,0.5)"
+    : "rgba(255,92,92,0.5)";
+
   const fillId = useMemo(
     () => `live-fill-${Math.random().toString(36).slice(2, 8)}`,
     []
@@ -100,28 +154,35 @@ export function LiveChart({
   );
 
   const values = chartData.map((d) => d.value);
-  const minVal = Math.min(...values);
-  const maxVal = Math.max(...values);
-  const padding = (maxVal - minVal) * 0.15 || 1;
+  const minVal = values.length > 0 ? Math.min(...values) : 0;
+  const maxVal = values.length > 0 ? Math.max(...values) : 1;
+  const padding = (maxVal - minVal) * 0.12 || 1;
 
-  const priceChange = currentPrice && previousPrice ? currentPrice - previousPrice : 0;
+  const priceChange = currentPrice && prevPrice ? currentPrice - prevPrice : 0;
   const priceChangePercent =
-    previousPrice !== 0 ? (priceChange / (previousPrice || currentPrice || 1)) * 100 : 0;
+    prevPrice && prevPrice !== 0
+      ? (priceChange / prevPrice) * 100
+      : 0;
 
-  if (chartData.length < 2) {
+  if (isLoading) {
     return (
       <div
-        className={cn("flex items-center justify-center rounded-xl bg-surface-container-low border border-outline-variant", className)}
+        className={cn(
+          "flex items-center justify-center rounded-xl bg-surface-container-low border border-outline-variant",
+          className
+        )}
         style={{ height }}
       >
-        <div className="text-on-surface-variant text-sm">Loading live data...</div>
+        <div className="text-on-surface-variant text-sm">
+          Loading live data...
+        </div>
       </div>
     );
   }
 
   return (
     <div className={cn("relative", className)}>
-      {/* Live price header */}
+      {/* Price header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
           <span className="font-body text-3xl font-bold text-on-surface">
@@ -136,21 +197,21 @@ export function LiveChart({
             <span
               className={cn(
                 "font-body text-sm font-medium",
-                isPositive ? "text-primary" : "text-error"
+                strokeColor === "#12D162" ? "text-primary" : "text-error"
               )}
             >
-              {isPositive ? "+" : ""}
+              {priceChange >= 0 ? "+" : ""}
               {priceChange.toFixed(2)}
             </span>
             <span
               className={cn(
                 "text-xs font-mono px-1.5 py-0.5 rounded",
-                isPositive
+                strokeColor === "#12D162"
                   ? "bg-primary/10 text-primary"
                   : "bg-error/10 text-error"
               )}
             >
-              {isPositive ? "+" : ""}
+              {priceChangePercent >= 0 ? "+" : ""}
               {priceChangePercent.toFixed(2)}%
             </span>
           </div>
@@ -178,10 +239,26 @@ export function LiveChart({
           >
             <defs>
               <linearGradient id={fillId} x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stopColor={strokeColor} stopOpacity={0.35} />
-                <stop offset="40%" stopColor={strokeColor} stopOpacity={0.15} />
-                <stop offset="80%" stopColor={strokeColor} stopOpacity={0.05} />
-                <stop offset="100%" stopColor={strokeColor} stopOpacity={0} />
+                <stop
+                  offset="0%"
+                  stopColor={strokeColor}
+                  stopOpacity={0.35}
+                />
+                <stop
+                  offset="40%"
+                  stopColor={strokeColor}
+                  stopOpacity={0.15}
+                />
+                <stop
+                  offset="80%"
+                  stopColor={strokeColor}
+                  stopOpacity={0.05}
+                />
+                <stop
+                  offset="100%"
+                  stopColor={strokeColor}
+                  stopOpacity={0}
+                />
               </linearGradient>
               <filter id={glowId}>
                 <feGaussianBlur stdDeviation="3" result="blur" />
@@ -193,10 +270,7 @@ export function LiveChart({
             </defs>
 
             <XAxis dataKey="label" hide />
-            <YAxis
-              hide
-              domain={[minVal - padding, maxVal + padding]}
-            />
+            <YAxis hide domain={[minVal - padding, maxVal + padding]} />
 
             <Tooltip
               content={({ active, payload }) => {
@@ -232,32 +306,27 @@ export function LiveChart({
                 strokeWidth: 3,
                 filter: `url(#${glowId})`,
               }}
-              animationDuration={500}
+              animationDuration={300}
               animationEasing="ease-out"
+              isAnimationActive={true}
             />
-
-            {chartData.length > 0 && (
-              <ReferenceDot
-                x={chartData[chartData.length - 1].label}
-                y={chartData[chartData.length - 1].value}
-                r={0}
-              />
-            )}
           </AreaChart>
         </ResponsiveContainer>
 
-        {/* Current price dot indicator */}
+        {/* Current price dot */}
         <div
-          className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 border-on-surface"
+          className="absolute right-2 w-3 h-3 rounded-full border-2 border-on-surface z-10"
           style={{
+            top: "50%",
+            transform: "translateY(-50%)",
             backgroundColor: strokeColor,
             boxShadow: `0 0 12px ${glowColor}, 0 0 24px ${glowColor}`,
           }}
         />
 
-        {/* Price label on right */}
+        {/* Price label */}
         <div
-          className="absolute right-2 bg-surface-container-high/90 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-mono border border-outline-variant/30"
+          className="absolute right-2 bg-surface-container-high/90 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-mono border border-outline-variant/30 z-10"
           style={{
             top: "50%",
             transform: "translateY(-50%)",

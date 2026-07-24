@@ -222,7 +222,9 @@ export default function MarketsPage() {
 
             {primaryIndex && (
               <LiveChart
+                key={`${primaryIndex.symbol}-${chartRange}`}
                 symbol={primaryIndex.symbol}
+                range={chartRange}
                 interval={5000}
                 height={280}
                 formatValue={(v) =>

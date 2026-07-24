@@ -74,7 +74,7 @@ export default function BriefPage() {
       const symbols: string[] = stored ? JSON.parse(stored) : [];
       if (symbols.length === 0) { setWatchlistStocks([]); return; }
 
-      const res = await fetch("/api/watchlist-local");
+      const res = await fetch(`/api/watchlist-local?symbols=${encodeURIComponent(symbols.join(","))}`);
       const json = await res.json();
       const priceData: Record<string, { price: number; change: number; changePercent: number }> = {};
       for (const s of json.data ?? []) {
@@ -89,6 +89,29 @@ export default function BriefPage() {
           change: priceData[sym]?.change ?? 0,
           changePercent: priceData[sym]?.changePercent ?? 0,
         }))
+      );
+    } catch {}
+  }, []);
+
+  const refreshWatchlistPrices = useCallback(async () => {
+    try {
+      const stored = localStorage.getItem("bullbrief_watchlist");
+      const symbols: string[] = stored ? JSON.parse(stored) : [];
+      if (symbols.length === 0) return;
+
+      const res = await fetch(`/api/watchlist-local?symbols=${encodeURIComponent(symbols.join(","))}`);
+      const json = await res.json();
+      const priceData: Record<string, { price: number; change: number; changePercent: number }> = {};
+      for (const s of json.data ?? []) {
+        priceData[s.symbol] = { price: s.price, change: s.change, changePercent: s.changePercent };
+      }
+
+      setWatchlistStocks((prev) =>
+        prev.map((item) => {
+          const p = priceData[item.symbol];
+          if (!p) return item;
+          return { ...item, price: p.price, change: p.change, changePercent: p.changePercent };
+        })
       );
     } catch {}
   }, []);
@@ -137,9 +160,9 @@ export default function BriefPage() {
   useEffect(() => {
     fetchBrief();
     fetchWatchlistPrices();
-    const interval = setInterval(fetchWatchlistPrices, 60000);
+    const interval = setInterval(refreshWatchlistPrices, 3000);
     return () => clearInterval(interval);
-  }, [fetchBrief, fetchWatchlistPrices]);
+  }, [fetchBrief, fetchWatchlistPrices, refreshWatchlistPrices]);
 
   const handleChat = async () => {
     if (!chatInput.trim() || chatLoading) return;

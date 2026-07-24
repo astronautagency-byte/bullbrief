@@ -236,7 +236,8 @@ export function InteractiveChart({
                     }
                   : false
               }
-              isAnimationActive={false}
+              animationDuration={1200}
+              animationEasing="ease-out"
             />
 
             {showCrosshair && hoverIndex !== null && chartData[hoverIndex] && (
