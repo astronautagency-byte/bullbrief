@@ -5,6 +5,19 @@ const HEADERS = {
   "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
 };
 
+// TSX symbols that need .TO suffix for Yahoo Finance
+const TSX_SYMBOLS = new Set([
+  "TD","RY","BNS","BMO","CM","ENB","TRP","CNR","CP","SU","CNQ","CVE",
+  "MFC","SLF","BAM","BN","L","ATD","T","RCI","QBR","GIB","ITX","BB",
+  "DOL","WSP","AEM","ABX","FM","CSU","TKO","SHOP",
+]);
+
+export function toYahooSymbol(symbol: string): string {
+  const upper = symbol.toUpperCase();
+  if (TSX_SYMBOLS.has(upper)) return `${upper}.TO`;
+  return upper;
+}
+
 export interface HistoricalPoint {
   date: string;
   open: number;
@@ -21,9 +34,10 @@ export interface ChartData {
 }
 
 export async function getStockPrice(symbol: string): Promise<Quote | null> {
+  const yahooSymbol = toYahooSymbol(symbol);
   try {
     const res = await fetch(
-      `${YAHOO_BASE}/${encodeURIComponent(symbol)}?interval=1d&range=1d`,
+      `${YAHOO_BASE}/${encodeURIComponent(yahooSymbol)}?interval=1d&range=1d`,
       { headers: HEADERS, next: { revalidate: 300 } }
     );
 
@@ -40,10 +54,10 @@ export async function getStockPrice(symbol: string): Promise<Quote | null> {
     const changePercent = previousClose !== 0 ? (change / previousClose) * 100 : 0;
 
     return {
-      symbol: meta.symbol ?? symbol,
+      symbol: symbol.toUpperCase(),
       companyName: meta.shortName ?? meta.symbol ?? symbol,
       exchangeCode: meta.exchangeName ?? "",
-      currency: meta.currency ?? "USD",
+      currency: meta.currency ?? "CAD",
       price,
       open: meta.regularMarketOpen ?? null,
       high: meta.regularMarketDayHigh ?? null,
@@ -76,6 +90,7 @@ export async function getHistoricalData(
   symbol: string,
   range: "1d" | "5d" | "1mo" | "3mo" | "6mo" | "1y" = "1mo"
 ): Promise<ChartData | null> {
+  const yahooSymbol = toYahooSymbol(symbol);
   const intervalMap: Record<string, string> = {
     "1d": "5m",
     "5d": "15m",
@@ -87,7 +102,7 @@ export async function getHistoricalData(
 
   try {
     const res = await fetch(
-      `${YAHOO_BASE}/${encodeURIComponent(symbol)}?interval=${intervalMap[range]}&range=${range}`,
+      `${YAHOO_BASE}/${encodeURIComponent(yahooSymbol)}?interval=${intervalMap[range]}&range=${range}`,
       { headers: HEADERS, next: { revalidate: 300 } }
     );
 

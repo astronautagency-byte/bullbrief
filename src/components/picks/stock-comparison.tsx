@@ -2,9 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/cn";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { StarRating } from "./star-rating";
 import { MiniChart } from "@/components/ui/mini-chart";
 import {
@@ -13,15 +10,17 @@ import {
   X,
   Loader2,
   ArrowRightLeft,
+  AlertCircle,
 } from "lucide-react";
 
-interface ComparisonData {
+interface StockData {
   symbol: string;
-  price: number | null;
-  change: number | null;
-  changePercent: number | null;
-  recentPrices: number[];
-  error?: string;
+  companyName: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  starRating?: number;
+  pe?: number;
 }
 
 const POPULAR_STOCKS = [
@@ -50,32 +49,96 @@ const POPULAR_STOCKS = [
   { symbol: "TD", name: "Toronto-Dominion Bank" },
   { symbol: "RY", name: "Royal Bank of Canada" },
   { symbol: "ENB", name: "Enbridge Inc." },
+  { symbol: "NFLX", name: "Netflix Inc." },
+  { symbol: "AMD", name: "Advanced Micro Devices" },
+  { symbol: "DIS", name: "Walt Disney Co." },
+  { symbol: "BA", name: "Boeing Co." },
+  { symbol: "GS", name: "Goldman Sachs" },
 ];
 
 export function StockComparison() {
   const [selected, setSelected] = useState<string[]>([]);
-  const [data, setData] = useState<ComparisonData[]>([]);
+  const [stocks, setStocks] = useState<StockData[]>([]);
   const [loading, setLoading] = useState(false);
+  const [morningstarLoading, setMorningstarLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
 
-  const fetchComparison = useCallback(async () => {
-    if (selected.length < 2) { setData([]); return; }
-    setLoading(true);
+  const fetchYahooPrices = useCallback(async (symbols: string[]) => {
+    if (symbols.length === 0) return [];
     try {
-      const res = await fetch(`/api/picks/compare?symbols=${selected.join(",")}`);
+      const res = await fetch(`/api/watchlist-local?symbols=${symbols.join(",")}`);
       const json = await res.json();
-      setData(json.data ?? []);
+      return (json.data ?? []).map((d: any) => ({
+        symbol: d.symbol,
+        companyName: d.companyName || d.symbol,
+        price: d.price ?? 0,
+        change: d.change ?? 0,
+        changePercent: d.changePercent ?? 0,
+      }));
     } catch {
-      setData([]);
-    } finally {
+      return [];
+    }
+  }, []);
+
+  const fetchMorningstarData = useCallback(async (symbols: string[]) => {
+    if (symbols.length === 0) return {};
+    try {
+      const res = await fetch(`/api/picks/compare?symbols=${symbols.join(",")}`);
+      const json = await res.json();
+      const map: Record<string, { starRating?: number; pe?: number }> = {};
+      for (const d of json.data ?? []) {
+        if (d.symbol && !d.error) {
+          map[d.symbol] = {
+            starRating: d.starRating,
+            pe: d.pe,
+          };
+        }
+      }
+      return map;
+    } catch {
+      return {};
+    }
+  }, []);
+
+  const fetchData = useCallback(async () => {
+    if (selected.length < 2) {
+      setStocks([]);
+      setError(null);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    // Step 1: Get Yahoo prices immediately
+    const yahooData = await fetchYahooPrices(selected);
+    if (yahooData.length > 0) {
+      setStocks(yahooData);
       setLoading(false);
     }
-  }, [selected]);
+
+    // Step 2: Try Morningstar in background for extra data
+    setMorningstarLoading(true);
+    const msData = await fetchMorningstarData(selected);
+    setMorningstarLoading(false);
+
+    // Step 3: Merge Morningstar data into existing stock data
+    if (Object.keys(msData).length > 0) {
+      setStocks((prev) =>
+        prev.map((s) => ({
+          ...s,
+          starRating: msData[s.symbol]?.starRating ?? s.starRating,
+          pe: msData[s.symbol]?.pe ?? s.pe,
+        }))
+      );
+    }
+  }, [selected, fetchYahooPrices, fetchMorningstarData]);
 
   useEffect(() => {
-    fetchComparison();
-  }, [fetchComparison]);
+    fetchData();
+  }, [fetchData]);
 
   const addSymbol = (sym: string) => {
     if (!selected.includes(sym) && selected.length < 4) {
@@ -162,105 +225,116 @@ export function StockComparison() {
         </div>
       )}
 
-      {loading && (
+      {loading && selected.length >= 2 && (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="w-5 h-5 text-primary animate-spin mr-2" />
-          <span className="text-on-surface-variant text-sm">Loading comparison data...</span>
+          <span className="text-on-surface-variant text-sm">Fetching prices...</span>
         </div>
       )}
 
-      {!loading && data.length >= 2 && (
-        <div className="bg-surface-container-low border border-outline-variant rounded-xl overflow-hidden">
-          {/* Header row */}
-          <div className="grid grid-cols-4 gap-px bg-outline-variant/30">
-            <div className="bg-surface-container px-4 py-3 text-xs font-mono uppercase tracking-wider text-on-surface-variant">
-              Metric
+      {error && (
+        <div className="flex items-center gap-2 p-3 rounded-xl bg-error/10 border border-error/30 text-sm text-error">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          {error}
+        </div>
+      )}
+
+      {!loading && stocks.length >= 2 && (
+        <div className="relative">
+          {morningstarLoading && (
+            <div className="absolute top-2 right-2 flex items-center gap-1 text-[10px] text-on-surface-variant z-10">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Loading ratings...
             </div>
-            {data.map((d) => (
-              <div
-                key={d.symbol}
-                className="bg-surface-container px-4 py-3"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-mono font-bold text-on-surface">{d.symbol}</span>
-                  <button
-                    onClick={() => removeSymbol(d.symbol)}
-                    className="text-on-surface-variant/30 hover:text-error transition-colors"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
+          )}
+          <div className="bg-surface-container-low border border-outline-variant rounded-xl overflow-hidden">
+            {/* Header row */}
+            <div className="grid grid-cols-6 gap-px bg-outline-variant/30">
+              <div className="bg-surface-container px-4 py-3 text-xs font-mono uppercase tracking-wider text-on-surface-variant col-span-2">
+                Stock
               </div>
-            ))}
-          </div>
-
-          {/* Price row */}
-          <div className="grid grid-cols-4 gap-px bg-outline-variant/30">
-            <div className="bg-surface-container-low px-4 py-3 text-xs font-mono uppercase tracking-wider text-on-surface-variant">
-              Price
-            </div>
-            {data.map((d) => (
-              <div key={d.symbol} className="bg-surface-container-low px-4 py-3">
-                <span className="font-mono text-on-surface font-medium">
-                  {d.price ? `$${d.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
-                </span>
+              <div className="bg-surface-container px-4 py-3 text-xs font-mono uppercase tracking-wider text-on-surface-variant text-right">
+                Price
               </div>
-            ))}
-          </div>
-
-          {/* Change row */}
-          <div className="grid grid-cols-4 gap-px bg-outline-variant/30">
-            <div className="bg-surface-container px-4 py-3 text-xs font-mono uppercase tracking-wider text-on-surface-variant">
-              Change
+              <div className="bg-surface-container px-4 py-3 text-xs font-mono uppercase tracking-wider text-on-surface-variant text-right">
+                Change
+              </div>
+              <div className="bg-surface-container px-4 py-3 text-xs font-mono uppercase tracking-wider text-on-surface-variant text-center">
+                Rating
+              </div>
+              <div className="bg-surface-container px-4 py-3 text-xs font-mono uppercase tracking-wider text-on-surface-variant text-right">
+                P/E
+              </div>
             </div>
-            {data.map((d) => {
-              const positive = (d.change ?? 0) >= 0;
-              return (
-                <div key={d.symbol} className="bg-surface-container px-4 py-3">
-                  <span className={cn("font-mono text-sm", positive ? "text-primary" : "text-error")}>
-                    {d.change != null ? `${d.change >= 0 ? "+" : ""}${d.change.toFixed(2)}` : "—"}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
 
-          {/* % Change row */}
-          <div className="grid grid-cols-4 gap-px bg-outline-variant/30">
-            <div className="bg-surface-container-low px-4 py-3 text-xs font-mono uppercase tracking-wider text-on-surface-variant">
-              % Change
-            </div>
-            {data.map((d) => {
-              const positive = (d.changePercent ?? 0) >= 0;
+            {/* Stock rows */}
+            {stocks.map((stock) => {
+              const positive = stock.change >= 0;
               return (
-                <div key={d.symbol} className="bg-surface-container-low px-4 py-3">
-                  <span className={cn("font-mono text-sm", positive ? "text-primary" : "text-error")}>
-                    {d.changePercent != null ? `${d.changePercent >= 0 ? "+" : ""}${d.changePercent.toFixed(2)}%` : "—"}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Chart row */}
-          <div className="grid grid-cols-4 gap-px bg-outline-variant/30">
-            <div className="bg-surface-container px-4 py-3 text-xs font-mono uppercase tracking-wider text-on-surface-variant">
-              30D Chart
-            </div>
-            {data.map((d) => {
-              const positive = (d.changePercent ?? 0) >= 0;
-              return (
-                <div key={d.symbol} className="bg-surface-container px-4 py-3 flex justify-center">
-                  {d.recentPrices && d.recentPrices.length > 1 ? (
+                <div
+                  key={stock.symbol}
+                  className="grid grid-cols-6 gap-px bg-outline-variant/30 border-b border-outline-variant/50 last:border-b-0"
+                >
+                  {/* Stock name + chart */}
+                  <div className="bg-surface-container-low px-4 py-3 col-span-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <a href={`/markets/${stock.symbol}`} className="hover:text-primary transition-colors">
+                        <span className="font-mono font-bold text-on-surface text-sm">{stock.symbol}</span>
+                      </a>
+                      <button
+                        onClick={() => removeSymbol(stock.symbol)}
+                        className="text-on-surface-variant/20 hover:text-error transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <span className="text-[10px] text-on-surface-variant block mb-1.5">{stock.companyName}</span>
                     <MiniChart
-                      symbol={d.symbol}
+                      symbol={stock.symbol}
                       positive={positive}
-                      width={140}
-                      height={50}
+                      width={120}
+                      height={30}
                     />
-                  ) : (
-                    <span className="text-on-surface-variant text-xs">—</span>
-                  )}
+                  </div>
+
+                  {/* Price */}
+                  <div className="bg-surface-container-low px-4 py-3 flex items-center justify-end">
+                    <span className="font-mono text-on-surface font-medium text-sm">
+                      ${stock.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+
+                  {/* Change */}
+                  <div className="bg-surface-container-low px-4 py-3 flex items-center justify-end">
+                    <span className={cn(
+                      "font-mono text-xs px-2 py-0.5 rounded",
+                      positive ? "bg-primary/15 text-primary" : "bg-error/15 text-error"
+                    )}>
+                      {positive ? "+" : ""}{stock.change.toFixed(2)} ({stock.changePercent.toFixed(2)}%)
+                    </span>
+                  </div>
+
+                  {/* Star Rating */}
+                  <div className="bg-surface-container-low px-4 py-3 flex items-center justify-center">
+                    {stock.starRating ? (
+                      <StarRating rating={stock.starRating} size="sm" />
+                    ) : morningstarLoading ? (
+                      <Loader2 className="w-3 h-3 text-on-surface-variant/30 animate-spin" />
+                    ) : (
+                      <span className="text-on-surface-variant/30 text-xs">—</span>
+                    )}
+                  </div>
+
+                  {/* P/E */}
+                  <div className="bg-surface-container-low px-4 py-3 flex items-center justify-end">
+                    {stock.pe ? (
+                      <span className="font-mono text-xs text-on-surface-variant">{stock.pe.toFixed(1)}</span>
+                    ) : morningstarLoading ? (
+                      <Loader2 className="w-3 h-3 text-on-surface-variant/30 animate-spin" />
+                    ) : (
+                      <span className="text-on-surface-variant/30 text-xs">—</span>
+                    )}
+                  </div>
                 </div>
               );
             })}
