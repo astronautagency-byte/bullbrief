@@ -23,7 +23,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
         onMobileMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
         mobileMenuOpen={mobileMenuOpen}
       />
-      <main className="md:ml-64 pt-16 min-h-screen overflow-y-auto">
+      <main className="md:ml-64 pt-24 min-h-screen overflow-y-auto">
         <div className="p-4 md:p-6 max-w-7xl mx-auto">{children}</div>
       </main>
     </div>

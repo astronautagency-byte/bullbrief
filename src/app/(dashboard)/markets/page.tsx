@@ -6,7 +6,7 @@ import { formatRelativeTime, type Article } from "@/lib/types";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { InteractiveChart } from "@/components/ui/interactive-chart";
+import { LiveChart } from "@/components/ui/live-chart";
 import { PageHead } from "@/components/page-head";
 import {
   TrendingUp,
@@ -31,22 +31,12 @@ interface IndexData {
 const US_SYMBOLS = ["^GSPC", "^IXIC", "^DJI", "^VIX"];
 const CA_SYMBOLS = ["^GSPTSE", "^GSPTSE60", "CADUSD=X", "BTC-CAD"];
 
-const RANGE_MAP: Record<string, { range: "1d" | "5d" | "1mo" | "3mo" | "6mo" | "1y"; label: string }> = {
-  "1D": { range: "1d", label: "1D" },
-  "1W": { range: "5d", label: "1W" },
-  "1M": { range: "1mo", label: "1M" },
-  "1Y": { range: "1y", label: "1Y" },
-};
-
 export default function MarketsPage() {
   const [region, setRegion] = useState<MarketRegion>("us");
   const [chartRange, setChartRange] = useState("1M");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [indexes, setIndexes] = useState<IndexData[]>([]);
-  const [chartData, setChartData] = useState<number[]>([]);
-  const [chartLabels, setChartLabels] = useState<string[]>([]);
   const [loadingIndexes, setLoadingIndexes] = useState(true);
-  const [loadingChart, setLoadingChart] = useState(true);
   const [news, setNews] = useState<Article[]>([]);
   const [loadingNews, setLoadingNews] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -69,27 +59,6 @@ export default function MarketsPage() {
     }
   }, [region]);
 
-  const fetchChart = useCallback(async () => {
-    if (!primaryIndex) return;
-    setLoadingChart(true);
-    try {
-      const rangeDef = RANGE_MAP[chartRange];
-      const res = await fetch(`/api/markets/history?symbol=${encodeURIComponent(primaryIndex.symbol)}&range=${rangeDef.range}`);
-      const json = await res.json();
-      if (json.data && json.data.length > 0) {
-        setChartData(json.data.map((p: { value: number }) => p.value));
-        setChartLabels(json.data.map((p: { date: string }) => {
-          const d = new Date(p.date);
-          return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-        }));
-      }
-    } catch {
-      console.error("Failed to fetch chart data");
-    } finally {
-      setLoadingChart(false);
-    }
-  }, [primaryIndex?.symbol, chartRange]);
-
   const fetchNews = useCallback(async () => {
     setLoadingNews(true);
     try {
@@ -109,10 +78,6 @@ export default function MarketsPage() {
   }, [region, fetchIndexes]);
 
   useEffect(() => {
-    fetchChart();
-  }, [fetchChart]);
-
-  useEffect(() => {
     fetchNews();
   }, [fetchNews]);
 
@@ -125,11 +90,7 @@ export default function MarketsPage() {
     };
   }, [fetchIndexes]);
 
-  const openPrice = chartData[0] ?? 0;
-  const closePrice = chartData[chartData.length - 1] ?? 0;
-  const periodChange = closePrice - openPrice;
-  const periodChangePercent = openPrice !== 0 ? (periodChange / openPrice) * 100 : 0;
-  const isPositive = periodChange >= 0;
+  const isPositive = (primaryIndex?.change ?? 0) >= 0;
 
   const now = new Date();
   const timeStr = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
@@ -232,33 +193,14 @@ export default function MarketsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         <div className="lg:col-span-2 space-y-4">
           <Card className="p-3 md:p-4 overflow-hidden">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-              <div>
-                <div className="flex items-center gap-2 md:gap-3">
-                  <span className="text-xs md:text-sm text-on-surface-variant font-mono uppercase tracking-wider">
-                    {primaryIndex?.name ?? "Loading..."}
-                  </span>
-                  <Badge variant="outline" className="text-[9px] md:text-[10px]">
-                    {region === "us" ? "US Markets" : "Canada Markets"}
-                  </Badge>
-                </div>
-                <div className="flex items-end gap-2 md:gap-3 mt-1">
-                  <span className="font-body text-2xl md:text-3xl font-bold text-on-surface">
-                    {primaryIndex
-                      ? primaryIndex.symbol === "CADUSD=X"
-                        ? primaryIndex.value.toFixed(4)
-                        : primaryIndex.value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                      : "—"}
-                  </span>
-                  {primaryIndex && (
-                    <div className="flex items-center gap-1 mb-1">
-                      <span className={cn("font-mono text-xs md:text-sm", isPositive ? "text-primary" : "text-error")}>
-                        {isPositive ? "↑" : "↓"} {Math.abs(periodChangePercent).toFixed(1)}%
-                      </span>
-                      <span className="text-[10px] md:text-xs text-on-surface-variant">Today</span>
-                    </div>
-                  )}
-                </div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2 md:gap-3">
+                <span className="text-xs md:text-sm text-on-surface-variant font-body uppercase tracking-wider">
+                  {primaryIndex?.name ?? "Loading..."}
+                </span>
+                <Badge variant="outline" className="text-[9px] md:text-[10px]">
+                  {region === "us" ? "US Markets" : "Canada Markets"}
+                </Badge>
               </div>
               <div className="flex items-center gap-1">
                 {["1D", "1W", "1M", "1Y"].map((r) => (
@@ -266,7 +208,7 @@ export default function MarketsPage() {
                     key={r}
                     onClick={() => setChartRange(r)}
                     className={cn(
-                      "px-2 md:px-3 py-1 md:py-1.5 rounded-md text-[10px] md:text-xs font-mono transition-all",
+                      "px-2 md:px-3 py-1 md:py-1.5 rounded-md text-[10px] md:text-xs font-body transition-all",
                       chartRange === r
                         ? "bg-primary/20 text-primary border border-primary/40"
                         : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
@@ -278,29 +220,17 @@ export default function MarketsPage() {
               </div>
             </div>
 
-            {loadingChart ? (
-              <div className="flex items-center justify-center h-[280px]">
-                <Loader2 className="w-6 h-6 text-primary animate-spin" />
-              </div>
-            ) : chartData.length > 0 ? (
-              <InteractiveChart
-                data={chartData}
-                labels={chartLabels}
-                positive={isPositive}
+            {primaryIndex && (
+              <LiveChart
+                symbol={primaryIndex.symbol}
+                interval={5000}
                 height={280}
-                showGrid
-                showTooltip
-                showCrosshair
                 formatValue={(v) =>
-                  primaryIndex?.symbol === "CADUSD=X"
+                  primaryIndex.symbol === "CADUSD=X"
                     ? v.toFixed(4)
                     : `$${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                 }
               />
-            ) : (
-              <div className="flex items-center justify-center h-[280px] text-on-surface-variant text-sm">
-                No chart data available
-              </div>
             )}
           </Card>
         </div>
