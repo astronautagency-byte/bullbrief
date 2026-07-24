@@ -67,6 +67,7 @@ export default function BriefPage() {
   const [activeEpisode, setActiveEpisode] = useState<string | null>(null);
 
   const [watchlistStocks, setWatchlistStocks] = useState<WatchlistStock[]>([]);
+  const [userName, setUserName] = useState<string | null>(null);
 
   const fetchWatchlistPrices = useCallback(async () => {
     try {
@@ -160,6 +161,10 @@ export default function BriefPage() {
   useEffect(() => {
     fetchBrief();
     fetchWatchlistPrices();
+    fetch("/api/auth/session")
+      .then((r) => r.json())
+      .then((json) => setUserName(json.user?.name ?? null))
+      .catch(() => {});
     const interval = setInterval(refreshWatchlistPrices, 3000);
     return () => clearInterval(interval);
   }, [fetchBrief, fetchWatchlistPrices, refreshWatchlistPrices]);
@@ -187,6 +192,7 @@ export default function BriefPage() {
 
   const now = new Date();
   const greeting = now.getHours() < 12 ? "Good morning" : now.getHours() < 17 ? "Good afternoon" : "Good evening";
+  const greetingText = userName ? `${greeting} ${userName}. Happy investing!` : `${greeting}. Happy investing!`;
   const dateStr = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
   const marketOpen = now.getHours() >= 9 && now.getHours() < 16;
 
@@ -225,7 +231,7 @@ export default function BriefPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="font-display font-bold text-2xl md:text-3xl text-on-surface italic">{greeting}</h1>
+          <h1 className="font-display font-bold text-2xl md:text-3xl text-on-surface italic">{greetingText}</h1>
           <div className="flex items-center gap-3 mt-1">
             <p className="text-on-surface-variant">{dateStr}</p>
             <span className={cn("flex items-center gap-1 text-xs font-mono", marketOpen ? "text-primary" : "text-on-surface-variant")}>
