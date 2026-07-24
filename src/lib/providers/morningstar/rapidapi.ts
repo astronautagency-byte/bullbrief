@@ -20,9 +20,24 @@ export interface AutoCompleteResult {
 export interface StockDetails {
   symbol: string;
   pe: number | null;
+  pegRatio: number | null;
   starRating: number | null;
   starOutOf: number;
   name: string | null;
+  marketCap: number | null;
+  dividendYield: number | null;
+  priceToBook: number | null;
+  priceToSales: number | null;
+  totalReturn1Y: number | null;
+  totalReturn3Y: number | null;
+  totalReturn5Y: number | null;
+  morningstarRating3Y: number | null;
+  morningstarRating5Y: number | null;
+  morningstarRating10Y: number | null;
+  processRating: string | null;
+  peopleRating: string | null;
+  parentRating: string | null;
+  esgRiskRating: string | null;
 }
 
 const EXCHANGE_MAP: Record<string, string> = {
@@ -78,7 +93,7 @@ export async function getStockDetails(
   ticker: string,
   exchange?: string
 ): Promise<StockDetails> {
-  if (!KEY) return { symbol: ticker, pe: null, starRating: null, starOutOf: 5, name: null };
+  if (!KEY) return { symbol: ticker, pe: null, pegRatio: null, starRating: null, starOutOf: 5, name: null, marketCap: null, dividendYield: null, priceToBook: null, priceToSales: null, totalReturn1Y: null, totalReturn3Y: null, totalReturn5Y: null, morningstarRating3Y: null, morningstarRating5Y: null, morningstarRating10Y: null, processRating: null, peopleRating: null, parentRating: null, esgRiskRating: null };
   const cacheKey = `${ticker}:${exchange || ""}`;
   if (detailsCache.has(cacheKey)) return detailsCache.get(cacheKey)!;
 
@@ -89,19 +104,39 @@ export async function getStockDetails(
       `${BASE}/stock/details?ticker=${encodeURIComponent(ticker)}&exchange=${ex}`,
       { headers: headers(), next: { revalidate: 3600 } }
     );
-    if (!res.ok) return { symbol: ticker, pe: null, starRating: null, starOutOf: 5, name: null };
+    if (!res.ok) return { symbol: ticker, pe: null, pegRatio: null, starRating: null, starOutOf: 5, name: null, marketCap: null, dividendYield: null, priceToBook: null, priceToSales: null, totalReturn1Y: null, totalReturn3Y: null, totalReturn5Y: null, morningstarRating3Y: null, morningstarRating5Y: null, morningstarRating10Y: null, processRating: null, peopleRating: null, parentRating: null, esgRiskRating: null };
     const json = await res.json();
     const comps = json.components || {};
 
     let pe: number | null = null;
+    let pegRatio: number | null = null;
     let starRating: number | null = null;
     let name: string | null = null;
+    let marketCap: number | null = null;
+    let dividendYield: number | null = null;
+    let priceToBook: number | null = null;
+    let priceToSales: number | null = null;
 
     // P/E from keyStatistics
     const ks = comps.keyStatistics?.payload?.dataPoints;
     if (ks) {
       const peEntry = ks["priceToEarnings[normalized]"] || ks["priceToEarnings[trailing]"];
       if (peEntry?.value != null) pe = peEntry.value;
+
+      const pegEntry = ks["priceToEarningsGrowth[trailing]"];
+      if (pegEntry?.value != null) pegRatio = pegEntry.value;
+
+      const mcEntry = ks["marketCapitalization"];
+      if (mcEntry?.value != null) marketCap = mcEntry.value;
+
+      const divEntry = ks["dividendYieldFactored"];
+      if (divEntry?.value != null) dividendYield = divEntry.value;
+
+      const pbEntry = ks["priceToBook"];
+      if (pbEntry?.value != null) priceToBook = pbEntry.value;
+
+      const psEntry = ks["priceToSales"];
+      if (psEntry?.value != null) priceToSales = psEntry.value;
     }
 
     // P/E fallback from valuationVsBenchmarks
@@ -120,7 +155,6 @@ export async function getStockDetails(
     const pfv = comps.priceToFairValueSummary?.payload?.capsule?.stockStarRating;
     if (pfv) {
       const rawVal = pfv.value;
-      // Value is in 5-point scale (15 = 3 stars, 20 = 4 stars, etc.)
       if (rawVal != null && typeof rawVal === "number") {
         starRating = Math.round(rawVal / 5);
       }
@@ -130,11 +164,35 @@ export async function getStockDetails(
     const profile = comps.profile?.payload;
     if (profile?.name) name = profile.name;
 
-    const result: StockDetails = { symbol: ticker, pe, starRating, starOutOf: 5, name };
+    // Extract additional ratings from sustainability/process data if available
+    const processRating: string | null = null;
+    const peopleRating: string | null = null;
+    const parentRating: string | null = null;
+    let esgRiskRating: string | null = null;
+
+    const sustainability = comps.sustainability?.payload;
+    if (sustainability) {
+      const esgScore = sustainability.morningstarSustainabilityScore;
+      if (esgScore?.value != null) {
+        const val = esgScore.value;
+        if (val <= 10) esgRiskRating = "Low";
+        else if (val <= 20) esgRiskRating = "Medium";
+        else if (val <= 30) esgRiskRating = "High";
+        else esgRiskRating = "Severe";
+      }
+    }
+
+    const result: StockDetails = {
+      symbol: ticker, pe, pegRatio, starRating, starOutOf: 5, name,
+      marketCap, dividendYield, priceToBook, priceToSales,
+      totalReturn1Y: null, totalReturn3Y: null, totalReturn5Y: null,
+      morningstarRating3Y: null, morningstarRating5Y: null, morningstarRating10Y: null,
+      processRating, peopleRating, parentRating, esgRiskRating,
+    };
     detailsCache.set(cacheKey, result);
     return result;
   } catch {
-    return { symbol: ticker, pe: null, starRating: null, starOutOf: 5, name: null };
+    return { symbol: ticker, pe: null, pegRatio: null, starRating: null, starOutOf: 5, name: null, marketCap: null, dividendYield: null, priceToBook: null, priceToSales: null, totalReturn1Y: null, totalReturn3Y: null, totalReturn5Y: null, morningstarRating3Y: null, morningstarRating5Y: null, morningstarRating10Y: null, processRating: null, peopleRating: null, parentRating: null, esgRiskRating: null };
   }
 }
 

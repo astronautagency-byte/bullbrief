@@ -2,12 +2,6 @@ import { NextResponse } from "next/server";
 import { getStockPrices } from "@/lib/providers/yahoo/client";
 import { getMultipleStockDetails } from "@/lib/providers/morningstar/rapidapi";
 
-const EXCHANGE_MAP: Record<string, string> = {
-  NASDAQ: "XNAS",
-  NYSE: "XNYSE",
-  TSX: "XTSE",
-};
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const symbolsParam = searchParams.get("symbols");
@@ -29,11 +23,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Maximum 6 symbols" }, { status: 400 });
   }
 
-  // Fetch Yahoo prices (always works)
   const yahooQuotes = await getStockPrices(symbols);
   const priceMap = new Map(yahooQuotes.map((q) => [q.symbol, q]));
 
-  // Fetch Morningstar details (P/E + star rating) via RapidAPI
   const morningstarDetails = await getMultipleStockDetails(
     symbols.map((s) => ({ ticker: s }))
   );
@@ -48,8 +40,23 @@ export async function GET(request: Request) {
       change: q?.change ?? null,
       changePercent: q?.changePercent ?? null,
       pe: ms?.pe ?? q?.pe ?? null,
+      pegRatio: ms?.pegRatio ?? null,
       starRating: ms?.starRating ?? null,
       starOutOf: ms?.starOutOf ?? 5,
+      marketCap: q?.marketCap ?? ms?.marketCap ?? null,
+      dividendYield: ms?.dividendYield ?? null,
+      priceToBook: ms?.priceToBook ?? null,
+      priceToSales: ms?.priceToSales ?? null,
+      totalReturn1Y: ms?.totalReturn1Y ?? null,
+      totalReturn3Y: ms?.totalReturn3Y ?? null,
+      totalReturn5Y: ms?.totalReturn5Y ?? null,
+      morningstarRating3Y: ms?.morningstarRating3Y ?? null,
+      morningstarRating5Y: ms?.morningstarRating5Y ?? null,
+      morningstarRating10Y: ms?.morningstarRating10Y ?? null,
+      processRating: ms?.processRating ?? null,
+      peopleRating: ms?.peopleRating ?? null,
+      parentRating: ms?.parentRating ?? null,
+      esgRiskRating: ms?.esgRiskRating ?? null,
     };
   });
 

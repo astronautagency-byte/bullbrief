@@ -180,3 +180,104 @@ html.light {
 .animate-ticker:hover {
   animation-play-state: paused;
 }
+
+/* Print styles for PDF export */
+@media print {
+  @page {
+    size: landscape;
+    margin: 0.5in;
+  }
+
+  body {
+    background: white !important;
+    color: #1a1a1a !important;
+    font-size: 10pt;
+  }
+
+  /* Hide everything except the comparison table */
+  nav,
+  aside,
+  .print\:hidden,
+  [data-sidebar],
+  [role="navigation"],
+  header:not(#comparison-table header) {
+    display: none !important;
+  }
+
+  /* Style the comparison table for print */
+  #comparison-table {
+    background: white !important;
+  }
+
+  #comparison-table table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  #comparison-table th,
+  #comparison-table td {
+    border: 1px solid #e5e7eb !important;
+    padding: 6px 10px !important;
+    font-size: 9pt;
+    color: #1a1a1a !important;
+    background: white !important;
+  }
+
+  #comparison-table th {
+    background: #f3f4f6 !important;
+    font-weight: 600;
+  }
+
+  #comparison-table thead th {
+    background: #e5e7eb !important;
+  }
+
+  /* Ensure expandable sections are visible in print */
+  #comparison-table tbody tr {
+    display: table-row !important;
+  }
+
+  /* Remove shadows and borders that don't print well */
+  #comparison-table > div {
+    box-shadow: none !important;
+    border: 1px solid #d1d5db !important;
+  }
+
+  /* Show all expanded sections in print */
+  #comparison-table .hidden.print\:block {
+    display: block !important;
+  }
+
+  /* Mini charts - simplify for print */
+  #comparison-table svg {
+    max-width: 80px;
+    max-height: 30px;
+  }
+
+  /* Badge colors for print */
+  #comparison-table span[class*="bg-primary"] {
+    background: #dcfce7 !important;
+    color: #166534 !important;
+  }
+
+  #comparison-table span[class*="bg-error"] {
+    background: #fee2e2 !important;
+    color: #991b1b !important;
+  }
+
+  #comparison-table span[class*="bg-warning"] {
+    background: #fef3c7 !important;
+    color: #92400e !important;
+  }
+
+  /* Star ratings for print */
+  #comparison-table svg.fill-primary {
+    fill: #1a1a1a !important;
+    color: #1a1a1a !important;
+  }
+
+  #comparison-table svg[class*="fill-outline"] {
+    fill: #d1d5db !important;
+    color: #d1d5db !important;
+  }
+}
