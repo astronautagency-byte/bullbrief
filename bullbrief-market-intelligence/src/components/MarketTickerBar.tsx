@@ -27,7 +27,7 @@ export default function MarketTickerBar() {
         <div className="flex items-center gap-xs pr-md border-r border-outline shrink-0">
           <span className={`w-2 h-2 rounded-full ${loading ? 'bg-amber-400' : 'bg-primary'} ${!loading ? 'animate-ping' : ''}`} />
           <span className="font-bold text-on-surface tracking-wider uppercase">
-            {loading ? 'Syncing Markets...' : 'Live Market Watch:'}
+            {loading ? 'Syncing Markets...' : 'Latest Market Data:'}
           </span>
         </div>
 

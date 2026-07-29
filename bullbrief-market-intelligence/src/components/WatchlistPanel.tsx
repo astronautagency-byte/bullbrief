@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Asset } from '../types';
+import React, { useEffect, useRef, useState } from 'react';
+import { Asset, StockSearchResult } from '../types';
+import { api } from '../services/api';
 import {
   TrendingUp,
   TrendingDown,
@@ -26,40 +27,60 @@ interface WatchlistPanelProps {
 
 export default function WatchlistPanel({ watchlist, onAddAsset, onRemoveAsset, onLookupSymbol }: WatchlistPanelProps) {
   const [newSymbol, setNewSymbol] = useState('');
-  const [newName, setNewName] = useState('');
-  const [newPrice, setNewPrice] = useState('150');
   const [isAdding, setIsAdding] = useState(false);
   const [lookupLoading, setLookupLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState<StockSearchResult[]>([]);
+  const [lookupError, setLookupError] = useState('');
+  const searchRequestId = useRef(0);
 
   // Analytical state
   const [selectedAnalysisAsset, setSelectedAnalysisAsset] = useState<Asset | null>(null);
 
-  const handleCreateAsset = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newSymbol || !newName) {
-      alert('Please fill out Ticker and Asset Name.');
+  useEffect(() => {
+    const query = newSymbol.trim();
+    const requestId = ++searchRequestId.current;
+    if (!isAdding || query.length < 1) {
+      setSearchResults([]);
+      setLookupError('');
       return;
     }
 
-    const priceNum = parseFloat(newPrice) || 100.0;
-    const changePct = parseFloat((Math.random() * 6 - 3).toFixed(2)); // random -3% to +3%
-    const changeAmt = parseFloat((priceNum * (changePct / 100)).toFixed(2));
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setLookupLoading(true);
+      setLookupError('');
+      try {
+        const results = await api.searchStocks(query);
+        if (requestId === searchRequestId.current) setSearchResults(results);
+      } catch (error) {
+        if (!controller.signal.aborted && requestId === searchRequestId.current) {
+          setLookupError(error instanceof Error ? error.message : 'Search failed');
+        }
+      } finally {
+        if (!controller.signal.aborted && requestId === searchRequestId.current) setLookupLoading(false);
+      }
+    }, 250);
 
-    const newAsset: Asset = {
-      symbol: newSymbol.toUpperCase(),
-      name: newName,
-      price: priceNum,
-      dayChangePercent: changePct,
-      dayChangeAmount: changeAmt,
-      marketCap: `${(Math.random() * 500 + 10).toFixed(1)}B`,
-      volume24h: `${(Math.random() * 50 + 2).toFixed(1)}M`,
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
     };
+  }, [isAdding, newSymbol]);
 
-    onAddAsset(newAsset);
-    setNewSymbol('');
-    setNewName('');
-    setNewPrice('150');
-    setIsAdding(false);
+  const addSearchResult = async (result: StockSearchResult) => {
+    if (!onLookupSymbol) return;
+    setLookupLoading(true);
+    setLookupError('');
+    try {
+      await onLookupSymbol(result.symbol);
+      setNewSymbol('');
+      setSearchResults([]);
+      setIsAdding(false);
+    } catch (error) {
+      setLookupError(error instanceof Error ? error.message : 'Unable to add this listing');
+    } finally {
+      setLookupLoading(false);
+    }
   };
 
   return (
@@ -71,7 +92,7 @@ export default function WatchlistPanel({ watchlist, onAddAsset, onRemoveAsset, o
             <span>Workspace Watchlist</span>
           </h2>
           <p className="font-sans text-xs text-secondary">
-            Deconstruct high-conviction market streams, review real-time spot changes, and load deep analyst telemetry.
+            Review the latest available market prices and load deep analyst telemetry. Exchange data may be delayed.
           </p>
         </div>
 
@@ -80,7 +101,7 @@ export default function WatchlistPanel({ watchlist, onAddAsset, onRemoveAsset, o
           className="px-5 py-2.5 bg-white text-neutral-950 text-xs font-semibold rounded-full flex items-center gap-xs cursor-pointer hover:bg-neutral-200 transition-all shadow"
         >
           <Plus className="w-4 h-4" />
-          <span>Add Custom Ticker</span>
+          <span>Add Stock</span>
         </button>
       </div>
 
@@ -90,7 +111,7 @@ export default function WatchlistPanel({ watchlist, onAddAsset, onRemoveAsset, o
         <div className="text-left">
           <p className="text-xs font-bold text-white uppercase tracking-wider">Read-Only Observation Mode Active</p>
           <p className="text-[11px] text-neutral-400 leading-normal mt-0.5">
-            This workspace operates strictly as a read-only market monitor. Under federal compliance guidelines, transactional features, buying, selling, or order routing operations are disabled on this terminal.
+            This workspace is a read-only information tool. It does not route orders or support buying or selling. Content is general information, not investment advice or a recommendation.
           </p>
         </div>
       </div>
@@ -98,79 +119,56 @@ export default function WatchlistPanel({ watchlist, onAddAsset, onRemoveAsset, o
       {/* Add Ticker Drawer / Form */}
       {isAdding && (
         <form
-          onSubmit={handleCreateAsset}
-          className="bg-[#121212] border border-outline rounded-3xl p-6 flex flex-col md:flex-row items-end gap-md animate-scale-up shadow-xl"
+          onSubmit={(event) => event.preventDefault()}
+          className="bg-[#121212] border border-outline rounded-3xl p-6 flex flex-col gap-md animate-scale-up shadow-xl"
         >
-          <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-3 gap-md">
+          <div className="w-full">
             <div className="flex flex-col gap-1.5 text-left">
-              <label className="font-mono text-[9px] text-neutral-500 font-bold uppercase tracking-wider">Ticker Symbol (e.g. NFLX)</label>
+              <label className="font-mono text-[9px] text-neutral-500 font-bold uppercase tracking-wider">
+                Search Canadian or U.S. stocks
+              </label>
               <input
                 type="text"
-                required
                 value={newSymbol}
                 onChange={(e) => setNewSymbol(e.target.value)}
-                placeholder="Ticker"
+                placeholder="Company or ticker (e.g. Shopify, SHOP.TO, AAPL)"
                 className="bg-neutral-950 border border-outline rounded-xl p-3 font-mono text-xs text-on-surface focus:outline-none focus:border-primary transition-all"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5 text-left">
-              <label className="font-mono text-[9px] text-neutral-500 font-bold uppercase tracking-wider">Asset Name (e.g. Netflix Inc.)</label>
-              <input
-                type="text"
-                required
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="Company Name"
-                className="bg-neutral-950 border border-outline rounded-xl p-3 font-sans text-xs text-on-surface focus:outline-none focus:border-primary transition-all"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5 text-left">
-              <label className="font-mono text-[9px] text-neutral-500 font-bold uppercase tracking-wider">Current Spot Price ($)</label>
-              <input
-                type="number"
-                step="0.01"
-                required
-                value={newPrice}
-                onChange={(e) => setNewPrice(e.target.value)}
-                placeholder="Price"
-                className="bg-neutral-950 border border-outline rounded-xl p-3 font-mono text-xs text-on-surface focus:outline-none focus:border-primary transition-all"
+                autoFocus
               />
             </div>
           </div>
 
-          <div className="flex gap-2 w-full md:w-auto mt-2 md:mt-0">
-            {onLookupSymbol && newSymbol.trim() && (
+          <div className="flex flex-col gap-2">
+            {lookupLoading && <p className="text-xs text-neutral-400">Searching supported exchanges…</p>}
+            {!lookupLoading && newSymbol.trim() && searchResults.length === 0 && !lookupError && (
+              <p className="text-xs text-neutral-400">No Canadian or U.S. stock listings found.</p>
+            )}
+            {lookupError && <p className="text-xs text-error">{lookupError}</p>}
+            {searchResults.map((result) => (
               <button
+                key={result.symbol}
                 type="button"
                 disabled={lookupLoading}
-                onClick={async () => {
-                  setLookupLoading(true);
-                  try {
-                    await onLookupSymbol(newSymbol.trim());
-                    setNewSymbol('');
-                    setNewName('');
-                    setIsAdding(false);
-                  } finally {
-                    setLookupLoading(false);
-                  }
-                }}
-                className="flex-1 md:flex-initial px-6 py-3 bg-white text-neutral-950 font-semibold text-xs rounded-full cursor-pointer hover:bg-neutral-200 transition-all shadow disabled:opacity-50"
+                onClick={() => addSearchResult(result)}
+                className="w-full flex items-center justify-between gap-4 p-3 bg-neutral-950 border border-outline rounded-xl text-left hover:border-primary transition-colors disabled:opacity-50"
               >
-                {lookupLoading ? 'Looking up...' : 'Fetch Live Quote'}
+                <span>
+                  <span className="block font-semibold text-white">{result.name}</span>
+                  <span className="block text-[10px] text-neutral-500">{result.exchange} · {result.quoteType}</span>
+                </span>
+                <span className="font-mono font-bold text-primary">{result.symbol}</span>
               </button>
-            )}
-            <button
-              type="submit"
-              className="flex-1 md:flex-initial px-6 py-3 bg-primary text-slate-950 font-semibold text-xs rounded-full cursor-pointer hover:bg-opacity-90 active:scale-95 transition-all shadow"
-            >
-              Save Asset
-            </button>
+            ))}
+          </div>
+          <div className="flex justify-end">
             <button
               type="button"
-              onClick={() => setIsAdding(false)}
-              className="flex-1 md:flex-initial px-6 py-3 border border-outline text-on-surface hover:bg-neutral-900 rounded-full font-semibold text-xs cursor-pointer transition-all"
+              onClick={() => {
+                setIsAdding(false);
+                setNewSymbol('');
+                setLookupError('');
+              }}
+              className="px-6 py-3 border border-outline text-on-surface hover:bg-neutral-900 rounded-full font-semibold text-xs cursor-pointer transition-all"
             >
               Cancel
             </button>
@@ -186,10 +184,10 @@ export default function WatchlistPanel({ watchlist, onAddAsset, onRemoveAsset, o
               <tr className="border-b border-outline bg-neutral-950/20 text-neutral-500 font-mono text-[9px] font-bold uppercase tracking-[0.2em]">
                 <th className="py-4 px-lg">ASSET CODE</th>
                 <th className="py-4 px-md">COMPANY NAME</th>
-                <th className="py-4 px-md text-right">SPOT PRICE</th>
+                <th className="py-4 px-md text-right">LATEST PRICE</th>
                 <th className="py-4 px-md text-right">DAY CHANGE</th>
                 <th className="py-4 px-md text-right">MARKET CAP</th>
-                <th className="py-4 px-md text-right">24H VOLUME</th>
+                <th className="py-4 px-md text-right">SESSION VOLUME</th>
                 <th className="py-4 px-lg text-center">ACTION DECK</th>
               </tr>
             </thead>
@@ -203,7 +201,10 @@ export default function WatchlistPanel({ watchlist, onAddAsset, onRemoveAsset, o
                   >
                     {/* Ticker Symbol */}
                     <td className="py-5 px-lg font-mono font-black text-on-surface text-sm">
-                      {asset.symbol}
+                      <span className="block">{asset.symbol}</span>
+                      <span className="block text-[9px] font-sans font-normal text-neutral-500">
+                        {asset.exchange || 'Exchange unavailable'} · {asset.currency || 'Currency unavailable'}
+                      </span>
                     </td>
 
                     {/* Name */}
@@ -213,7 +214,11 @@ export default function WatchlistPanel({ watchlist, onAddAsset, onRemoveAsset, o
 
                     {/* Price */}
                     <td className="py-5 px-md text-right font-mono font-bold text-on-surface tabular-nums">
-                      ${asset.price.toFixed(2)}
+                      {asset.price.toFixed(2)} {asset.currency || ''}
+                      <span className="block text-[9px] font-sans font-normal text-neutral-500">
+                        {asset.dataStatus || 'Unknown'}{asset.asOf ? ` · ${new Date(asset.asOf).toLocaleString()}` : ''}
+                        {asset.dataSource ? ` · Source: ${asset.dataSource}` : ''}
+                      </span>
                     </td>
 
                     {/* Delta Percentage Change */}

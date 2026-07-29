@@ -9,28 +9,33 @@ import {
   Save,
   Building,
   ShieldCheck,
-  Award
+  Award,
+  Trash2
 } from 'lucide-react';
 
 interface AccountBillingProps {
   user: User;
-  onUpdateUser: (updated: Partial<User>) => void;
+  onUpdateUser: (updated: Partial<User>) => Promise<void>;
   invoices: Invoice[];
+  onExportAccount: () => Promise<void>;
+  onDeleteAccount: () => Promise<void>;
 }
 
-export default function AccountBilling({ user, onUpdateUser, invoices }: AccountBillingProps) {
+export default function AccountBilling({ user, onUpdateUser, invoices, onExportAccount, onDeleteAccount }: AccountBillingProps) {
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
   const [isSaving, setIsSaving] = useState(false);
 
-  const handleProfileSubmit = (e: React.FormEvent) => {
+  const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-    setTimeout(() => {
-      onUpdateUser({ name, email });
+    try {
+      await onUpdateUser({ name });
+      setEmail(user.email);
+      alert('PROFILE UPDATED:\n\nYour account profile has been synchronized.');
+    } finally {
       setIsSaving(false);
-      alert('PROFILE UPDATED:\n\nYour user settings have been synchronized successfully.');
-    }, 800);
+    }
   };
 
   const handleDownloadInvoice = (invoice: Invoice) => {
@@ -77,9 +82,10 @@ export default function AccountBilling({ user, onUpdateUser, invoices }: Account
                   type="email"
                   required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  disabled
                   className="bg-transparent border border-outline rounded-none p-2.5 font-sans text-xs text-on-surface focus:outline-none focus:border-primary"
                 />
+                <p className="text-[10px] text-tertiary">Contact support to change the account identifier.</p>
               </div>
             </div>
 
@@ -135,6 +141,32 @@ export default function AccountBilling({ user, onUpdateUser, invoices }: Account
               ))}
             </div>
           </div>
+
+          <div className="bg-surface border border-outline rounded-none p-lg flex flex-col gap-md">
+            <h3 className="font-headline italic text-base text-on-surface font-semibold">Privacy & account data</h3>
+            <p className="text-xs text-secondary">
+              Download a copy of your profile, watchlist, and billing records, or permanently delete the server-side account record.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={onExportAccount} className="px-4 py-2 border border-outline text-xs text-on-surface">
+                Export account data
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (window.confirm('Permanently delete this BullBrief account and its saved watchlist? This cannot be undone.')) {
+                    await onDeleteAccount();
+                  }
+                }}
+                className="px-4 py-2 border border-error text-xs text-error flex items-center gap-1"
+              >
+                <Trash2 className="w-4 h-4" /> Delete account
+              </button>
+            </div>
+            <p className="text-[10px] text-tertiary">
+              Exports are personal data copies, not official statements or investment records. Market and AI content may be delayed or inaccurate.
+            </p>
+          </div>
         </div>
 
         {/* Right Column: Active Subscription card info */}
@@ -162,7 +194,7 @@ export default function AccountBilling({ user, onUpdateUser, invoices }: Account
               <div>
                 <h3 className="font-headline italic text-xl text-primary font-bold">BullBrief Pro Active</h3>
                 <p className="font-sans text-xs text-secondary mt-1 leading-relaxed">
-                  You are currently subscribed to the Professional Tier, unlocking real-time 320kbps audio briefings, continuous consensus indexes, and automated cognitive logs.
+                  You are currently subscribed to the Professional Tier, unlocking expanded audio briefings, consensus summaries, and automated analysis logs.
                 </p>
               </div>
 
@@ -179,7 +211,7 @@ export default function AccountBilling({ user, onUpdateUser, invoices }: Account
 
               <div className="flex items-center gap-1.5 text-[10px] text-secondary bg-surface-container border border-outline p-2.5 rounded-none">
                 <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
-                <span>Subscription protected by simulated SSL 256-bit sandbox encryption protocols.</span>
+                <span>Signed-in account data is synchronized through an HTTP-only session. Do not share access to your device.</span>
               </div>
             </div>
           ) : (

@@ -7,7 +7,7 @@ export function useLiveQuotes(symbols: string[], refreshMs = 60000) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const symbolKey = symbols.sort().join(',');
+  const symbolKey = [...symbols].sort().join(',');
 
   const refresh = useCallback(async () => {
     if (symbols.length === 0) {

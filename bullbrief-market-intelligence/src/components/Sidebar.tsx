@@ -172,7 +172,7 @@ export default function Sidebar({
               <p className="font-headline italic text-sm text-white font-semibold">Go Premium</p>
             </div>
             <p className="text-[10px] text-secondary leading-relaxed uppercase tracking-wider">
-              Unlock institutional-grade real-time market sentiment & analysis.
+              Unlock expanded market summaries and analysis tools. Data may be delayed.
             </p>
             <button
               onClick={() => setActivePage('pro')}
@@ -188,7 +188,7 @@ export default function Sidebar({
               <p className="font-headline font-bold text-xs uppercase tracking-[0.2em] text-primary">PRO MEMBER</p>
             </div>
             <p className="text-[11px] text-secondary leading-normal font-medium">
-              Thank you for being a Pro subscriber. Real-time data feed is active.
+              Thank you for being a Pro subscriber. Market-data timing varies by venue.
             </p>
             <button
               onClick={() => setActivePage('account')}

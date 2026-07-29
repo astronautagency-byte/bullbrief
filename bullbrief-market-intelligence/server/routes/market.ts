@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { fetchQuotes, fetchSingleQuote, fetchMarketTickers, fetchChartData } from '../services/yahooFinance.js';
+import { fetchQuotes, fetchSingleQuote, fetchMarketTickers, fetchChartData, searchStocks } from '../services/yahooFinance.js';
 
 const router = Router();
 
@@ -26,6 +26,19 @@ router.get('/quotes', async (req, res, next) => {
 
     const quotes = await fetchQuotes(symbols);
     res.json(quotes);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/search', async (req, res, next) => {
+  try {
+    const query = String(req.query.q || '').trim();
+    if (!query) {
+      res.status(400).json({ error: 'Provide a search query, e.g. ?q=Shopify' });
+      return;
+    }
+    res.json(await searchStocks(query));
   } catch (error) {
     next(error);
   }

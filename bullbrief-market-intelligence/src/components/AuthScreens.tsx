@@ -4,7 +4,7 @@ import { Lock, Mail, User as UserIcon, Sparkles, Building, ArrowRight } from 'lu
 
 interface AuthScreensProps {
   mode: 'login' | 'register';
-  onAuthSuccess: (user: { name: string; email: string; isPro: boolean; joinedDate: string }) => void;
+  onAuthSuccess: (user: { name: string; email: string; isPro: boolean; joinedDate: string }) => Promise<void>;
   setActivePage: (page: PageId) => void;
 }
 
@@ -13,11 +13,11 @@ export default function AuthScreens({ mode, onAuthSuccess, setActivePage }: Auth
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
 
-  const handleAuthSubmit = (e: React.FormEvent) => {
+  const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (mode === 'login') {
-      onAuthSuccess({
+      await onAuthSuccess({
         name: name || 'Elena Vance',
         email: email || 'elena.vance@institutional-flows.com',
         isPro: false,
@@ -25,7 +25,7 @@ export default function AuthScreens({ mode, onAuthSuccess, setActivePage }: Auth
       });
       alert('LOGIN SUCCESSFUL:\n\nWelcome back to BullBrief. Sandbox session started.');
     } else {
-      onAuthSuccess({
+      await onAuthSuccess({
         name: name || 'Alex Mercer',
         email: email || 'alex.mercer@hedgecapital.com',
         isPro: false,
@@ -37,8 +37,8 @@ export default function AuthScreens({ mode, onAuthSuccess, setActivePage }: Auth
   };
 
   // One-Click Demo prefill helper for rapid previewing
-  const triggerDemoLogin = (proStatus: boolean) => {
-    onAuthSuccess({
+  const triggerDemoLogin = async (proStatus: boolean) => {
+    await onAuthSuccess({
       name: 'Elena Vance',
       email: 'elena.vance@institutional-flows.com',
       isPro: proStatus,
@@ -63,7 +63,7 @@ export default function AuthScreens({ mode, onAuthSuccess, setActivePage }: Auth
             {mode === 'login' ? 'Sign In to Workspace' : 'Register Intelligence Node'}
           </h2>
           <p className="font-sans text-xs text-secondary mt-2 max-w-xs leading-relaxed">
-            Authenticate to sync custom watchlists, real-time audio players, and cognitive analyst engines.
+            Sign in to synchronize watchlists and account settings across your devices.
           </p>
         </div>
 

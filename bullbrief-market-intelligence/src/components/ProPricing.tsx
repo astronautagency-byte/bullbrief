@@ -46,7 +46,7 @@ export default function ProPricing({
       setIsProcessing(false);
       setIsCheckoutOpen(false);
       onUpgradeSuccess();
-      alert('UPGRADE SUCCESSFUL:\n\nWelcome to BullBrief Pro. You now have full institutional real-time access across all intelligence feeds!');
+      alert('UPGRADE SUCCESSFUL:\n\nWelcome to BullBrief Pro. Expanded analysis features are now available. Market-data timing varies by source and venue.');
       setActivePage('pulse');
     }, 1500);
   };
@@ -166,7 +166,7 @@ export default function ProPricing({
               <span className="font-mono text-[9px] text-primary font-black uppercase tracking-[0.15em]">FULL INTELLIGENCE</span>
               <h3 className="font-headline italic text-2xl text-on-surface mt-1 font-bold">BullBrief Pro</h3>
               <p className="font-sans text-xs text-secondary mt-1">
-                Institutional-grade matrices, real-time audio, and cognitive analysis.
+                Expanded research matrices, audio briefings, and automated analysis.
               </p>
               <div className="mt-md font-headline italic text-4xl text-primary tabular-nums font-bold">
                 ${priceVal.toFixed(2)}{' '}

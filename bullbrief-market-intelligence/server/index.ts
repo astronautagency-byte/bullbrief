@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import marketRoutes from './routes/market.js';
 import newsRoutes from './routes/news.js';
 import aiRoutes from './routes/ai.js';
+import accountRoutes from './routes/account.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3001;
@@ -26,6 +27,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/market', marketRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/account', accountRoutes);
 
 if (isProduction) {
   const distPath = path.resolve(__dirname, '../dist');

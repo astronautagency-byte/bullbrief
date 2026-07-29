@@ -3,7 +3,16 @@ import { PageId, User, Asset, Invoice } from './types';
 import { BRIEFING_ITEMS, PODCAST_EPISODES } from './components/mockData';
 import { useLiveQuotes } from './hooks/useLiveQuotes';
 import { useMarketNews } from './hooks/useMarketNews';
-import { loadUser, saveUser, loadWatchlist, saveWatchlist, loadInvoices, saveInvoices } from './services/storage';
+import {
+  loadUser,
+  saveUser,
+  loadWatchlist,
+  saveWatchlist,
+  loadInvoices,
+  saveInvoices,
+  markLocalDataMigrated,
+  shouldMigrateLocalData,
+} from './services/storage';
 import { api } from './services/api';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -22,8 +31,8 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
   const [user, setUser] = useState<User | null>(() => loadUser());
-  const [watchlist, setWatchlist] = useState<Asset[]>(() => loadWatchlist());
-  const [invoices, setInvoices] = useState<Invoice[]>(() => loadInvoices());
+  const [watchlist, setWatchlist] = useState<Asset[]>(() => loadWatchlist(loadUser()?.email));
+  const [invoices, setInvoices] = useState<Invoice[]>(() => loadInvoices(loadUser()?.email));
   const [briefings, setBriefings] = useState(BRIEFING_ITEMS);
 
   const { news } = useMarketNews();
@@ -41,12 +50,45 @@ export default function App() {
   }, [user]);
 
   useEffect(() => {
-    saveWatchlist(watchlist);
-  }, [watchlist]);
+    saveWatchlist(watchlist, user?.email);
+  }, [watchlist, user?.email]);
 
   useEffect(() => {
-    saveInvoices(invoices);
-  }, [invoices]);
+    saveInvoices(invoices, user?.email);
+  }, [invoices, user?.email]);
+
+  const applyAccountState = useCallback((state: Awaited<ReturnType<typeof api.getAccountState>>) => {
+    setUser(state.user);
+    setWatchlist(state.watchlist);
+    setInvoices(state.invoices);
+  }, []);
+
+  const connectAccount = useCallback(async (authUser: User) => {
+    const migrate = shouldMigrateLocalData(authUser.email);
+    const state = await api.startAccountSession(
+      authUser,
+      migrate ? { watchlist: loadWatchlist(), invoices: loadInvoices() } : undefined
+    );
+    if (migrate) markLocalDataMigrated(authUser.email);
+    applyAccountState(state);
+  }, [applyAccountState]);
+
+  useEffect(() => {
+    if (!user) return;
+    connectAccount(user).catch(() => {
+      // Retain the account-scoped local cache when temporarily offline.
+    });
+    const refresh = () => api.getAccountState().then(applyAccountState).catch(() => undefined);
+    const interval = window.setInterval(refresh, 15000);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') refresh();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [user?.email, applyAccountState, connectAccount]);
 
   useEffect(() => {
     async function loadBriefing() {
@@ -70,31 +112,55 @@ export default function App() {
     loadBriefing();
   }, []);
 
-  const handleUpgradeSuccess = () => {
+  const handleUpgradeSuccess = async () => {
     if (user) {
-      setUser({ ...user, isPro: true });
       const newInvoice: Invoice = {
         id: `INV-${Date.now()}`,
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         amount: 99.0,
         status: 'PAID',
       };
-      setInvoices([newInvoice, ...invoices]);
+      const nextInvoices = [newInvoice, ...invoices];
+      const profileState = await api.updateAccountProfile({ isPro: true });
+      const invoiceState = await api.updateAccountInvoices(nextInvoices);
+      applyAccountState({ ...invoiceState, user: profileState.user });
     }
   };
 
-  const handleUpdateUser = (updated: Partial<User>) => {
+  const handleUpdateUser = async (updated: Partial<User>) => {
     if (user) {
-      setUser({ ...user, ...updated } as User);
+      applyAccountState(await api.updateAccountProfile(updated));
     }
   };
 
-  const handleAuthSuccess = (authUser: User) => {
-    setUser(authUser);
+  const handleAuthSuccess = async (authUser: User) => {
+    await connectAccount(authUser);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await api.endAccountSession().catch(() => undefined);
     setUser(null);
+    setWatchlist([]);
+    setInvoices([]);
+    setActivePage('login');
+  };
+
+  const handleExportAccount = async () => {
+    const exported = await api.exportAccount();
+    const blob = new Blob([JSON.stringify(exported, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'bullbrief-account-export.json';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDeleteAccount = async () => {
+    await api.deleteAccount();
+    setUser(null);
+    setWatchlist([]);
+    setInvoices([]);
     setActivePage('login');
   };
 
@@ -102,33 +168,32 @@ export default function App() {
     const upper = symbol.toUpperCase();
     if (watchlist.some((a) => a.symbol === upper)) return;
 
-    try {
-      const quote = await api.getQuote(upper);
-      setWatchlist((prev) => [...prev, quote]);
-    } catch {
-      const fallback: Asset = {
-        symbol: upper,
-        name: `${upper} Spot Asset`,
-        price: 100.0,
-        dayChangePercent: 0,
-        dayChangeAmount: 0,
-        marketCap: '—',
-        volume24h: '—',
-      };
-      setWatchlist((prev) => [...prev, fallback]);
+    const quote = await api.getQuote(upper);
+    if (user) {
+      applyAccountState(await api.addAccountAsset(quote));
+    } else {
+      setWatchlist((prev) => prev.some((asset) => asset.symbol === quote.symbol) ? prev : [...prev, quote]);
     }
-  }, [watchlist]);
+  }, [applyAccountState, user, watchlist]);
 
-  const handleAddToWatchlistObj = (asset: Asset) => {
+  const handleAddToWatchlistObj = async (asset: Asset) => {
     if (watchlist.some((a) => a.symbol === asset.symbol)) {
       alert(`${asset.symbol} is already in your watchlist.`);
       return;
     }
-    setWatchlist((prev) => [...prev, asset]);
+    if (user) {
+      applyAccountState(await api.addAccountAsset(asset));
+    } else {
+      setWatchlist((prev) => [...prev, asset]);
+    }
   };
 
-  const handleRemoveFromWatchlist = (symbol: string) => {
-    setWatchlist((prev) => prev.filter((a) => a.symbol !== symbol));
+  const handleRemoveFromWatchlist = async (symbol: string) => {
+    if (user) {
+      applyAccountState(await api.removeAccountAsset(symbol));
+    } else {
+      setWatchlist((prev) => prev.filter((a) => a.symbol !== symbol));
+    }
   };
 
   const navigateMobile = (page: PageId) => {
@@ -176,7 +241,13 @@ export default function App() {
       case 'account':
       case 'billing':
         return user ? (
-          <AccountBilling user={user} onUpdateUser={handleUpdateUser} invoices={invoices} />
+          <AccountBilling
+            user={user}
+            onUpdateUser={handleUpdateUser}
+            invoices={invoices}
+            onExportAccount={handleExportAccount}
+            onDeleteAccount={handleDeleteAccount}
+          />
         ) : (
           <AuthScreens mode="login" onAuthSuccess={handleAuthSuccess} setActivePage={setActivePage} />
         );
@@ -301,8 +372,11 @@ export default function App() {
         </main>
       </div>
 
-      <footer className="py-md border-t border-outline-variant bg-surface-container-low text-center font-mono text-[9px] text-tertiary select-none">
-        BULLBRIEF MARKET INTELLIGENCE TERMINAL V2.4.0 • COGNITIVE ANALYSIS DECK ACTIVE • © 2026 BULLBRIEF CORP
+      <footer className="py-md px-md border-t border-outline-variant bg-surface-container-low text-center font-mono text-[9px] text-tertiary select-none">
+        <p>BULLBRIEF MARKET INTELLIGENCE • © 2026 BULLBRIEF CORP</p>
+        <p className="mt-1 max-w-4xl mx-auto">
+          General information only—not investment advice, a recommendation, or an offer. Market and AI-generated content may be inaccurate, incomplete, or delayed. Verify important information with primary sources and a qualified professional.
+        </p>
       </footer>
     </div>
   );

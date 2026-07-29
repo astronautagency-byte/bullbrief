@@ -1,5 +1,5 @@
 import YahooFinance from 'yahoo-finance2';
-import type { Asset } from '../../src/types.js';
+import type { Asset, StockSearchResult } from '../../src/types.js';
 
 const yahooFinance = new YahooFinance();
 
@@ -39,10 +39,45 @@ function formatVolume(value?: number): string {
   return String(value);
 }
 
+const CANADIAN_EXCHANGES = new Set(['TOR', 'TSX', 'TSXV', 'VAN', 'CNQ', 'NEO']);
+const US_EXCHANGES = new Set(['NMS', 'NGM', 'NCM', 'NYQ', 'ASE', 'PCX', 'BTS']);
+
+function normalizeSymbol(symbol: string): string {
+  const normalized = symbol.trim().toUpperCase();
+  const tsxMatch = normalized.match(/^(?:TSX|TSE):(.+)$/);
+  if (tsxMatch) return `${tsxMatch[1]}.TO`;
+  const tsxvMatch = normalized.match(/^(?:TSXV|CVE):(.+)$/);
+  if (tsxvMatch) return `${tsxvMatch[1]}.V`;
+  const suffixMatch = normalized.match(/^(.+):(TO|V)$/);
+  if (suffixMatch) return `${suffixMatch[1]}.${suffixMatch[2]}`;
+  return normalized;
+}
+
+function exchangeLabel(exchange?: string, fullExchangeName?: string): string {
+  if (fullExchangeName) return fullExchangeName;
+  const code = (exchange || '').toUpperCase();
+  if (code === 'TOR' || code === 'TSX') return 'Toronto Stock Exchange';
+  if (code === 'VAN' || code === 'TSXV') return 'TSX Venture Exchange';
+  if (code === 'NMS' || code === 'NGM' || code === 'NCM') return 'Nasdaq';
+  if (code === 'NYQ') return 'New York Stock Exchange';
+  if (code === 'ASE') return 'NYSE American';
+  return exchange || 'Unknown exchange';
+}
+
+function isSupportedListing(symbol: string, exchange?: string): boolean {
+  const code = (exchange || '').toUpperCase();
+  return (
+    symbol.endsWith('.TO') ||
+    symbol.endsWith('.V') ||
+    CANADIAN_EXCHANGES.has(code) ||
+    US_EXCHANGES.has(code)
+  );
+}
+
 export async function fetchQuotes(symbols: string[]): Promise<Asset[]> {
   if (symbols.length === 0) return [];
 
-  const normalized = [...new Set(symbols.map((s) => s.toUpperCase()))];
+  const normalized = [...new Set(symbols.map(normalizeSymbol).filter(Boolean))];
   const quotes = await yahooFinance.quote(normalized);
 
   const quoteList = Array.isArray(quotes) ? quotes : [quotes];
@@ -55,13 +90,19 @@ export async function fetchQuotes(symbols: string[]): Promise<Asset[]> {
       const changeAmount = quote.regularMarketChange ?? 0;
 
       return {
-        symbol: quote.symbol.replace('.TO', '').toUpperCase(),
+        symbol: quote.symbol.toUpperCase(),
         name: quote.shortName || quote.longName || quote.symbol,
+        exchange: exchangeLabel(quote.exchange, quote.fullExchangeName),
+        currency: quote.currency,
         price: Number(price.toFixed(2)),
         dayChangePercent: Number(changePercent.toFixed(2)),
         dayChangeAmount: Number(changeAmount.toFixed(2)),
         marketCap: formatMarketCap(quote.marketCap),
         volume24h: formatVolume(quote.regularMarketVolume),
+        quoteType: quote.quoteType,
+        dataStatus: quote.exchangeDataDelayedBy && quote.exchangeDataDelayedBy > 0 ? 'Delayed' : 'Unknown',
+        asOf: quote.regularMarketTime?.toISOString(),
+        dataSource: 'Yahoo Finance',
       };
     });
 }
@@ -69,6 +110,45 @@ export async function fetchQuotes(symbols: string[]): Promise<Asset[]> {
 export async function fetchSingleQuote(symbol: string): Promise<Asset | null> {
   const results = await fetchQuotes([symbol]);
   return results[0] ?? null;
+}
+
+export async function searchStocks(query: string): Promise<StockSearchResult[]> {
+  const trimmed = query.trim();
+  if (trimmed.length < 1) return [];
+
+  const response = await yahooFinance.search(trimmed, {
+    quotesCount: 20,
+    newsCount: 0,
+    enableFuzzyQuery: true,
+  });
+
+  return response.quotes
+    .filter((result) => {
+      const symbol = typeof result.symbol === 'string' ? result.symbol.toUpperCase() : '';
+      const exchange = typeof result.exchange === 'string' ? result.exchange : undefined;
+      const quoteType = typeof result.quoteType === 'string' ? result.quoteType : '';
+      return (
+        Boolean(symbol) &&
+        isSupportedListing(symbol, exchange) &&
+        ['EQUITY', 'ETF'].includes(quoteType.toUpperCase())
+      );
+    })
+    .map((result): StockSearchResult => {
+      const symbol = String(result.symbol).toUpperCase();
+      const shortName = typeof result.shortname === 'string' ? result.shortname : undefined;
+      const longName = typeof result.longname === 'string' ? result.longname : undefined;
+      const exchange = typeof result.exchange === 'string' ? result.exchange : undefined;
+      const exchangeDisplay = typeof result.exchDisp === 'string' ? result.exchDisp : undefined;
+      const quoteType = typeof result.quoteType === 'string' ? result.quoteType : 'EQUITY';
+      return {
+        symbol,
+        name: shortName || longName || symbol,
+        exchange: exchangeLabel(exchange, exchangeDisplay),
+        quoteType,
+      };
+    })
+    .filter((result, index, all) => all.findIndex((item) => item.symbol === result.symbol) === index)
+    .slice(0, 10);
 }
 
 export async function fetchMarketTickers(): Promise<TickerItem[]> {

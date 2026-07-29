@@ -79,7 +79,7 @@ export default function QuickPulseDashboard({ watchlist, searchQuery }: QuickPul
             <span>Quick Pulse Radar</span>
           </h2>
           <p className="font-sans text-xs text-secondary/80">
-            High-density market briefing digests, quantitative alerts, and real-time leverage sandbox.
+            Market briefing digests, quantitative indicators, and a hypothetical leverage calculator.
           </p>
         </div>
         <div className="bg-surface-container border border-outline rounded-none px-3 py-1.5 flex items-center gap-1.5 select-none">
@@ -254,7 +254,7 @@ export default function QuickPulseDashboard({ watchlist, searchQuery }: QuickPul
               <span>Collateral Margin Sandbox</span>
             </div>
             <p className="font-sans text-xs text-secondary leading-snug">
-              Estimate hypothetical buying power, leverage thresholds, and risk pricing tolerances.
+              Illustrative estimates only. This calculator does not assess suitability, borrowing eligibility, losses, taxes, fees, or individual risk tolerance.
             </p>
 
             <div className="grid grid-cols-3 gap-sm mt-xs">

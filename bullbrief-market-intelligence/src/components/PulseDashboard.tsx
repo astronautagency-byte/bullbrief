@@ -460,7 +460,7 @@ export default function PulseDashboard({
                   Stocks Katherine is Watching
                 </h3>
                 <p className="text-xs text-neutral-400 mt-0.5">
-                  Real-time observation node for {market === 'USA' ? 'US Equities (USD)' : 'Canadian Equities (CAD)'}.
+                  Latest available observation for {market === 'USA' ? 'US Equities (USD)' : 'Canadian Equities (CAD)'}. Data may be delayed.
                 </p>
               </div>
               <span className="text-[10px] font-mono font-bold tracking-widest text-primary bg-primary/10 px-2.5 py-1 rounded-full border border-primary/20">
@@ -600,7 +600,7 @@ export default function PulseDashboard({
             <div className="flex flex-col gap-sm">
               <div className="flex items-center justify-between">
                 <span className="font-mono text-[9px] text-primary font-black uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-full">
-                  Advisor Action Hub
+                  Research Review Hub
                 </span>
                 <Sparkles className="w-4 h-4 text-primary" />
               </div>
@@ -609,7 +609,7 @@ export default function PulseDashboard({
                 Katherine's Daily Focus
               </h4>
               <p className="text-xs text-neutral-400 leading-relaxed font-medium">
-                Your high-impact briefing tools and key advisory opportunities for today:
+                General market briefings and research topics for review:
               </p>
 
               <div className="flex flex-col gap-xs mt-2">
@@ -752,7 +752,7 @@ export default function PulseDashboard({
 
             <div className="border-t border-outline/30 pt-3 text-center">
               <span className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest font-semibold flex items-center justify-center gap-1">
-                <Layers className="w-3.5 h-3.5 text-primary" /> INSTITUTIONAL REAL-TIME STREAM
+                <Layers className="w-3.5 h-3.5 text-primary" /> LATEST AVAILABLE STREAM
               </span>
             </div>
           </div>
@@ -771,7 +771,7 @@ export default function PulseDashboard({
         <div className="flex items-center justify-between select-none">
           <div>
             <h3 className="font-serif italic text-xl text-white font-light">Today's Intelligence Core</h3>
-            <p className="text-xs text-neutral-400 mt-0.5">Real-time macro analysis, media feeds, and sector heatmaps.</p>
+            <p className="text-xs text-neutral-400 mt-0.5">Macro summaries, attributed media feeds, and sector heatmaps. Timing varies by source.</p>
           </div>
           <span className="font-mono text-[9px] bg-primary text-slate-950 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
             NODAL ACTIVE
@@ -878,7 +878,7 @@ export default function PulseDashboard({
                 <span className="font-mono text-[9px] font-bold text-neutral-500 tracking-[0.2em] uppercase">
                   SENTIMENT ANCHOR
                 </span>
-                <Info className="w-4 h-4 text-secondary hover:text-primary cursor-pointer" title="Calculated from real-time global briefing flows" />
+                <Info className="w-4 h-4 text-secondary hover:text-primary cursor-pointer" title="Illustrative score derived from available briefing content; not a recommendation" />
               </div>
               <h4 className="font-serif italic text-xl text-on-surface tracking-tight mb-1 font-light">
                 Consensus Index
@@ -1084,7 +1084,7 @@ export default function PulseDashboard({
                 Analyst Hot Flashes
               </h4>
               <span className="font-mono text-[9px] bg-primary text-slate-950 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
-                REALTIME
+                LATEST
               </span>
             </div>
 

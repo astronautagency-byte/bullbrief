@@ -37,7 +37,7 @@ export async function analyzeStock(symbol: string, name: string, price: number, 
     return fallbackStockAnalysis(symbol, changePercent);
   }
 
-  const prompt = `You are a senior market analyst at BullBrief. Analyze ${symbol} (${name}) currently at $${price} (${changePercent >= 0 ? '+' : ''}${changePercent}% today).
+  const prompt = `You are a market-information analyst at BullBrief. Provide general, impersonal research about ${symbol} (${name}) using the supplied price of $${price} (${changePercent >= 0 ? '+' : ''}${changePercent}%). Do not recommend buying, selling, holding, position sizing, or suitability for any person. State uncertainty and distinguish facts from inference.
 
 Return ONLY valid JSON with this shape:
 {
@@ -61,7 +61,7 @@ export async function analyzeNews(title: string, text: string, source: string): 
     return fallbackNewsAnalysis(title, text);
   }
 
-  const prompt = `You are a macro analyst at BullBrief. Analyze this market news:
+  const prompt = `You are a market-information analyst at BullBrief. Summarize this news for general informational use. Do not provide personalized advice, trading instructions, or suitability conclusions:
 
 Source: ${source}
 Title: ${title}
@@ -92,7 +92,7 @@ export async function generateDailyBriefing(marketContext: string): Promise<Dail
     return fallbackDailyBriefing();
   }
 
-  const prompt = `You are BullBrief's chief market strategist. Generate today's institutional morning briefing.
+  const prompt = `You are BullBrief's market-information editor. Generate a general morning briefing. Do not provide personalized recommendations, trading instructions, or suitability conclusions.
 
 Current market context:
 ${marketContext}
@@ -125,7 +125,7 @@ function fallbackStockAnalysis(symbol: string, changePercent: number): StockAnal
     reasoning: [
       `${symbol} is ${changePercent >= 0 ? 'showing positive' : 'facing negative'} momentum in today's session.`,
       'Monitor upcoming earnings and macro catalysts for confirmation of trend.',
-      'Consider position sizing relative to portfolio risk tolerance.',
+      'This directional label is a mechanical description of recent price movement, not a recommendation or suitability assessment.',
     ],
   };
 }
@@ -137,7 +137,7 @@ function fallbackNewsAnalysis(title: string, text: string): NewsAnalysis {
     implications: [
       { title: 'Market Impact', text: 'This development may influence near-term sector rotation and volatility expectations.' },
       { title: 'Rate Sensitivity', text: 'Fixed income and growth equities could react to shifts in rate expectations tied to this headline.' },
-      { title: 'Portfolio Action', text: 'Advisors should review client exposure to affected sectors and rebalance if conviction thresholds are breached.' },
+      { title: 'Research Context', text: 'Readers may wish to compare the headline with primary filings and current market data before drawing conclusions.' },
     ],
   };
 }

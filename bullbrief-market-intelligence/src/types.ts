@@ -11,13 +11,28 @@ export type PageId =
   | 'register';
 
 export interface Asset {
+  /** Provider-qualified symbol. Canadian listings retain the Yahoo `.TO` suffix. */
   symbol: string;
   name: string;
+  exchange?: string;
+  currency?: string;
   price: number;
   dayChangePercent: number;
   dayChangeAmount: number;
   marketCap: string;
   volume24h: string;
+  quoteType?: string;
+  dataStatus?: 'Real-time' | 'Delayed' | 'End of day' | 'Unknown';
+  asOf?: string;
+  dataSource?: string;
+}
+
+export interface StockSearchResult {
+  symbol: string;
+  name: string;
+  exchange: string;
+  currency?: string;
+  quoteType: string;
 }
 
 export interface NewsItem {

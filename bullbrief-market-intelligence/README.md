@@ -4,8 +4,8 @@ Personalized daily market briefing and intelligence workspace for financial advi
 
 ## Features
 
-- **Live market ticker** — S&P 500, NASDAQ, Dow, BTC, 10Y yield, EUR/USD via Yahoo Finance
-- **Watchlist with live quotes** — auto-refreshes every 60 seconds, persisted in localStorage
+- **Market ticker** — latest available S&P 500, NASDAQ, Dow, BTC, 10Y yield, and EUR/USD data via Yahoo Finance; venue delays may apply
+- **Account-synced watchlist** — refreshes quotes every 60 seconds and persists per signed-in account across devices
 - **News feed** — aggregated from Yahoo Finance, Investing.com, and Cointelegraph RSS
 - **AI analysis** — stock bias, news implications, and daily briefings via Gemini (optional)
 - **Full UI** — Pulse dashboard, Quick Pulse radar, podcast hub, Pro pricing, account/billing
@@ -37,6 +37,7 @@ The dev command starts both:
 |----------|----------|-------------|
 | `GEMINI_API_KEY` | No | Enables live AI stock analysis, news implications, and daily briefings |
 | `PORT` | No | API server port (default: 3001) |
+| `BULLBRIEF_DATA_DIR` | No | Durable directory for account data (default: `.data` in the app directory) |
 
 Without `GEMINI_API_KEY`, the app still runs with rule-based fallbacks for AI features.
 
@@ -57,7 +58,7 @@ bullbrief-market-intelligence/
 ├── src/
 │   ├── components/   # React UI components
 │   ├── hooks/        # Live data hooks
-│   └── services/     # API client & localStorage
+│   └── services/     # API client and account-scoped offline cache
 └── index.html
 ```
 
