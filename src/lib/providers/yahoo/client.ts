@@ -109,8 +109,11 @@ export interface ChartData {
   currency: string;
 }
 
-export async function getStockPrice(symbol: string): Promise<Quote | null> {
-  const yahooSymbol = toYahooSymbol(symbol);
+export async function getStockPrice(
+  symbol: string,
+  exactSymbol = false
+): Promise<Quote | null> {
+  const yahooSymbol = exactSymbol ? symbol.toUpperCase() : toYahooSymbol(symbol);
   try {
     const res = await fetch(
       `${YAHOO_BASE}/${encodeURIComponent(yahooSymbol)}?interval=1d&range=1d`,
@@ -142,8 +145,13 @@ export async function getStockPrice(symbol: string): Promise<Quote | null> {
       change,
       changePercent,
       volume: meta.regularMarketVolume ?? null,
+      averageVolume: meta.averageDailyVolume3Month ?? null,
       pe: meta.trailingPE ?? null,
       marketCap: meta.marketCap ?? null,
+      fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? null,
+      fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? null,
+      bid: meta.bid ?? null,
+      ask: meta.ask ?? null,
       marketTimestamp: new Date(meta.regularMarketTime * 1000).toISOString(),
       retrievedAt: new Date().toISOString(),
       // Yahoo's public chart response does not provide a reliable entitlement-aware
@@ -168,7 +176,7 @@ export async function getStockPrices(symbols: string[]): Promise<Quote[]> {
 
 export async function getHistoricalData(
   symbol: string,
-  range: "1d" | "5d" | "1mo" | "3mo" | "6mo" | "1y" = "1mo"
+  range: "1d" | "5d" | "1mo" | "3mo" | "6mo" | "1y" | "5y" | "max" = "1mo"
 ): Promise<ChartData | null> {
   const yahooSymbol = toYahooSymbol(symbol);
   const intervalMap: Record<string, string> = {
@@ -178,6 +186,8 @@ export async function getHistoricalData(
     "3mo": "1d",
     "6mo": "1d",
     "1y": "1wk",
+    "5y": "1mo",
+    "max": "3mo",
   };
 
   try {
