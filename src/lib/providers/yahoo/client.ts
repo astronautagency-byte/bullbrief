@@ -1,6 +1,7 @@
 import type { Quote } from "@/lib/types";
 
 const YAHOO_BASE = "https://query1.finance.yahoo.com/v8/finance/chart";
+const YAHOO_SEARCH_BASE = "https://query2.finance.yahoo.com/v1/finance/search";
 const HEADERS = {
   "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
 };
@@ -14,8 +15,83 @@ const TSX_SYMBOLS = new Set([
 
 export function toYahooSymbol(symbol: string): string {
   const upper = symbol.toUpperCase();
+  if (upper.includes(".")) return upper;
   if (TSX_SYMBOLS.has(upper)) return `${upper}.TO`;
   return upper;
+}
+
+export interface YahooSearchResult {
+  symbol: string;
+  name: string;
+  exchange: string;
+  currency: "CAD" | "USD";
+  quoteType: "EQUITY" | "ETF";
+}
+
+const CANADIAN_EXCHANGES = new Set(["TOR", "TSX", "VAN", "TSXV", "NEO", "CNQ"]);
+const US_EXCHANGES = new Set(["NMS", "NGM", "NCM", "NYQ", "ASE", "PCX", "BTS"]);
+
+export async function searchStocks(query: string): Promise<YahooSearchResult[]> {
+  const url = new URL(YAHOO_SEARCH_BASE);
+  url.searchParams.set("q", query.trim());
+  url.searchParams.set("quotesCount", "25");
+  url.searchParams.set("newsCount", "0");
+  url.searchParams.set("enableFuzzyQuery", "true");
+
+  const response = await fetch(url, {
+    headers: HEADERS,
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(`Yahoo search failed with ${response.status}`);
+  }
+
+  const payload = (await response.json()) as {
+    quotes?: Array<Record<string, unknown>>;
+  };
+  const results: YahooSearchResult[] = [];
+  const seen = new Set<string>();
+
+  for (const quote of payload.quotes ?? []) {
+    const symbol = typeof quote.symbol === "string" ? quote.symbol.toUpperCase() : "";
+    const exchangeCode = typeof quote.exchange === "string" ? quote.exchange.toUpperCase() : "";
+    const quoteType = typeof quote.quoteType === "string" ? quote.quoteType.toUpperCase() : "";
+    const isCanadian =
+      symbol.endsWith(".TO") ||
+      symbol.endsWith(".V") ||
+      symbol.endsWith(".NE") ||
+      CANADIAN_EXCHANGES.has(exchangeCode);
+    const isUs = US_EXCHANGES.has(exchangeCode);
+
+    if (
+      !symbol ||
+      seen.has(symbol) ||
+      (!isCanadian && !isUs) ||
+      (quoteType !== "EQUITY" && quoteType !== "ETF")
+    ) {
+      continue;
+    }
+
+    const shortName = typeof quote.shortname === "string" ? quote.shortname : "";
+    const longName = typeof quote.longname === "string" ? quote.longname : "";
+    const displayExchange =
+      typeof quote.exchDisp === "string"
+        ? quote.exchDisp
+        : isCanadian
+          ? "Toronto"
+          : exchangeCode;
+
+    seen.add(symbol);
+    results.push({
+      symbol,
+      name: shortName || longName || symbol,
+      exchange: displayExchange,
+      currency: isCanadian ? "CAD" : "USD",
+      quoteType: quoteType as "EQUITY" | "ETF",
+    });
+  }
+
+  return results.slice(0, 12);
 }
 
 export interface HistoricalPoint {
@@ -70,8 +146,10 @@ export async function getStockPrice(symbol: string): Promise<Quote | null> {
       marketCap: meta.marketCap ?? null,
       marketTimestamp: new Date(meta.regularMarketTime * 1000).toISOString(),
       retrievedAt: new Date().toISOString(),
-      dataType: "real_time",
-      isStale: false,
+      // Yahoo's public chart response does not provide a reliable entitlement-aware
+      // real-time guarantee, so label it conservatively.
+      dataType: "delayed",
+      isStale: true,
     };
   } catch {
     return null;
