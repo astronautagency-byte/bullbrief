@@ -1,39 +1,37 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { createClient } from "@/lib/supabase/server";
+import {
+  DEFAULT_WATCHLIST_ID,
+  readAccountWatchlist,
+  watchlistMetadataUpdate,
+} from "@/lib/account-watchlist";
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  if (!prisma) {
-    return NextResponse.json({ error: "Database not configured" }, { status: 503 });
-  }
-
-  const session = await auth();
-  if (!session?.user?.id) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { id } = await params;
-  const body = await request.json();
-
-  const watchlist = await prisma.watchlist.findUnique({
-    where: { id },
-  });
-
-  if (!watchlist || watchlist.userId !== session.user.id) {
+  if (id !== DEFAULT_WATCHLIST_ID) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-
-  const updated = await prisma.watchlist.update({
-    where: { id },
-    data: {
-      name: body.name ?? watchlist.name,
-      isDefault: body.isDefault ?? watchlist.isDefault,
-    },
+  const body = await request.json();
+  const watchlist = readAccountWatchlist(user.user_metadata);
+  const updated = {
+    ...watchlist,
+    name: typeof body.name === "string" && body.name.trim() ? body.name.trim().slice(0, 80) : watchlist.name,
+  };
+  const { error } = await supabase.auth.updateUser({
+    data: watchlistMetadataUpdate(updated),
   });
-
+  if (error) {
+    return NextResponse.json({ error: "Failed to update watchlist" }, { status: 502 });
+  }
   return NextResponse.json({ data: updated });
 }
 
@@ -41,31 +39,14 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  if (!prisma) {
-    return NextResponse.json({ error: "Database not configured" }, { status: 503 });
-  }
-
-  const session = await auth();
-  if (!session?.user?.id) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
-  const { id } = await params;
-  const watchlist = await prisma.watchlist.findUnique({
-    where: { id },
-  });
-
-  if (!watchlist || watchlist.userId !== session.user.id) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
-  if (watchlist.isDefault) {
-    return NextResponse.json(
-      { error: "Cannot delete default watchlist" },
-      { status: 400 }
-    );
-  }
-
-  await prisma.watchlist.delete({ where: { id } });
-  return NextResponse.json({ success: true });
+  await params;
+  return NextResponse.json(
+    { error: "Cannot delete default watchlist" },
+    { status: 400 }
+  );
 }

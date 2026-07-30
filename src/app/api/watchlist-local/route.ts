@@ -80,7 +80,16 @@ export async function GET(request: Request) {
     ? symbolsParam.split(",").filter(Boolean)
     : [];
 
-  let priceMap: Record<string, { price: number; change: number; changePercent: number }> = {};
+  const priceMap: Record<string, {
+    price: number;
+    change: number;
+    changePercent: number;
+    companyName: string | null;
+    exchangeCode: string | null;
+    currency: string | null;
+    dataType: string;
+    marketTimestamp: string | null;
+  }> = {};
 
   if (symbols.length > 0) {
     try {
@@ -90,6 +99,11 @@ export async function GET(request: Request) {
           price: q.price ?? 0,
           change: q.change ?? 0,
           changePercent: q.changePercent ?? 0,
+          companyName: q.companyName,
+          exchangeCode: q.exchangeCode,
+          currency: q.currency,
+          dataType: q.dataType,
+          marketTimestamp: q.marketTimestamp,
         };
       }
     } catch (err) {
@@ -100,11 +114,15 @@ export async function GET(request: Request) {
   return NextResponse.json({
     data: symbols.map((s) => ({
       symbol: s,
-      companyName: STOCK_NAMES[s]?.name ?? s,
-      exchangeCode: STOCK_NAMES[s]?.exchange ?? "NASDAQ",
+      companyName: priceMap[s]?.companyName ?? STOCK_NAMES[s]?.name ?? s,
+      exchangeCode: priceMap[s]?.exchangeCode ?? STOCK_NAMES[s]?.exchange ?? "Unknown exchange",
+      currency: priceMap[s]?.currency ?? (s.endsWith(".TO") ? "CAD" : null),
       price: priceMap[s]?.price ?? 0,
       change: priceMap[s]?.change ?? 0,
       changePercent: priceMap[s]?.changePercent ?? 0,
+      dataType: priceMap[s]?.dataType ?? "delayed",
+      marketTimestamp: priceMap[s]?.marketTimestamp ?? null,
+      source: "Yahoo Finance",
     })),
   });
 }

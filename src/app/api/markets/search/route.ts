@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { searchTickers } from "@/lib/providers/marketstack/client";
+import { searchStocks } from "@/lib/providers/yahoo/client";
 import { searchTickersSchema } from "@/lib/providers/marketstack/schemas";
 
 export async function GET(request: Request) {
@@ -15,10 +15,10 @@ export async function GET(request: Request) {
   }
 
   try {
-    const results = await searchTickers(parsed.data.query);
+    const results = await searchStocks(parsed.data.query);
     return NextResponse.json({ data: results });
   } catch (error) {
-    console.error("Marketstack search error:", error);
+    console.error("Yahoo Finance search error:", error);
     return NextResponse.json(
       { error: "Failed to search tickers" },
       { status: 502 }

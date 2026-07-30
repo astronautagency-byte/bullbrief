@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { cn } from "@/lib/cn";
 import { formatPrice, formatPercent, formatChange, getTrendDirection } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
@@ -22,14 +22,27 @@ import { Button } from "@/components/ui/button";
 type SortMode = "custom" | "gainer" | "decliner" | "alpha" | "recent";
 
 interface WatchlistStock {
+  id: string;
   symbol: string;
   companyName: string;
   exchangeCode: string;
+  currency: string | null;
+  dataType: "real_time" | "intraday" | "delayed" | "end_of_day";
+  marketTimestamp: string | null;
+  source: string;
   price: number;
   change: number;
   changePercent: number;
   sparkline?: number[];
   addedAt?: string;
+}
+
+interface StockSearchResult {
+  symbol: string;
+  name: string;
+  exchange: string;
+  currency?: string;
+  quoteType?: string;
 }
 
 interface PriceAlertItem {
@@ -84,6 +97,17 @@ const POPULAR_STOCKS = [
   { symbol: "SPOT", name: "Spotify Technology", exchange: "NYSE" },
 ];
 
+function generateSparkline(base: number, trend: number): number[] {
+  if (base === 0) return [0, 0, 0, 0, 0, 0];
+  const data: number[] = [];
+  let current = base * (1 - trend * 0.02);
+  for (let i = 0; i < 6; i++) {
+    current += (trend * base * 0.005) + (Math.sin(i) * base * 0.005);
+    data.push(Math.round(current * 100) / 100);
+  }
+  return data;
+}
+
 export default function WatchlistPage() {
   const [sortMode, setSortMode] = useState<SortMode>("custom");
   const [searchQuery, setSearchQuery] = useState("");
@@ -94,6 +118,12 @@ export default function WatchlistPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [addSearch, setAddSearch] = useState("");
   const [adding, setAdding] = useState<string | null>(null);
+  const [watchlistId, setWatchlistId] = useState("default");
+  const [searchResults, setSearchResults] = useState<StockSearchResult[]>([]);
+  const [searchingStocks, setSearchingStocks] = useState(false);
+  const [stockSearchError, setStockSearchError] = useState("");
+  const searchRequestId = useRef(0);
+  const watchlistSymbolsRef = useRef<string[]>([]);
 
   const [alerts, setAlerts] = useState<PriceAlertItem[]>([]);
   const [showAlertModal, setShowAlertModal] = useState<WatchlistStock | null>(null);
@@ -101,97 +131,99 @@ export default function WatchlistPage() {
   const [alertPrice, setAlertPrice] = useState("");
   const [alertSaving, setAlertSaving] = useState(false);
 
-  const fetchWatchlist = useCallback(async () => {
-    setLoading(true);
+  const fetchWatchlist = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
-      const stored = localStorage.getItem("bullbrief_watchlist");
-      const symbols: string[] = stored ? JSON.parse(stored) : [];
+      let response = await fetch("/api/watchlists", { cache: "no-store" });
+      if (!response.ok) throw new Error("Unable to load account watchlist");
+      let payload = await response.json();
+      let accountWatchlist = payload.data?.[0];
+      if (!accountWatchlist) throw new Error("Account watchlist unavailable");
 
+      const legacyRaw = localStorage.getItem("bullbrief_watchlist");
+      const legacySymbols: string[] = legacyRaw ? JSON.parse(legacyRaw) : [];
+      if (accountWatchlist.items.length === 0 && legacySymbols.length > 0) {
+        for (const legacySymbol of legacySymbols.slice(0, 100)) {
+          const popular = POPULAR_STOCKS.find((stock) => stock.symbol === legacySymbol);
+          const symbol =
+            popular?.exchange === "TSX" && !legacySymbol.includes(".")
+              ? `${legacySymbol}.TO`
+              : legacySymbol.toUpperCase();
+          await fetch(`/api/watchlists/${accountWatchlist.id}/items`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              symbol,
+              companyName: popular?.name ?? legacySymbol,
+              exchangeCode: popular?.exchange ?? null,
+            }),
+          });
+        }
+        localStorage.removeItem("bullbrief_watchlist");
+        response = await fetch("/api/watchlists", { cache: "no-store" });
+        payload = await response.json();
+        accountWatchlist = payload.data?.[0] ?? accountWatchlist;
+      }
+
+      setWatchlistId(accountWatchlist.id);
+      setWatchlistName(accountWatchlist.name);
+      const symbols = accountWatchlist.items.map((item: { symbol: string }) => item.symbol);
+      watchlistSymbolsRef.current = symbols;
       if (symbols.length === 0) {
         setWatchlist([]);
         return;
       }
 
-      const meta: Record<string, { name: string; exchange: string }> = {
-        AAPL: { name: "Apple Inc.", exchange: "NASDAQ" },
-        MSFT: { name: "Microsoft Corp.", exchange: "NASDAQ" },
-        GOOGL: { name: "Alphabet Inc.", exchange: "NASDAQ" },
-        AMZN: { name: "Amazon.com Inc.", exchange: "NASDAQ" },
-        NVDA: { name: "NVIDIA Corp.", exchange: "NASDAQ" },
-        META: { name: "Meta Platforms", exchange: "NASDAQ" },
-        TSLA: { name: "Tesla Inc.", exchange: "NASDAQ" },
-        NFLX: { name: "Netflix Inc.", exchange: "NASDAQ" },
-        AMD: { name: "Advanced Micro Devices", exchange: "NASDAQ" },
-        INTC: { name: "Intel Corp.", exchange: "NASDAQ" },
-        JPM: { name: "JPMorgan Chase", exchange: "NYSE" },
-        V: { name: "Visa Inc.", exchange: "NYSE" },
-        JNJ: { name: "Johnson & Johnson", exchange: "NYSE" },
-        WMT: { name: "Walmart Inc.", exchange: "NYSE" },
-        UNH: { name: "UnitedHealth Group", exchange: "NYSE" },
-        XOM: { name: "Exxon Mobil", exchange: "NYSE" },
-        "BRK.B": { name: "Berkshire Hathaway", exchange: "NYSE" },
-        PG: { name: "Procter & Gamble", exchange: "NYSE" },
-        MA: { name: "Mastercard Inc.", exchange: "NYSE" },
-        HD: { name: "Home Depot", exchange: "NYSE" },
-        DIS: { name: "Walt Disney Co.", exchange: "NYSE" },
-        BAC: { name: "Bank of America", exchange: "NYSE" },
-        PFE: { name: "Pfizer Inc.", exchange: "NYSE" },
-        CRM: { name: "Salesforce Inc.", exchange: "NYSE" },
-        COST: { name: "Costco Wholesale", exchange: "NASDAQ" },
-        COIN: { name: "Coinbase Global", exchange: "NASDAQ" },
-        PLTR: { name: "Palantir Technologies", exchange: "NYSE" },
-        UBER: { name: "Uber Technologies", exchange: "NYSE" },
-        ABNB: { name: "Airbnb Inc.", exchange: "NASDAQ" },
-        SHOP: { name: "Shopify Inc.", exchange: "TSX" },
-        BABA: { name: "Alibaba Group", exchange: "NYSE" },
-        SQ: { name: "Block Inc.", exchange: "NYSE" },
-        TD: { name: "Toronto-Dominion Bank", exchange: "TSX" },
-        RY: { name: "Royal Bank of Canada", exchange: "TSX" },
-        BNS: { name: "Bank of Nova Scotia", exchange: "TSX" },
-        BMO: { name: "Bank of Montreal", exchange: "TSX" },
-        ENB: { name: "Enbridge Inc.", exchange: "TSX" },
-        CNR: { name: "Canadian National Railway", exchange: "TSX" },
-        SU: { name: "Suncor Energy", exchange: "TSX" },
-        CNQ: { name: "Canadian Natural Resources", exchange: "TSX" },
-        BAM: { name: "Brookfield Asset Management", exchange: "TSX" },
-        L: { name: "Loblaw Companies", exchange: "TSX" },
-        ATD: { name: "Alimentation Couche-Tard", exchange: "TSX" },
-        T: { name: "BCE Inc.", exchange: "TSX" },
-        DOL: { name: "Dollarama Inc.", exchange: "TSX" },
-        CSU: { name: "Constellation Software", exchange: "TSX" },
-        BB: { name: "BlackBerry Ltd.", exchange: "TSX" },
-      };
-
-      const res = await fetch(`/api/watchlist-local?symbols=${symbols.join(",")}`);
+      const res = await fetch(`/api/watchlist-local?symbols=${encodeURIComponent(symbols.join(","))}`);
       const json = await res.json();
-      const priceData: Record<string, { price: number; change: number; changePercent: number }> = {};
+      const priceData: Record<string, {
+        price: number;
+        change: number;
+        changePercent: number;
+        companyName: string;
+        exchangeCode: string;
+        currency: string | null;
+        dataType: WatchlistStock["dataType"];
+        marketTimestamp: string | null;
+        source: string;
+      }> = {};
       for (const s of json.data ?? []) {
-        priceData[s.symbol] = { price: s.price, change: s.change, changePercent: s.changePercent };
+        priceData[s.symbol] = s;
       }
 
       setWatchlist(
-        symbols.map((sym, i) => ({
-          symbol: sym,
-          companyName: meta[sym]?.name ?? sym,
-          exchangeCode: meta[sym]?.exchange ?? "NASDAQ",
-          price: priceData[sym]?.price ?? 0,
-          change: priceData[sym]?.change ?? 0,
-          changePercent: priceData[sym]?.changePercent ?? 0,
-          sparkline: generateSparkline(priceData[sym]?.price ?? 0, priceData[sym]?.changePercent ?? 0),
-          addedAt: new Date(Date.now() - i * 86400000).toISOString(),
+        accountWatchlist.items.map((item: {
+          id: string;
+          symbol: string;
+          companyName: string | null;
+          exchangeCode: string | null;
+          addedAt: string;
+        }) => ({
+          id: item.id,
+          symbol: item.symbol,
+          companyName: priceData[item.symbol]?.companyName ?? item.companyName ?? item.symbol,
+          exchangeCode: priceData[item.symbol]?.exchangeCode ?? item.exchangeCode ?? "Unknown exchange",
+          currency: priceData[item.symbol]?.currency ?? null,
+          dataType: priceData[item.symbol]?.dataType ?? "delayed",
+          marketTimestamp: priceData[item.symbol]?.marketTimestamp ?? null,
+          source: priceData[item.symbol]?.source ?? "Yahoo Finance",
+          price: priceData[item.symbol]?.price ?? 0,
+          change: priceData[item.symbol]?.change ?? 0,
+          changePercent: priceData[item.symbol]?.changePercent ?? 0,
+          sparkline: generateSparkline(priceData[item.symbol]?.price ?? 0, priceData[item.symbol]?.changePercent ?? 0),
+          addedAt: item.addedAt,
         }))
       );
     } catch {
-      setWatchlist([]);
+      if (showLoading) setWatchlist([]);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   }, []);
 
   const refreshPrices = useCallback(async () => {
     try {
-      const stored = localStorage.getItem("bullbrief_watchlist");
-      const symbols: string[] = stored ? JSON.parse(stored) : [];
+      const symbols = watchlistSymbolsRef.current;
       if (symbols.length === 0) return;
 
       const res = await fetch(`/api/watchlist-local?symbols=${symbols.join(",")}`);
@@ -220,49 +252,109 @@ export default function WatchlistPage() {
   }, []);
 
   useEffect(() => {
+    // Existing client page bootstrap; callbacks perform the asynchronous state updates.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchWatchlist();
     fetchAlerts();
     const priceInterval = setInterval(refreshPrices, 3000);
+    const accountSyncInterval = setInterval(() => fetchWatchlist(false), 30000);
     const alertInterval = setInterval(fetchAlerts, 30000);
     return () => {
       clearInterval(priceInterval);
+      clearInterval(accountSyncInterval);
       clearInterval(alertInterval);
     };
   }, [fetchWatchlist, refreshPrices, fetchAlerts]);
 
-  const generateSparkline = (base: number, trend: number): number[] => {
-    if (base === 0) return [0, 0, 0, 0, 0, 0];
-    const data: number[] = [];
-    let current = base * (1 - trend * 0.02);
-    for (let i = 0; i < 6; i++) {
-      current += (trend * base * 0.005) + (Math.sin(i) * base * 0.005);
-      data.push(Math.round(current * 100) / 100);
+  useEffect(() => {
+    const query = addSearch.trim();
+    const requestId = ++searchRequestId.current;
+    if (!showAddModal || !query) {
+      return;
     }
-    return data;
-  };
 
-  const addStock = async (symbol: string, name: string, exchange: string) => {
-    setAdding(symbol);
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setSearchingStocks(true);
+      setStockSearchError("");
+      try {
+        const response = await fetch(`/api/markets/search?q=${encodeURIComponent(query)}`, {
+          signal: controller.signal,
+          cache: "no-store",
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "Stock search failed");
+        if (requestId === searchRequestId.current) {
+          setSearchResults(payload.data ?? []);
+        }
+      } catch (error) {
+        if (!controller.signal.aborted && requestId === searchRequestId.current) {
+          setStockSearchError(error instanceof Error ? error.message : "Stock search failed");
+        }
+      } finally {
+        if (!controller.signal.aborted && requestId === searchRequestId.current) {
+          setSearchingStocks(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [addSearch, showAddModal]);
+
+  const addStock = async (stock: StockSearchResult) => {
+    setAdding(stock.symbol);
+    setStockSearchError("");
     try {
-      const stored = localStorage.getItem("bullbrief_watchlist");
-      const symbols: string[] = stored ? JSON.parse(stored) : [];
-      if (!symbols.includes(symbol)) {
-        symbols.push(symbol);
-        localStorage.setItem("bullbrief_watchlist", JSON.stringify(symbols));
+      const response = await fetch(`/api/watchlists/${watchlistId}/items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          symbol: stock.symbol,
+          companyName: stock.name,
+          exchangeCode: stock.exchange,
+        }),
+      });
+      if (!response.ok && response.status !== 409) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || "Unable to add stock");
       }
       setShowAddModal(false);
       setAddSearch("");
-      fetchWatchlist();
+      setSearchResults([]);
+      await fetchWatchlist();
+    } catch (error) {
+      setStockSearchError(error instanceof Error ? error.message : "Unable to add stock");
     } finally {
       setAdding(null);
     }
   };
 
+  const saveWatchlistName = async () => {
+    setIsEditing(false);
+    const response = await fetch(`/api/watchlists/${watchlistId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: watchlistName }),
+    });
+    if (!response.ok) {
+      await fetchWatchlist(false);
+    }
+  };
+
   const removeStock = async (symbol: string) => {
-    const stored = localStorage.getItem("bullbrief_watchlist");
-    const symbols: string[] = stored ? JSON.parse(stored) : [];
-    localStorage.setItem("bullbrief_watchlist", JSON.stringify(symbols.filter((s) => s !== symbol)));
-    setWatchlist((prev) => prev.filter((s) => s.symbol !== symbol));
+    const item = watchlist.find((stock) => stock.symbol === symbol);
+    if (!item) return;
+    const response = await fetch(
+      `/api/watchlists/${watchlistId}/items?itemId=${encodeURIComponent(item.id)}`,
+      { method: "DELETE" }
+    );
+    if (response.ok) {
+      watchlistSymbolsRef.current = watchlistSymbolsRef.current.filter((value) => value !== symbol);
+      setWatchlist((prev) => prev.filter((stock) => stock.symbol !== symbol));
+    }
   };
 
   const createAlert = async () => {
@@ -316,12 +408,17 @@ export default function WatchlistPage() {
       s.companyName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredAdd = POPULAR_STOCKS.filter(
-    (s) =>
-      (s.symbol.toLowerCase().includes(addSearch.toLowerCase()) ||
-        s.name.toLowerCase().includes(addSearch.toLowerCase())) &&
-      !watchlist.some((w) => w.symbol === s.symbol)
-  );
+  const filteredAdd: StockSearchResult[] = (
+    addSearch.trim()
+      ? searchResults
+      : POPULAR_STOCKS.slice(0, 12).map((stock) => ({
+          symbol: stock.exchange === "TSX" ? `${stock.symbol}.TO` : stock.symbol,
+          name: stock.name,
+          exchange: stock.exchange,
+          currency: stock.exchange === "TSX" ? "CAD" : "USD",
+          quoteType: "EQUITY",
+        }))
+  ).filter((stock) => !watchlist.some((item) => item.symbol === stock.symbol));
 
   const activeAlerts = alerts.filter((a) => !a.triggered);
   const triggeredAlerts = alerts.filter((a) => a.triggered);
@@ -330,7 +427,7 @@ export default function WatchlistPage() {
     <div className="space-y-4 md:space-y-6">
       <PageHead
         title="Watchlist"
-        description="Track your favorite stocks with real-time prices, charts, and price alerts. Build and manage your personalized stock watchlist."
+        description="Track stocks with the latest available prices, charts, and price alerts. Market data may be delayed."
         canonical="https://bullbrief.vercel.app/watchlist"
       />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -340,8 +437,10 @@ export default function WatchlistPage() {
               type="text"
               value={watchlistName}
               onChange={(e) => setWatchlistName(e.target.value)}
-              onBlur={() => setIsEditing(false)}
-              onKeyDown={(e) => e.key === "Enter" && setIsEditing(false)}
+              onBlur={saveWatchlistName}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+              }}
               autoFocus
               className="bg-surface-container-low border border-primary rounded-lg px-3 py-1 text-on-surface font-display font-bold text-lg focus:outline-none"
             />
@@ -444,7 +543,12 @@ export default function WatchlistPage() {
             <div className="flex items-center justify-between p-4 border-b border-outline-variant">
               <h2 className="font-display font-bold text-lg text-on-surface">Add Stock</h2>
               <button
-                onClick={() => { setShowAddModal(false); setAddSearch(""); }}
+                onClick={() => {
+                  setShowAddModal(false);
+                  setAddSearch("");
+                  setSearchResults([]);
+                  setStockSearchError("");
+                }}
                 className="p-1 text-on-surface-variant hover:text-on-surface transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -457,16 +561,30 @@ export default function WatchlistPage() {
                   type="text"
                   placeholder="Search by symbol or company name..."
                   value={addSearch}
-                  onChange={(e) => setAddSearch(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setAddSearch(value);
+                    if (!value.trim()) {
+                      setSearchResults([]);
+                      setSearchingStocks(false);
+                      setStockSearchError("");
+                    }
+                  }}
                   autoFocus
                   className="w-full bg-surface-container-low border border-outline-variant rounded-lg pl-10 pr-4 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
                 />
               </div>
               <div className="max-h-80 overflow-y-auto space-y-1">
-                {filteredAdd.slice(0, 20).map((stock) => (
+                {searchingStocks && (
+                  <div className="flex items-center justify-center py-6 text-sm text-on-surface-variant">
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Searching Yahoo Finance…
+                  </div>
+                )}
+                {!searchingStocks && filteredAdd.slice(0, 20).map((stock) => (
                   <button
                     key={stock.symbol}
-                    onClick={() => addStock(stock.symbol, stock.name, stock.exchange)}
+                    onClick={() => addStock(stock)}
                     disabled={adding === stock.symbol}
                     className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-surface-container-high transition-colors text-left"
                   >
@@ -476,6 +594,7 @@ export default function WatchlistPage() {
                       </span>
                       <span className="text-xs text-on-surface-variant">
                         {stock.name} · {stock.exchange}
+                        {stock.currency ? ` · ${stock.currency}` : ""}
                       </span>
                     </div>
                     {adding === stock.symbol ? (
@@ -485,10 +604,13 @@ export default function WatchlistPage() {
                     )}
                   </button>
                 ))}
-                {filteredAdd.length === 0 && (
+                {stockSearchError && (
+                  <div className="text-center py-4 text-sm text-error">{stockSearchError}</div>
+                )}
+                {!searchingStocks && !stockSearchError && filteredAdd.length === 0 && (
                   <div className="text-center py-8">
                     <p className="text-on-surface-variant text-sm">
-                      {addSearch ? "No stocks found" : "All popular stocks are in your watchlist"}
+                      {addSearch ? "No Canadian or U.S. listings found" : "All suggested stocks are in your watchlist"}
                     </p>
                   </div>
                 )}
@@ -631,13 +753,25 @@ export default function WatchlistPage() {
                     </span>
                     <span className="text-xs text-on-surface-variant">
                       {stock.companyName} · {stock.exchangeCode}
+                      {stock.currency ? ` · ${stock.currency}` : ""}
+                    </span>
+                    <span className="text-[10px] text-on-surface-variant/70 block mt-0.5">
+                      {stock.dataType === "end_of_day"
+                        ? "End of day"
+                        : stock.dataType === "delayed"
+                          ? "Delayed"
+                          : "Latest available"}
+                      {stock.marketTimestamp
+                        ? ` · ${new Date(stock.marketTimestamp).toLocaleString()}`
+                        : ""}
+                      {` · Source: ${stock.source}`}
                     </span>
                   </a>
                 </div>
                 <div className="md:col-span-2 md:text-right">
                   <span className="text-xs text-on-surface-variant md:hidden mr-2">Price:</span>
                   <span className="font-mono text-on-surface">
-                    {stock.price > 0 ? formatPrice(stock.price) : "—"}
+                    {stock.price > 0 ? `${formatPrice(stock.price)}${stock.currency ? ` ${stock.currency}` : ""}` : "—"}
                   </span>
                 </div>
                 <div className={cn("md:col-span-2 md:text-right font-mono text-sm", trendColor)}>
