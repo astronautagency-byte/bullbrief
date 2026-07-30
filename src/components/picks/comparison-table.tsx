@@ -6,6 +6,7 @@ import { StarRating } from "./star-rating";
 import { MiniChart } from "@/components/ui/mini-chart";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { BrandLogo } from "@/components/ui/brand-logo";
 import {
   Search,
   Plus,
@@ -189,8 +190,6 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
   const hydratedRef = useRef(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  const popularList = assetType === "stock" ? POPULAR_STOCKS : POPULAR_FUNDS;
-
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => {
       const next = { ...prev, [section]: !prev[section] };
@@ -251,7 +250,8 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
   }, [selected]);
 
   useEffect(() => {
-    fetchData();
+    const timer = window.setTimeout(() => void fetchData(), 0);
+    return () => window.clearTimeout(timer);
   }, [fetchData]);
 
   useEffect(() => {
@@ -317,6 +317,22 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
 
   return (
     <div className="space-y-4" id="comparison-table">
+      <header className="comparison-print-header hidden">
+        <div className="comparison-print-brand">
+          <BrandLogo variant="horizontal" size="lg" />
+          <div>
+            <p className="comparison-print-kicker">Bull Picks Research</p>
+            <h1>Investment Comparison Report</h1>
+            <p>Market updates. Stay ahead.</p>
+          </div>
+        </div>
+        <div className="comparison-print-meta">
+          <span>Prepared {new Date().toLocaleString("en-CA", { dateStyle: "long", timeStyle: "short" })}</span>
+          <span>{assetType === "stock" ? "Stock" : "Fund"} comparison · {selected.join(" · ")}</span>
+          <span>bullbrief.vercel.app</span>
+        </div>
+      </header>
+
       {/* Search and controls */}
       <div className="flex items-center gap-3 flex-wrap print:hidden">
         <div className="relative flex-1 min-w-[200px]" ref={searchRef}>
@@ -723,15 +739,11 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
         </div>
       )}
 
-      {/* Print-only header */}
-      <div className="hidden print:block print:mb-4">
-        <h1 className="text-lg font-bold">Bull Brief — Comparison Report</h1>
-        <p className="text-xs text-gray-500">
-          Generated on {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
-          {" • "}
-          {assetType === "stock" ? "Stock" : "Fund"} Comparison: {selected.join(", ")}
-        </p>
-      </div>
+      <footer className="comparison-print-footer hidden">
+        <span>Sources: Yahoo Finance market data; available research fields through BullBrief’s configured Morningstar API integration.</span>
+        <span>Data may be delayed or unavailable. For research only—not investment advice.</span>
+        <span className="comparison-print-page">BullBrief · bullbrief.vercel.app</span>
+      </footer>
     </div>
   );
 }

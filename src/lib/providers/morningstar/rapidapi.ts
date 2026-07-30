@@ -17,6 +17,14 @@ export interface AutoCompleteResult {
   securityType: string;
 }
 
+type RawAutoCompleteResult = {
+  performanceId?: string;
+  ticker?: string;
+  name?: string;
+  exchange?: string;
+  securityType?: string;
+};
+
 export interface StockDetails {
   symbol: string;
   pe: number | null;
@@ -58,6 +66,7 @@ const EXCHANGE_MAP: Record<string, string> = {
   NASDAQ: "XNAS",
   NYSE: "XNYSE",
   TSX: "XTSE",
+  TORONTO: "XTSE",
   TSXV: "XTSX",
   AMEX: "XASE",
   ARCA: "XARC",
@@ -86,15 +95,15 @@ export async function autoComplete(query: string): Promise<AutoCompleteResult[]>
       next: { revalidate: 86400 },
     });
     if (!res.ok) return [];
-    const json = await res.json();
+    const json = (await res.json()) as { results?: RawAutoCompleteResult[] };
     const results: AutoCompleteResult[] = (json.results || [])
-      .filter((r: any) => r.securityType === "ST" || r.securityType === "FE")
-      .map((r: any) => ({
-        performanceId: r.performanceId,
-        ticker: r.ticker,
-        name: r.name,
-        exchange: r.exchange,
-        securityType: r.securityType,
+      .filter((result) => result.securityType === "ST" || result.securityType === "FE")
+      .map((result) => ({
+        performanceId: result.performanceId || "",
+        ticker: result.ticker || "",
+        name: result.name || result.ticker || "",
+        exchange: result.exchange || "",
+        securityType: result.securityType || "",
       }));
     if (results.length > 0) searchCache.set(q, results[0]);
     return results;
@@ -184,7 +193,6 @@ export async function getStockDetails(
       if (profileDP.sector?.value) sector = profileDP.sector.value;
       if (profileDP.industry?.value) industry = profileDP.industry.value;
     }
-    const profileName = comps.profile?.payload?.companyProfile;
     // Name comes from profile or from the top-level page data
     name = comps.profile?.payload?.name || null;
 
@@ -204,7 +212,7 @@ export async function getStockDetails(
     const processRating = null;  // Not in this API
     const peopleRating = null;   // Not in this API
     const parentRating = null;   // Not in this API
-    let esgRiskRating = null;    // Not in this API (no sustainability component)
+    const esgRiskRating = null;  // Not in this API (no sustainability component)
 
     const result: StockDetails = {
       symbol: ticker, pe, pegRatio, starRating, starOutOf: 5, name,

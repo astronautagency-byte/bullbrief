@@ -28,7 +28,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHead } from "@/components/page-head";
-import { useNotifications } from "@/components/notification-provider";
 
 interface WatchlistStock {
   symbol: string;
@@ -57,7 +56,6 @@ export default function BriefPage() {
   const [keyInsights, setKeyInsights] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { addNotification } = useNotifications();
 
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState<Array<{ role: "user" | "ai"; text: string }>>([]);
@@ -137,12 +135,6 @@ export default function BriefPage() {
         });
         setArticles(yahooFirst.slice(0, 4));
         setKeyInsights(json.keyInsights ?? []);
-        addNotification({
-          type: "briefing_ready",
-          title: "Daily Brief Ready",
-          message: "Your market briefing has been generated with the latest data.",
-          href: "/brief",
-        });
       } else {
         throw new Error("Failed to load brief");
       }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useId, useCallback } from "react";
 import {
   AreaChart,
   Area,
@@ -27,11 +27,12 @@ export function MiniChart({
   const [data, setData] = useState<DataPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const mountedRef = useRef(true);
+  const chartId = useId().replace(/:/g, "");
 
   const loadHistoricalData = useCallback(async () => {
     try {
       const res = await fetch(
-        `/api/markets/history?symbol=${encodeURIComponent(symbol)}&range=1mo`
+        `/api/markets/history?symbol=${encodeURIComponent(symbol)}&range=1d`
       );
       const json = await res.json();
 
@@ -76,8 +77,11 @@ export function MiniChart({
 
   useEffect(() => {
     mountedRef.current = true;
-    loadHistoricalData();
-    return () => { mountedRef.current = false; };
+    const timer = window.setTimeout(() => void loadHistoricalData(), 0);
+    return () => {
+      window.clearTimeout(timer);
+      mountedRef.current = false;
+    };
   }, [loadHistoricalData]);
 
   useEffect(() => {
@@ -87,17 +91,11 @@ export function MiniChart({
     }
   }, [isLoading, pollPrice]);
 
-  const strokeColor = positive ? "#12D162" : "#FF5C5C";
+  const strokeColor = positive ? "#4BE277" : "#FF7A73";
   const glowColor = positive ? "rgba(18,209,98,0.5)" : "rgba(255,92,92,0.5)";
 
-  const fillId = useMemo(
-    () => `mini-fill-${Math.random().toString(36).slice(2, 8)}`,
-    []
-  );
-  const glowId = useMemo(
-    () => `mini-glow-${Math.random().toString(36).slice(2, 8)}`,
-    []
-  );
+  const fillId = `mini-fill-${chartId}`;
+  const glowId = `mini-glow-${chartId}`;
 
   if (isLoading || data.length < 2) {
     return (
@@ -108,7 +106,7 @@ export function MiniChart({
   }
 
   return (
-    <div className={cn("relative flex-shrink-0 w-full h-10", className)}>
+    <div className={cn("group/chart relative h-11 w-full min-w-20 flex-shrink-0 overflow-hidden", className)}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
           <defs>
@@ -126,7 +124,7 @@ export function MiniChart({
             </filter>
           </defs>
           <Area
-            type="monotone"
+            type="linear"
             dataKey="value"
             stroke={strokeColor}
             strokeWidth={1.5}
@@ -139,11 +137,15 @@ export function MiniChart({
               strokeWidth: 1,
               style: { filter: `drop-shadow(0 0 4px ${glowColor})` },
             }}
-            animationDuration={300}
+            animationDuration={650}
             animationEasing="ease-out"
           />
         </AreaChart>
       </ResponsiveContainer>
+      <span
+        className="watchlist-live-dot pointer-events-none absolute right-1.5 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full"
+        style={{ backgroundColor: strokeColor, boxShadow: `0 0 8px ${glowColor}` }}
+      />
     </div>
   );
 }

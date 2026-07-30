@@ -181,11 +181,33 @@ html.light {
   animation-play-state: paused;
 }
 
+@keyframes watchlist-live-pulse {
+  0%, 100% {
+    opacity: 0.55;
+    transform: translateY(-50%) scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.35);
+  }
+}
+
+.watchlist-live-dot {
+  animation: watchlist-live-pulse 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-ticker,
+  .watchlist-live-dot {
+    animation: none;
+  }
+}
+
 /* Print styles for PDF export */
 @media print {
   @page {
     size: landscape;
-    margin: 0.5in;
+    margin: 0.62in 0.55in 0.7in;
   }
 
   body {
@@ -207,34 +229,120 @@ html.light {
   /* Style the comparison table for print */
   #comparison-table {
     background: white !important;
+    color: #172133 !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+  }
+
+  #comparison-table .comparison-print-header {
+    display: flex !important;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 3px solid #168a46;
+    break-after: avoid;
+  }
+
+  #comparison-table .comparison-print-brand {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  #comparison-table .comparison-print-brand img {
+    width: auto !important;
+    height: 38px !important;
+    max-width: 150px !important;
+    max-height: none !important;
+    object-fit: contain;
+  }
+
+  #comparison-table .comparison-print-kicker {
+    margin: 0 0 2px;
+    color: #168a46;
+    font-size: 7.5pt;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  #comparison-table .comparison-print-header h1 {
+    margin: 0;
+    color: #172133;
+    font-size: 20pt;
+    line-height: 1.05;
+  }
+
+  #comparison-table .comparison-print-header p {
+    margin: 3px 0 0;
+    color: #596579;
+    font-size: 8pt;
+  }
+
+  #comparison-table .comparison-print-meta {
+    display: grid;
+    gap: 3px;
+    text-align: right;
+    color: #596579;
+    font-size: 7.5pt;
   }
 
   #comparison-table table {
     border-collapse: collapse;
     width: 100%;
+    table-layout: fixed;
   }
 
   #comparison-table th,
   #comparison-table td {
-    border: 1px solid #e5e7eb !important;
-    padding: 6px 10px !important;
-    font-size: 9pt;
-    color: #1a1a1a !important;
+    border: 1px solid #d9dee7 !important;
+    padding: 6px 8px !important;
+    font-size: 8pt;
+    line-height: 1.3;
+    color: #172133 !important;
     background: white !important;
   }
 
   #comparison-table th {
-    background: #f3f4f6 !important;
+    background: #f2f5f7 !important;
     font-weight: 600;
   }
 
   #comparison-table thead th {
-    background: #e5e7eb !important;
+    background: #e7eee9 !important;
+    border-top: 2px solid #168a46 !important;
+    break-inside: avoid;
   }
 
   /* Ensure expandable sections are visible in print */
   #comparison-table tbody tr {
     display: table-row !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  #comparison-table thead {
+    display: table-header-group;
+  }
+
+  #comparison-table .comparison-print-footer {
+    display: grid !important;
+    grid-template-columns: 1.5fr 1fr auto;
+    gap: 16px;
+    margin-top: 14px;
+    padding-top: 9px;
+    border-top: 1px solid #aeb8c5;
+    color: #596579;
+    font-size: 6.8pt;
+    line-height: 1.35;
+    break-inside: avoid;
+  }
+
+  #comparison-table .comparison-print-page {
+    text-align: right;
+    font-weight: 700;
+    color: #168a46;
   }
 
   /* Remove shadows and borders that don't print well */

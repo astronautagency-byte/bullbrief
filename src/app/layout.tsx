@@ -93,6 +93,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
+    // iOS uses this as the constrained home-screen icon label.
     title: "BullBrief",
   },
   verification: {},
@@ -125,7 +126,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="BullBrief" />
         <link rel="apple-touch-icon" href="/BullBrief_App_Icon.png" />
-        <meta name="application-name" content="BullBrief" />
+        <meta name="application-name" content="BullBrief — Your Daily Market Brief is Here" />
         <meta name="theme-color" content="#051424" />
       </head>
       <body className="min-h-full bg-background text-foreground font-body">

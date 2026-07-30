@@ -5,6 +5,7 @@ import { cn } from "@/lib/cn";
 import { PageHead } from "@/components/page-head";
 import { ComparisonTable } from "@/components/picks/comparison-table";
 import { StockScreener } from "@/components/picks/stock-screener";
+import { PositionLens } from "@/components/picks/position-lens";
 import { ArrowRightLeft, Search, BarChart3, TrendingUp } from "lucide-react";
 
 type PicksTab = "compare" | "screener";
@@ -22,13 +23,17 @@ export default function PicksPage() {
         canonical="https://bullbrief.vercel.app/picks"
       />
 
-      <div>
+      <div className="print:hidden">
         <h1 className="font-display font-bold text-2xl md:text-3xl text-on-surface italic">
           Bull Picks
         </h1>
         <p className="text-on-surface-variant text-xs md:text-sm mt-1">
           Comparison and screening powered by Morningstar
         </p>
+      </div>
+
+      <div className="print:hidden">
+        <PositionLens />
       </div>
 
       {/* Main tabs */}

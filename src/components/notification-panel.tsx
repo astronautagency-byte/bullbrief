@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/cn";
 import { useNotifications, type Notification } from "@/components/notification-provider";
-import { Bell, Check, CheckCheck, Trash2, TrendingUp, TrendingDown, Newspaper, Clock, Zap } from "lucide-react";
+import { Bell, CheckCheck, Trash2, TrendingUp, Newspaper, Podcast, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 
 function formatTimeAgo(timestamp: string): string {
@@ -20,13 +20,10 @@ function getNotifIcon(type: Notification["type"]) {
   switch (type) {
     case "price_alert":
       return <TrendingUp className="w-4 h-4" />;
-    case "market_open":
-    case "market_close":
-      return <Clock className="w-4 h-4" />;
-    case "briefing_ready":
-      return <Zap className="w-4 h-4" />;
     case "news":
       return <Newspaper className="w-4 h-4" />;
+    case "podcast":
+      return <Podcast className="w-4 h-4" />;
     default:
       return <Bell className="w-4 h-4" />;
   }
@@ -36,22 +33,19 @@ function getNotifColor(type: Notification["type"]) {
   switch (type) {
     case "price_alert":
       return "text-primary bg-primary/10";
-    case "market_open":
-      return "text-primary bg-primary/10";
-    case "market_close":
-      return "text-on-surface-variant bg-surface-container-high";
-    case "briefing_ready":
-      return "text-amber-400 bg-amber-400/10";
     case "news":
       return "text-blue-400 bg-blue-400/10";
+    case "podcast":
+      return "text-amber-300 bg-amber-300/10";
     default:
       return "text-on-surface-variant bg-surface-container-high";
   }
 }
 
 export function NotificationPanel() {
-  const { notifications, unreadCount, markAsRead, markAllRead, clearNotifications } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllRead, clearNotifications, preferences, updatePreferences } = useNotifications();
   const [open, setOpen] = useState(false);
+  const [showPreferences, setShowPreferences] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -80,7 +74,7 @@ export function NotificationPanel() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 md:w-96 bg-surface-container rounded-xl border border-outline-variant shadow-2xl z-50 overflow-hidden">
+        <div className="fixed right-3 top-14 mt-2 w-[calc(100vw-1.5rem)] max-w-96 bg-surface-container rounded-xl border border-outline-variant shadow-2xl z-[100] overflow-hidden md:right-6">
           <div className="flex items-center justify-between px-4 py-3 border-b border-outline-variant">
             <div className="flex items-center gap-2">
               <h3 className="font-display font-bold text-sm text-on-surface">Notifications</h3>
@@ -91,6 +85,13 @@ export function NotificationPanel() {
               )}
             </div>
             <div className="flex items-center gap-1">
+              <button
+                onClick={() => setShowPreferences(!showPreferences)}
+                className="p-1.5 text-on-surface-variant hover:text-primary transition-colors rounded-md hover:bg-surface-container-high"
+                title="Notification preferences"
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+              </button>
               {unreadCount > 0 && (
                 <button
                   onClick={markAllRead}
@@ -112,13 +113,36 @@ export function NotificationPanel() {
             </div>
           </div>
 
+          {showPreferences && (
+            <div className="grid grid-cols-3 gap-2 border-b border-outline-variant bg-surface-container-low px-4 py-3">
+              {([
+                ["priceMoves", "Price moves"],
+                ["news", "News"],
+                ["podcasts", "Podcasts"],
+              ] as const).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => updatePreferences({ [key]: !preferences[key] })}
+                  className={cn(
+                    "rounded-md border px-2 py-2 text-[10px] font-medium transition-colors",
+                    preferences[key]
+                      ? "border-primary/40 bg-primary/10 text-primary"
+                      : "border-outline-variant text-on-surface-variant"
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="max-h-80 overflow-y-auto">
             {notifications.length === 0 ? (
               <div className="py-12 text-center">
                 <Bell className="w-8 h-8 text-on-surface-variant/30 mx-auto mb-3" />
                 <p className="text-on-surface-variant text-sm">No notifications yet</p>
                 <p className="text-on-surface-variant/50 text-xs mt-1">
-                  Price alerts and updates will appear here
+                  Material watchlist moves and relevant updates will appear here
                 </p>
               </div>
             ) : (
@@ -143,6 +167,11 @@ export function NotificationPanel() {
                     </div>
                     <p className="text-xs text-on-surface-variant mt-0.5 line-clamp-2">{n.message}</p>
                     <p className="text-[10px] text-on-surface-variant/50 mt-1 font-mono">{formatTimeAgo(n.timestamp)}</p>
+                    {(n.dataTimestamp || n.dataStatus) && (
+                      <p className="mt-1 text-[9px] text-on-surface-variant/40">
+                        {n.dataStatus}{n.dataTimestamp ? ` · ${new Date(n.dataTimestamp).toLocaleString("en-CA", { dateStyle: "medium", timeStyle: "short" })}` : ""}
+                      </p>
+                    )}
                   </div>
                   {n.href && (
                     <Link

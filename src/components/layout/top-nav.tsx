@@ -27,7 +27,7 @@ export function TopNav({ onMobileMenuToggle, mobileMenuOpen }: TopNavProps) {
   return (
     <header
       className={cn(
-        "fixed top-0 right-0 z-50",
+        "fixed top-0 right-0 z-[80]",
         "md:ml-64 md:w-[calc(100%-16rem)]",
         "w-full"
       )}
