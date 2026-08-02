@@ -14,10 +14,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    "bg-primary hover:bg-primary-fixed text-on-primary font-bold glow-primary glow-primary-hover",
+    "bg-on-surface hover:bg-on-surface/85 text-background font-medium",
   secondary:
     "bg-primary/10 border border-primary text-primary hover:bg-primary hover:text-on-primary",
-  ghost: "border border-outline-variant text-on-surface-variant hover:border-primary hover:text-primary",
+  ghost: "border border-outline-variant text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface",
   danger:
     "bg-error/10 border border-error text-error hover:bg-error hover:text-on-error",
   pill: "rounded-full",
@@ -47,8 +47,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || loading}
         className={cn(
-          "inline-flex items-center justify-center gap-2 rounded-lg font-display transition-all active:scale-95 duration-100",
-          "focus:outline-none focus:ring-2 focus:ring-primary/50",
+          "inline-flex items-center justify-center gap-2 rounded-full font-body font-medium tracking-[0.015em] transition-colors duration-150",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           "disabled:opacity-50 disabled:pointer-events-none",
           variantStyles[variant],
           sizeStyles[size],

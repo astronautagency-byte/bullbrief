@@ -20,6 +20,7 @@ export async function GET(request: Request) {
     data: data.points.map((p) => ({
       date: p.date,
       value: p.close,
+      volume: p.volume,
     })),
     symbol: data.symbol,
     range,

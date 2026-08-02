@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Provider payloads are runtime-normalized below. */
 import { NextResponse } from "next/server";
 import { groqChat } from "@/lib/providers/groq/client";
 import { getMultiQuotes } from "@/lib/providers/yahoo/client";

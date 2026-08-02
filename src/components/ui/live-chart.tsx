@@ -1,13 +1,16 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback, useId } from "react";
 import {
-  AreaChart,
   Area,
+  Bar,
+  ComposedChart,
   XAxis,
   YAxis,
   Tooltip,
   ResponsiveContainer,
+  CartesianGrid,
+  ReferenceLine,
 } from "recharts";
 import { cn } from "@/lib/cn";
 
@@ -24,29 +27,29 @@ interface DataPoint {
   time: string;
   value: number;
   label: string;
+  volume: number;
 }
+
+const RANGE_MAP: Record<string, string> = {
+  "1D": "1d",
+  "1W": "5d",
+  "1M": "1mo",
+  "1Y": "1y",
+};
 
 export function LiveChart({
   symbol,
   range = "1M",
-  interval = 3000,
+  interval = 60_000,
   height = 300,
   className,
   formatValue,
 }: LiveChartProps) {
   const [data, setData] = useState<DataPoint[]>([]);
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
-  const [prevPrice, setPrevPrice] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const mountedRef = useRef(true);
-
-  const RANGE_MAP: Record<string, string> = {
-    "1D": "1d",
-    "1W": "5d",
-    "1M": "1mo",
-    "1Y": "1y",
-  };
 
   const loadHistoricalData = useCallback(async () => {
     try {
@@ -57,11 +60,12 @@ export function LiveChart({
       const json = await res.json();
 
       if (json.data && json.data.length > 0 && mountedRef.current) {
-        const points: DataPoint[] = json.data.map((p: { date: string; value: number }) => {
+        const points: DataPoint[] = json.data.map((p: { date: string; value: number; volume?: number }) => {
           const d = new Date(p.date);
           return {
             time: p.date,
             value: p.value,
+            volume: p.volume ?? 0,
             label: d.toLocaleDateString("en-US", {
               month: "short",
               day: "numeric",
@@ -89,10 +93,6 @@ export function LiveChart({
         const newPrice = json.quote.price;
         const now = new Date();
 
-        setPrevPrice((prev) => {
-          if (prev === null) return currentPrice;
-          return prev;
-        });
         setCurrentPrice(newPrice);
 
         setData((prev) => {
@@ -109,19 +109,20 @@ export function LiveChart({
           });
           const time = now.toISOString();
 
-          const newPoint: DataPoint = { time, value: newPrice, label };
+          const newPoint: DataPoint = { time, value: newPrice, label, volume: 0 };
           const updated = [...prev, newPoint];
           if (updated.length > 200) updated.shift();
           return updated;
         });
       }
     } catch {}
-  }, [symbol, currentPrice]);
+  }, [symbol]);
 
   useEffect(() => {
     mountedRef.current = true;
-    loadHistoricalData();
+    const timer = window.setTimeout(() => void loadHistoricalData(), 0);
     return () => {
+      window.clearTimeout(timer);
       mountedRef.current = false;
     };
   }, [loadHistoricalData]);
@@ -137,31 +138,23 @@ export function LiveChart({
 
   const chartData = useMemo(() => data, [data]);
 
-  const strokeColor = (currentPrice ?? 0) >= (prevPrice ?? currentPrice ?? 0)
+  const baselinePrice = chartData[0]?.value ?? currentPrice ?? 0;
+  const strokeColor = (currentPrice ?? 0) >= baselinePrice
     ? "#12D162"
     : "#FF5C5C";
-  const glowColor = strokeColor === "#12D162"
-    ? "rgba(18,209,98,0.5)"
-    : "rgba(255,92,92,0.5)";
 
-  const fillId = useMemo(
-    () => `live-fill-${Math.random().toString(36).slice(2, 8)}`,
-    []
-  );
-  const glowId = useMemo(
-    () => `live-glow-${Math.random().toString(36).slice(2, 8)}`,
-    []
-  );
+  const chartId = useId().replace(/:/g, "");
+  const fillId = `live-fill-${chartId}`;
 
   const values = chartData.map((d) => d.value);
   const minVal = values.length > 0 ? Math.min(...values) : 0;
   const maxVal = values.length > 0 ? Math.max(...values) : 1;
   const padding = (maxVal - minVal) * 0.12 || 1;
 
-  const priceChange = currentPrice && prevPrice ? currentPrice - prevPrice : 0;
+  const priceChange = currentPrice ? currentPrice - baselinePrice : 0;
   const priceChangePercent =
-    prevPrice && prevPrice !== 0
-      ? (priceChange / prevPrice) * 100
+    baselinePrice !== 0
+      ? (priceChange / baselinePrice) * 100
       : 0;
 
   if (isLoading) {
@@ -174,7 +167,7 @@ export function LiveChart({
         style={{ height }}
       >
         <div className="text-on-surface-variant text-sm">
-          Loading live data...
+          Loading market data…
         </div>
       </div>
     );
@@ -221,9 +214,7 @@ export function LiveChart({
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
           </span>
-          <span className="text-[10px] text-on-surface-variant font-mono uppercase">
-            Live
-          </span>
+          <span className="text-[10px] text-on-surface-variant font-mono uppercase">Latest available</span>
         </div>
       </div>
 
@@ -233,9 +224,9 @@ export function LiveChart({
         style={{ height }}
       >
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart
+          <ComposedChart
             data={chartData}
-            margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
+            margin={{ top: 14, right: 56, bottom: 18, left: 14 }}
           >
             <defs>
               <linearGradient id={fillId} x1="0" x2="0" y1="0" y2="1">
@@ -260,17 +251,36 @@ export function LiveChart({
                   stopOpacity={0}
                 />
               </linearGradient>
-              <filter id={glowId}>
-                <feGaussianBlur stdDeviation="3" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
             </defs>
 
-            <XAxis dataKey="label" hide />
-            <YAxis hide domain={[minVal - padding, maxVal + padding]} />
+            <CartesianGrid stroke="rgba(188,203,185,0.12)" vertical={false} strokeDasharray="3 5" />
+            <XAxis dataKey="label" minTickGap={38} tick={{ fill: "#9eafa7", fontSize: 10 }} axisLine={false} tickLine={false} />
+            <YAxis yAxisId="price" orientation="right" domain={[minVal - padding, maxVal + padding]} tick={{ fill: "#9eafa7", fontSize: 10 }} axisLine={false} tickLine={false} width={58} tickFormatter={(value) => formatValue ? formatValue(value) : value.toLocaleString("en-US", { maximumFractionDigits: 2 })} />
+            <YAxis yAxisId="volume" hide domain={[0, "dataMax"]} />
+            {chartData[0] && (
+              <ReferenceLine
+                yAxisId="price"
+                y={chartData[0].value}
+                stroke="rgba(224,232,226,0.58)"
+                strokeDasharray="5 5"
+                label={{ value: "Open", position: "insideTopLeft", fill: "#9eafa7", fontSize: 10 }}
+              />
+            )}
+            {currentPrice !== null && (
+              <ReferenceLine
+                yAxisId="price"
+                y={currentPrice}
+                stroke={strokeColor}
+                strokeDasharray="4 5"
+                label={{
+                  value: formatValue ? formatValue(currentPrice) : currentPrice.toLocaleString("en-US", { maximumFractionDigits: 2 }),
+                  position: "insideTopRight",
+                  fill: strokeColor,
+                  fontSize: 10,
+                  fontWeight: 700,
+                }}
+              />
+            )}
 
             <Tooltip
               content={({ active, payload }) => {
@@ -289,11 +299,20 @@ export function LiveChart({
                   </div>
                 );
               }}
-              cursor={false}
+              cursor={{ stroke: "rgba(188,203,185,0.38)", strokeDasharray: "4 4" }}
+            />
+
+            <Bar
+              yAxisId="volume"
+              dataKey="volume"
+              fill="rgba(188,203,185,0.32)"
+              maxBarSize={5}
+              isAnimationActive={false}
             />
 
             <Area
-              type="monotone"
+              yAxisId="price"
+              type="linear"
               dataKey="value"
               stroke={strokeColor}
               strokeWidth={2.5}
@@ -304,42 +323,14 @@ export function LiveChart({
                 fill: strokeColor,
                 stroke: "#0d1c2d",
                 strokeWidth: 3,
-                filter: `url(#${glowId})`,
               }}
-              animationDuration={300}
+              animationDuration={700}
               animationEasing="ease-out"
               isAnimationActive={true}
             />
-          </AreaChart>
+          </ComposedChart>
         </ResponsiveContainer>
 
-        {/* Current price dot */}
-        <div
-          className="absolute right-2 w-3 h-3 rounded-full border-2 border-on-surface z-10"
-          style={{
-            top: "50%",
-            transform: "translateY(-50%)",
-            backgroundColor: strokeColor,
-            boxShadow: `0 0 12px ${glowColor}, 0 0 24px ${glowColor}`,
-          }}
-        />
-
-        {/* Price label */}
-        <div
-          className="absolute right-2 bg-surface-container-high/90 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-mono border border-outline-variant/30 z-10"
-          style={{
-            top: "50%",
-            transform: "translateY(-50%)",
-            color: strokeColor,
-          }}
-        >
-          {formatValue
-            ? formatValue(currentPrice ?? 0)
-            : (currentPrice ?? 0).toLocaleString("en-US", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-        </div>
       </div>
     </div>
   );

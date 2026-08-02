@@ -25,22 +25,22 @@ export function PageHead({ title, description, canonical }: PageHeadProps) {
       document.head.appendChild(metaDesc);
     }
 
-    let ogTitle = document.querySelector('meta[property="og:title"]');
+    const ogTitle = document.querySelector('meta[property="og:title"]');
     if (ogTitle) {
       ogTitle.setAttribute("content", fullTitle);
     }
 
-    let ogDesc = document.querySelector('meta[property="og:description"]');
+    const ogDesc = document.querySelector('meta[property="og:description"]');
     if (ogDesc) {
       ogDesc.setAttribute("content", description);
     }
 
-    let twitterTitle = document.querySelector('meta[name="twitter:title"]');
+    const twitterTitle = document.querySelector('meta[name="twitter:title"]');
     if (twitterTitle) {
       twitterTitle.setAttribute("content", fullTitle);
     }
 
-    let twitterDesc = document.querySelector('meta[name="twitter:description"]');
+    const twitterDesc = document.querySelector('meta[name="twitter:description"]');
     if (twitterDesc) {
       twitterDesc.setAttribute("content", description);
     }

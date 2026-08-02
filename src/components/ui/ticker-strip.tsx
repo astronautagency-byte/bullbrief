@@ -11,20 +11,13 @@ interface TickerItem {
   changePercent: number;
 }
 
-const TICKER_SYMBOLS = [
-  { symbol: "^GSPC", name: "S&P 500" },
-  { symbol: "^IXIC", name: "NASDAQ" },
-  { symbol: "^DJI", name: "DOW" },
-  { symbol: "^VIX", name: "VIX" },
-  { symbol: "AAPL", name: "AAPL" },
-  { symbol: "MSFT", name: "MSFT" },
-  { symbol: "NVDA", name: "NVDA" },
-  { symbol: "GOOGL", name: "GOOGL" },
-  { symbol: "AMZN", name: "AMZN" },
-  { symbol: "TSLA", name: "TSLA" },
-  { symbol: "^GSPTSE", name: "TSX" },
-  { symbol: "CADUSD=X", name: "CAD/USD" },
-];
+interface MarketIndexResponse {
+  symbol: string;
+  name: string;
+  value: number;
+  change: number;
+  changePercent: number;
+}
 
 export function TickerStrip() {
   const [tickers, setTickers] = useState<TickerItem[]>([]);
@@ -40,7 +33,7 @@ export function TickerStrip() {
         );
         const json = await res.json();
         if (!cancelled && json.data) {
-          const usData: TickerItem[] = json.data.map((d: any) => ({
+          const usData: TickerItem[] = json.data.map((d: MarketIndexResponse) => ({
             symbol: d.symbol,
             name: d.name,
             price: d.value,
@@ -53,7 +46,7 @@ export function TickerStrip() {
           );
           const caJson = await caRes.json();
           if (!cancelled && caJson.data) {
-            const caData: TickerItem[] = caJson.data.map((d: any) => ({
+            const caData: TickerItem[] = caJson.data.map((d: MarketIndexResponse) => ({
               symbol: d.symbol,
               name: d.name,
               price: d.value,
@@ -81,10 +74,10 @@ export function TickerStrip() {
   const doubled = [...tickers, ...tickers];
 
   return (
-    <div className="w-full overflow-hidden bg-surface-container-low/50 border-b border-outline-variant/50">
+    <div className="w-full overflow-hidden bg-background border-b border-outline-variant">
       <div
         ref={scrollRef}
-        className="flex items-center gap-6 py-1.5 px-4 animate-ticker whitespace-nowrap"
+        className="flex items-center gap-8 py-2 px-4 animate-ticker whitespace-nowrap"
       >
         {doubled.map((t, i) => {
           const isPositive = t.change >= 0;
@@ -115,7 +108,7 @@ export function TickerStrip() {
                 {t.changePercent.toFixed(2)}%
               </span>
               {i < doubled.length - 1 && (
-                <span className="text-on-surface-variant/20 ml-2">|</span>
+                <span className="h-3 w-px bg-outline-variant ml-2" />
               )}
             </div>
           );

@@ -5,9 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 import {
   LayoutDashboard,
-  BarChart3,
   Newspaper,
-  Mic,
   Bookmark,
   Target,
   Settings,
@@ -40,22 +38,22 @@ export function Sidebar({ className }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "w-64 fixed left-0 top-0 h-screen bg-surface-container-low border-r border-outline-variant",
-        "flex flex-col py-4 z-40",
+        "w-60 fixed left-0 top-0 h-screen bg-background border-r border-outline-variant",
+        "flex flex-col py-6 z-40",
         "hidden md:flex",
         className
       )}
     >
-      <Link href="/brief" className="flex items-center gap-2 px-5 mb-6">
+      <Link href="/brief" className="flex items-center gap-2 px-6 mb-10">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/BullBrief_Wordmark_Transparent.png"
           alt="BullBrief"
-          className="h-6 w-auto"
+          className="h-7 w-auto dark:brightness-0 dark:invert"
         />
       </Link>
 
-      <nav className="flex-1 px-3 space-y-1">
+      <nav className="flex-1 px-4 space-y-1.5">
         {navItems.map((item) => {
           const isActive =
             pathname === item.href || pathname.startsWith(item.href + "/");
@@ -64,11 +62,10 @@ export function Sidebar({ className }: SidebarProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition-all",
-                "hover:bg-surface-container-high",
-                "active:scale-95 duration-100",
+                "flex items-center gap-3 px-4 py-2.5 rounded-full text-[15px] font-medium transition-colors",
+                "hover:bg-surface-container-low hover:text-on-surface",
                 isActive
-                  ? "text-primary font-bold bg-primary/10 border-r-4 border-primary"
+                  ? "text-on-primary font-semibold bg-primary"
                   : "text-on-surface-variant"
               )}
             >
@@ -79,7 +76,7 @@ export function Sidebar({ className }: SidebarProps) {
         })}
       </nav>
 
-      <div className="px-3 space-y-1">
+      <div className="px-4 pt-5 border-t border-outline-variant space-y-1">
         {bottomItems.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -87,10 +84,10 @@ export function Sidebar({ className }: SidebarProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition-all",
-                "hover:bg-surface-container-high",
+                "flex items-center gap-3 px-4 py-2.5 rounded-full font-medium transition-colors",
+                "hover:bg-surface-container-low",
                 isActive
-                  ? "text-primary font-bold bg-primary/10"
+                  ? "text-on-primary font-semibold bg-primary"
                   : "text-on-surface-variant"
               )}
             >

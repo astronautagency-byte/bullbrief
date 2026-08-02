@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getMultiQuotes } from "@/lib/providers/yahoo/client";
 import { fetchRSSNews } from "@/lib/providers/rss-news/client";
+import { getLatestNews } from "@/lib/providers/marketaux/client";
 import { groqGenerateBriefSummary } from "@/lib/providers/groq/client";
 import type { BriefingData, WatchlistMovers, Article } from "@/lib/types";
 
@@ -17,8 +18,9 @@ export async function GET() {
   try {
     const symbols = INDEXES.map((i) => i.symbol);
 
-    const [quoteMap, newsResult] = await Promise.allSettled([
+    const [quoteMap, marketauxNews, rssNews] = await Promise.allSettled([
       getMultiQuotes(symbols),
+      getLatestNews({ countries: ["us", "ca"], limit: 3, page: 1 }),
       fetchRSSNews({ limit: 10 }),
     ]);
 
@@ -35,8 +37,17 @@ export async function GET() {
       };
     });
 
-    const articles: Article[] =
-      newsResult.status === "fulfilled" ? newsResult.value.articles : [];
+    const marketauxArticles = marketauxNews.status === "fulfilled" ? marketauxNews.value.articles : [];
+    const rssArticles = rssNews.status === "fulfilled" ? rssNews.value.articles : [];
+    const articleKeys = new Set<string>();
+    const articles: Article[] = [...marketauxArticles, ...rssArticles]
+      .filter((article) => {
+        const key = article.title.toLowerCase().replace(/\W/g, "").slice(0, 80);
+        if (articleKeys.has(key)) return false;
+        articleKeys.add(key);
+        return true;
+      })
+      .slice(0, 10);
 
     const movers: WatchlistMovers = {
       topGainer: null,
@@ -64,8 +75,8 @@ export async function GET() {
           aiConfidence = aiResult.confidence;
           keyInsights = aiResult.keyInsights;
           break;
-        } catch (err: any) {
-          if (err?.code === "RATE_LIMITED" && attempt < 2) {
+        } catch (err: unknown) {
+          if (typeof err === "object" && err !== null && "code" in err && err.code === "RATE_LIMITED" && attempt < 2) {
             await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
             continue;
           }

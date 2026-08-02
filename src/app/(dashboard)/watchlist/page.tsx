@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/cn";
 import { formatPrice, formatPercent, formatChange, getTrendDirection } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
@@ -16,33 +16,24 @@ import {
   Loader2,
   Bell,
   BellRing,
+  Grid2X2,
+  List,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { legacySymbolsMissingFromAccount } from "@/lib/watchlist-sync";
 
 type SortMode = "custom" | "gainer" | "decliner" | "alpha" | "recent";
 
 interface WatchlistStock {
-  id: string;
+  itemId: string;
+  watchlistId: string;
   symbol: string;
   companyName: string;
   exchangeCode: string;
-  currency: string | null;
-  dataType: "real_time" | "intraday" | "delayed" | "end_of_day";
-  marketTimestamp: string | null;
-  source: string;
   price: number;
   change: number;
   changePercent: number;
-  sparkline?: number[];
   addedAt?: string;
-}
-
-interface StockSearchResult {
-  symbol: string;
-  name: string;
-  exchange: string;
-  currency?: string;
-  quoteType?: string;
 }
 
 interface PriceAlertItem {
@@ -97,33 +88,19 @@ const POPULAR_STOCKS = [
   { symbol: "SPOT", name: "Spotify Technology", exchange: "NYSE" },
 ];
 
-function generateSparkline(base: number, trend: number): number[] {
-  if (base === 0) return [0, 0, 0, 0, 0, 0];
-  const data: number[] = [];
-  let current = base * (1 - trend * 0.02);
-  for (let i = 0; i < 6; i++) {
-    current += (trend * base * 0.005) + (Math.sin(i) * base * 0.005);
-    data.push(Math.round(current * 100) / 100);
-  }
-  return data;
-}
-
 export default function WatchlistPage() {
   const [sortMode, setSortMode] = useState<SortMode>("custom");
   const [searchQuery, setSearchQuery] = useState("");
   const [watchlistName, setWatchlistName] = useState("My Watchlist");
   const [isEditing, setIsEditing] = useState(false);
   const [watchlist, setWatchlist] = useState<WatchlistStock[]>([]);
+  const [activeWatchlistId, setActiveWatchlistId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addSearch, setAddSearch] = useState("");
   const [adding, setAdding] = useState<string | null>(null);
-  const [watchlistId, setWatchlistId] = useState("default");
-  const [searchResults, setSearchResults] = useState<StockSearchResult[]>([]);
-  const [searchingStocks, setSearchingStocks] = useState(false);
-  const [stockSearchError, setStockSearchError] = useState("");
-  const searchRequestId = useRef(0);
-  const watchlistSymbolsRef = useRef<string[]>([]);
+  const [storageMode, setStorageMode] = useState<"account" | "local">("account");
+  const [watchlistView, setWatchlistView] = useState<"list" | "grid">("list");
 
   const [alerts, setAlerts] = useState<PriceAlertItem[]>([]);
   const [showAlertModal, setShowAlertModal] = useState<WatchlistStock | null>(null);
@@ -131,99 +108,177 @@ export default function WatchlistPage() {
   const [alertPrice, setAlertPrice] = useState("");
   const [alertSaving, setAlertSaving] = useState(false);
 
-  const fetchWatchlist = useCallback(async (showLoading = true) => {
-    if (showLoading) setLoading(true);
+  const fetchWatchlist = useCallback(async () => {
+    setLoading(true);
     try {
-      let response = await fetch("/api/watchlists", { cache: "no-store" });
-      if (!response.ok) throw new Error("Unable to load account watchlist");
-      let payload = await response.json();
-      let accountWatchlist = payload.data?.[0];
-      if (!accountWatchlist) throw new Error("Account watchlist unavailable");
+      const meta: Record<string, { name: string; exchange: string }> = {
+        AAPL: { name: "Apple Inc.", exchange: "NASDAQ" },
+        MSFT: { name: "Microsoft Corp.", exchange: "NASDAQ" },
+        GOOGL: { name: "Alphabet Inc.", exchange: "NASDAQ" },
+        AMZN: { name: "Amazon.com Inc.", exchange: "NASDAQ" },
+        NVDA: { name: "NVIDIA Corp.", exchange: "NASDAQ" },
+        META: { name: "Meta Platforms", exchange: "NASDAQ" },
+        TSLA: { name: "Tesla Inc.", exchange: "NASDAQ" },
+        NFLX: { name: "Netflix Inc.", exchange: "NASDAQ" },
+        AMD: { name: "Advanced Micro Devices", exchange: "NASDAQ" },
+        INTC: { name: "Intel Corp.", exchange: "NASDAQ" },
+        JPM: { name: "JPMorgan Chase", exchange: "NYSE" },
+        V: { name: "Visa Inc.", exchange: "NYSE" },
+        JNJ: { name: "Johnson & Johnson", exchange: "NYSE" },
+        WMT: { name: "Walmart Inc.", exchange: "NYSE" },
+        UNH: { name: "UnitedHealth Group", exchange: "NYSE" },
+        XOM: { name: "Exxon Mobil", exchange: "NYSE" },
+        "BRK.B": { name: "Berkshire Hathaway", exchange: "NYSE" },
+        PG: { name: "Procter & Gamble", exchange: "NYSE" },
+        MA: { name: "Mastercard Inc.", exchange: "NYSE" },
+        HD: { name: "Home Depot", exchange: "NYSE" },
+        DIS: { name: "Walt Disney Co.", exchange: "NYSE" },
+        BAC: { name: "Bank of America", exchange: "NYSE" },
+        PFE: { name: "Pfizer Inc.", exchange: "NYSE" },
+        CRM: { name: "Salesforce Inc.", exchange: "NYSE" },
+        COST: { name: "Costco Wholesale", exchange: "NASDAQ" },
+        COIN: { name: "Coinbase Global", exchange: "NASDAQ" },
+        PLTR: { name: "Palantir Technologies", exchange: "NYSE" },
+        UBER: { name: "Uber Technologies", exchange: "NYSE" },
+        ABNB: { name: "Airbnb Inc.", exchange: "NASDAQ" },
+        SHOP: { name: "Shopify Inc.", exchange: "TSX" },
+        BABA: { name: "Alibaba Group", exchange: "NYSE" },
+        SQ: { name: "Block Inc.", exchange: "NYSE" },
+        TD: { name: "Toronto-Dominion Bank", exchange: "TSX" },
+        RY: { name: "Royal Bank of Canada", exchange: "TSX" },
+        BNS: { name: "Bank of Nova Scotia", exchange: "TSX" },
+        BMO: { name: "Bank of Montreal", exchange: "TSX" },
+        ENB: { name: "Enbridge Inc.", exchange: "TSX" },
+        CNR: { name: "Canadian National Railway", exchange: "TSX" },
+        SU: { name: "Suncor Energy", exchange: "TSX" },
+        CNQ: { name: "Canadian Natural Resources", exchange: "TSX" },
+        BAM: { name: "Brookfield Asset Management", exchange: "TSX" },
+        L: { name: "Loblaw Companies", exchange: "TSX" },
+        ATD: { name: "Alimentation Couche-Tard", exchange: "TSX" },
+        T: { name: "BCE Inc.", exchange: "TSX" },
+        DOL: { name: "Dollarama Inc.", exchange: "TSX" },
+        CSU: { name: "Constellation Software", exchange: "TSX" },
+        BB: { name: "BlackBerry Ltd.", exchange: "TSX" },
+      };
 
-      const legacyRaw = localStorage.getItem("bullbrief_watchlist");
-      const legacySymbols: string[] = legacyRaw ? JSON.parse(legacyRaw) : [];
-      if (accountWatchlist.items.length === 0 && legacySymbols.length > 0) {
-        for (const legacySymbol of legacySymbols.slice(0, 100)) {
-          const popular = POPULAR_STOCKS.find((stock) => stock.symbol === legacySymbol);
-          const symbol =
-            popular?.exchange === "TSX" && !legacySymbol.includes(".")
-              ? `${legacySymbol}.TO`
-              : legacySymbol.toUpperCase();
-          await fetch(`/api/watchlists/${accountWatchlist.id}/items`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              symbol,
-              companyName: popular?.name ?? legacySymbol,
-              exchangeCode: popular?.exchange ?? null,
-            }),
-          });
-        }
-        localStorage.removeItem("bullbrief_watchlist");
-        response = await fetch("/api/watchlists", { cache: "no-store" });
-        payload = await response.json();
-        accountWatchlist = payload.data?.[0] ?? accountWatchlist;
+      const watchlistsResponse = await fetch("/api/watchlists", { cache: "no-store" });
+      if (!watchlistsResponse.ok) {
+        throw new Error(watchlistsResponse.status === 401 ? "Sign in to sync your watchlist" : "Watchlist sync unavailable");
+      }
+      const watchlistsJson = await watchlistsResponse.json();
+      let serverWatchlist = (watchlistsJson.data ?? []).find((item: { isDefault: boolean }) => item.isDefault)
+        ?? watchlistsJson.data?.[0];
+
+      if (!serverWatchlist) {
+        const createResponse = await fetch("/api/watchlists", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: "My Watchlist" }),
+        });
+        if (!createResponse.ok) throw new Error("Could not create account watchlist");
+        const created = await createResponse.json();
+        serverWatchlist = { ...created.data, items: [] };
       }
 
-      setWatchlistId(accountWatchlist.id);
-      setWatchlistName(accountWatchlist.name);
-      const symbols = accountWatchlist.items.map((item: { symbol: string }) => item.symbol);
-      watchlistSymbolsRef.current = symbols;
-      if (symbols.length === 0) {
+      const legacySymbols: string[] = JSON.parse(localStorage.getItem("bullbrief_watchlist") || "[]");
+      const missingLegacy = legacySymbolsMissingFromAccount(
+        (serverWatchlist.items ?? []).map((item: { symbol: string }) => item.symbol),
+        legacySymbols
+      );
+      let legacyMigrationComplete = true;
+      if (missingLegacy.length) {
+        const migrationResponses = await Promise.all(
+          missingLegacy.map((symbol) =>
+            fetch(`/api/watchlists/${serverWatchlist.id}/items`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                symbol,
+                companyName: meta[symbol]?.name ?? symbol,
+                exchangeCode: meta[symbol]?.exchange ?? null,
+              }),
+            })
+          )
+        );
+        legacyMigrationComplete = migrationResponses.every((response) => response.ok);
+        if (!legacyMigrationComplete) throw new Error("Legacy watchlist migration did not complete");
+        const refreshed = await fetch("/api/watchlists", { cache: "no-store" });
+        if (!refreshed.ok) throw new Error("Could not verify migrated watchlist");
+        const refreshedJson = await refreshed.json();
+        serverWatchlist = (refreshedJson.data ?? []).find((item: { id: string }) => item.id === serverWatchlist.id) ?? serverWatchlist;
+      }
+      if (legacySymbols.length && legacyMigrationComplete) localStorage.removeItem("bullbrief_watchlist");
+
+      setActiveWatchlistId(serverWatchlist.id);
+      setStorageMode("account");
+      const items: Array<{ id: string; symbol: string; companyName: string | null; exchangeCode: string | null; addedAt: string }> =
+        serverWatchlist.items ?? [];
+      const symbols = items.map((item) => item.symbol);
+      if (!symbols.length) {
         setWatchlist([]);
         return;
       }
 
-      const res = await fetch(`/api/watchlist-local?symbols=${encodeURIComponent(symbols.join(","))}`);
+      const res = await fetch(`/api/watchlist-local?symbols=${symbols.join(",")}`);
       const json = await res.json();
-      const priceData: Record<string, {
-        price: number;
-        change: number;
-        changePercent: number;
-        companyName: string;
-        exchangeCode: string;
-        currency: string | null;
-        dataType: WatchlistStock["dataType"];
-        marketTimestamp: string | null;
-        source: string;
-      }> = {};
+      const priceData: Record<string, { price: number; change: number; changePercent: number }> = {};
       for (const s of json.data ?? []) {
-        priceData[s.symbol] = s;
+        priceData[s.symbol] = { price: s.price, change: s.change, changePercent: s.changePercent };
       }
 
       setWatchlist(
-        accountWatchlist.items.map((item: {
-          id: string;
-          symbol: string;
-          companyName: string | null;
-          exchangeCode: string | null;
-          addedAt: string;
-        }) => ({
-          id: item.id,
+        items.map((item) => ({
+          itemId: item.id,
+          watchlistId: serverWatchlist.id,
           symbol: item.symbol,
-          companyName: priceData[item.symbol]?.companyName ?? item.companyName ?? item.symbol,
-          exchangeCode: priceData[item.symbol]?.exchangeCode ?? item.exchangeCode ?? "Unknown exchange",
-          currency: priceData[item.symbol]?.currency ?? null,
-          dataType: priceData[item.symbol]?.dataType ?? "delayed",
-          marketTimestamp: priceData[item.symbol]?.marketTimestamp ?? null,
-          source: priceData[item.symbol]?.source ?? "Yahoo Finance",
+          companyName: item.companyName ?? meta[item.symbol]?.name ?? item.symbol,
+          exchangeCode: item.exchangeCode ?? meta[item.symbol]?.exchange ?? "Unknown",
           price: priceData[item.symbol]?.price ?? 0,
           change: priceData[item.symbol]?.change ?? 0,
           changePercent: priceData[item.symbol]?.changePercent ?? 0,
-          sparkline: generateSparkline(priceData[item.symbol]?.price ?? 0, priceData[item.symbol]?.changePercent ?? 0),
           addedAt: item.addedAt,
         }))
       );
-    } catch {
-      if (showLoading) setWatchlist([]);
+    } catch (reason) {
+      console.error(reason);
+      const symbols: string[] = JSON.parse(localStorage.getItem("bullbrief_watchlist") || "[]");
+      setActiveWatchlistId("local");
+      setStorageMode("local");
+      if (!symbols.length) {
+        setWatchlist([]);
+      } else {
+        try {
+          const quoteResponse = await fetch(`/api/watchlist-local?symbols=${encodeURIComponent(symbols.join(","))}`);
+          const quoteJson = await quoteResponse.json();
+          const quotes = new Map<string, { companyName?: string; exchangeCode?: string; price?: number; change?: number; changePercent?: number }>(
+            (quoteJson.data ?? []).map((quote: { symbol: string }) => [quote.symbol, quote])
+          );
+          setWatchlist(symbols.map((symbol) => {
+            const stock = POPULAR_STOCKS.find((item) => item.symbol === symbol);
+            const quote = quotes.get(symbol);
+            return {
+              itemId: `local-${symbol}`,
+              watchlistId: "local",
+              symbol,
+              companyName: quote?.companyName ?? stock?.name ?? symbol,
+              exchangeCode: quote?.exchangeCode ?? stock?.exchange ?? "Unknown",
+              price: quote?.price ?? 0,
+              change: quote?.change ?? 0,
+              changePercent: quote?.changePercent ?? 0,
+            };
+          }));
+        } catch {
+          setWatchlist([]);
+        }
+      }
     } finally {
-      if (showLoading) setLoading(false);
+      setLoading(false);
     }
   }, []);
 
   const refreshPrices = useCallback(async () => {
     try {
-      const symbols = watchlistSymbolsRef.current;
+      const symbols = watchlist.map((item) => item.symbol);
       if (symbols.length === 0) return;
 
       const res = await fetch(`/api/watchlist-local?symbols=${symbols.join(",")}`);
@@ -241,7 +296,7 @@ export default function WatchlistPage() {
         })
       );
     } catch {}
-  }, []);
+  }, [watchlist]);
 
   const fetchAlerts = useCallback(async () => {
     try {
@@ -252,109 +307,94 @@ export default function WatchlistPage() {
   }, []);
 
   useEffect(() => {
-    // Existing client page bootstrap; callbacks perform the asynchronous state updates.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchWatchlist();
-    fetchAlerts();
-    const priceInterval = setInterval(refreshPrices, 3000);
-    const accountSyncInterval = setInterval(() => fetchWatchlist(false), 30000);
+    const initialLoad = window.setTimeout(() => {
+      void fetchWatchlist();
+      void fetchAlerts();
+      const storedView = localStorage.getItem("bullbrief_watchlist_view");
+      if (storedView === "list" || storedView === "grid") setWatchlistView(storedView);
+    }, 0);
     const alertInterval = setInterval(fetchAlerts, 30000);
     return () => {
-      clearInterval(priceInterval);
-      clearInterval(accountSyncInterval);
+      clearTimeout(initialLoad);
       clearInterval(alertInterval);
     };
-  }, [fetchWatchlist, refreshPrices, fetchAlerts]);
+  }, [fetchWatchlist, fetchAlerts]);
+
+  const selectWatchlistView = (view: "list" | "grid") => {
+    setWatchlistView(view);
+    localStorage.setItem("bullbrief_watchlist_view", view);
+  };
 
   useEffect(() => {
-    const query = addSearch.trim();
-    const requestId = ++searchRequestId.current;
-    if (!showAddModal || !query) {
-      return;
+    const priceInterval = window.setInterval(() => void refreshPrices(), 30000);
+    return () => window.clearInterval(priceInterval);
+  }, [refreshPrices]);
+
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.visibilityState === "visible") void fetchWatchlist();
     }
-
-    const controller = new AbortController();
-    const timer = window.setTimeout(async () => {
-      setSearchingStocks(true);
-      setStockSearchError("");
-      try {
-        const response = await fetch(`/api/markets/search?q=${encodeURIComponent(query)}`, {
-          signal: controller.signal,
-          cache: "no-store",
-        });
-        const payload = await response.json();
-        if (!response.ok) throw new Error(payload.error || "Stock search failed");
-        if (requestId === searchRequestId.current) {
-          setSearchResults(payload.data ?? []);
-        }
-      } catch (error) {
-        if (!controller.signal.aborted && requestId === searchRequestId.current) {
-          setStockSearchError(error instanceof Error ? error.message : "Stock search failed");
-        }
-      } finally {
-        if (!controller.signal.aborted && requestId === searchRequestId.current) {
-          setSearchingStocks(false);
-        }
-      }
-    }, 250);
-
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", handleVisibility);
     return () => {
-      controller.abort();
-      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", handleVisibility);
     };
-  }, [addSearch, showAddModal]);
+  }, [fetchWatchlist]);
 
-  const addStock = async (stock: StockSearchResult) => {
-    setAdding(stock.symbol);
-    setStockSearchError("");
+  const addStock = async (symbol: string) => {
+    if (!activeWatchlistId) return;
+    setAdding(symbol);
     try {
-      const response = await fetch(`/api/watchlists/${watchlistId}/items`, {
+      const stock = POPULAR_STOCKS.find((item) => item.symbol === symbol);
+      if (activeWatchlistId === "local") {
+        const current: string[] = JSON.parse(localStorage.getItem("bullbrief_watchlist") || "[]");
+        localStorage.setItem("bullbrief_watchlist", JSON.stringify([...new Set([...current, symbol])]));
+        setShowAddModal(false);
+        setAddSearch("");
+        await fetchWatchlist();
+        return;
+      }
+      const response = await fetch(`/api/watchlists/${activeWatchlistId}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          symbol: stock.symbol,
-          companyName: stock.name,
-          exchangeCode: stock.exchange,
+          symbol,
+          companyName: stock?.name ?? symbol,
+          exchangeCode: stock?.exchange ?? null,
         }),
       });
-      if (!response.ok && response.status !== 409) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(payload.error || "Unable to add stock");
+      if (!response.ok) {
+        if (response.status >= 500) {
+          const current: string[] = JSON.parse(localStorage.getItem("bullbrief_watchlist") || "[]");
+          localStorage.setItem("bullbrief_watchlist", JSON.stringify([...new Set([...current, symbol])]));
+          setActiveWatchlistId("local");
+          setStorageMode("local");
+        } else {
+          throw new Error("Could not add stock");
+        }
       }
       setShowAddModal(false);
       setAddSearch("");
-      setSearchResults([]);
       await fetchWatchlist();
-    } catch (error) {
-      setStockSearchError(error instanceof Error ? error.message : "Unable to add stock");
     } finally {
       setAdding(null);
     }
   };
 
-  const saveWatchlistName = async () => {
-    setIsEditing(false);
-    const response = await fetch(`/api/watchlists/${watchlistId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: watchlistName }),
-    });
-    if (!response.ok) {
-      await fetchWatchlist(false);
+  const removeStock = async (stock: WatchlistStock) => {
+    if (stock.watchlistId === "local") {
+      const current: string[] = JSON.parse(localStorage.getItem("bullbrief_watchlist") || "[]");
+      localStorage.setItem("bullbrief_watchlist", JSON.stringify(current.filter((symbol) => symbol !== stock.symbol)));
+      setWatchlist((prev) => prev.filter((item) => item.symbol !== stock.symbol));
+      return;
     }
-  };
-
-  const removeStock = async (symbol: string) => {
-    const item = watchlist.find((stock) => stock.symbol === symbol);
-    if (!item) return;
     const response = await fetch(
-      `/api/watchlists/${watchlistId}/items?itemId=${encodeURIComponent(item.id)}`,
+      `/api/watchlists/${stock.watchlistId}/items?itemId=${encodeURIComponent(stock.itemId)}`,
       { method: "DELETE" }
     );
-    if (response.ok) {
-      watchlistSymbolsRef.current = watchlistSymbolsRef.current.filter((value) => value !== symbol);
-      setWatchlist((prev) => prev.filter((stock) => stock.symbol !== symbol));
-    }
+    if (!response.ok) return;
+    setWatchlist((prev) => prev.filter((item) => item.itemId !== stock.itemId));
   };
 
   const createAlert = async () => {
@@ -408,17 +448,12 @@ export default function WatchlistPage() {
       s.companyName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredAdd: StockSearchResult[] = (
-    addSearch.trim()
-      ? searchResults
-      : POPULAR_STOCKS.slice(0, 12).map((stock) => ({
-          symbol: stock.exchange === "TSX" ? `${stock.symbol}.TO` : stock.symbol,
-          name: stock.name,
-          exchange: stock.exchange,
-          currency: stock.exchange === "TSX" ? "CAD" : "USD",
-          quoteType: "EQUITY",
-        }))
-  ).filter((stock) => !watchlist.some((item) => item.symbol === stock.symbol));
+  const filteredAdd = POPULAR_STOCKS.filter(
+    (s) =>
+      (s.symbol.toLowerCase().includes(addSearch.toLowerCase()) ||
+        s.name.toLowerCase().includes(addSearch.toLowerCase())) &&
+      !watchlist.some((w) => w.symbol === s.symbol)
+  );
 
   const activeAlerts = alerts.filter((a) => !a.triggered);
   const triggeredAlerts = alerts.filter((a) => a.triggered);
@@ -427,7 +462,7 @@ export default function WatchlistPage() {
     <div className="space-y-4 md:space-y-6">
       <PageHead
         title="Watchlist"
-        description="Track stocks with the latest available prices, charts, and price alerts. Market data may be delayed."
+        description="Track your favorite stocks with real-time prices, charts, and price alerts. Build and manage your personalized stock watchlist."
         canonical="https://bullbrief.vercel.app/watchlist"
       />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -437,10 +472,8 @@ export default function WatchlistPage() {
               type="text"
               value={watchlistName}
               onChange={(e) => setWatchlistName(e.target.value)}
-              onBlur={saveWatchlistName}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") e.currentTarget.blur();
-              }}
+              onBlur={() => setIsEditing(false)}
+              onKeyDown={(e) => e.key === "Enter" && setIsEditing(false)}
               autoFocus
               className="bg-surface-container-low border border-primary rounded-lg px-3 py-1 text-on-surface font-display font-bold text-lg focus:outline-none"
             />
@@ -465,6 +498,12 @@ export default function WatchlistPage() {
           </Button>
         </div>
       </div>
+
+      {storageMode === "local" && (
+        <div className="rounded-2xl bg-surface-container-low px-4 py-3 text-sm text-on-surface-variant">
+          Saved on this device while account sync is unavailable. Your selections will be reconciled when the database reconnects.
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
         <div className="relative flex-1 max-w-sm w-full">
@@ -500,6 +539,11 @@ export default function WatchlistPage() {
               {label}
             </button>
           ))}
+          <span className="mx-1 h-5 w-px flex-none bg-outline-variant" />
+          <div className="flex flex-none items-center rounded-full border border-outline-variant bg-surface-container-low p-1" aria-label="Watchlist layout">
+            <button onClick={() => selectWatchlistView("list")} aria-label="List view" aria-pressed={watchlistView === "list"} className={cn("rounded-full p-1.5 transition-colors", watchlistView === "list" ? "bg-primary text-on-primary" : "text-on-surface-variant hover:text-on-surface")}><List className="h-4 w-4" /></button>
+            <button onClick={() => selectWatchlistView("grid")} aria-label="Grid view" aria-pressed={watchlistView === "grid"} className={cn("rounded-full p-1.5 transition-colors", watchlistView === "grid" ? "bg-primary text-on-primary" : "text-on-surface-variant hover:text-on-surface")}><Grid2X2 className="h-4 w-4" /></button>
+          </div>
         </div>
       </div>
 
@@ -543,12 +587,7 @@ export default function WatchlistPage() {
             <div className="flex items-center justify-between p-4 border-b border-outline-variant">
               <h2 className="font-display font-bold text-lg text-on-surface">Add Stock</h2>
               <button
-                onClick={() => {
-                  setShowAddModal(false);
-                  setAddSearch("");
-                  setSearchResults([]);
-                  setStockSearchError("");
-                }}
+                onClick={() => { setShowAddModal(false); setAddSearch(""); }}
                 className="p-1 text-on-surface-variant hover:text-on-surface transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -561,30 +600,16 @@ export default function WatchlistPage() {
                   type="text"
                   placeholder="Search by symbol or company name..."
                   value={addSearch}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setAddSearch(value);
-                    if (!value.trim()) {
-                      setSearchResults([]);
-                      setSearchingStocks(false);
-                      setStockSearchError("");
-                    }
-                  }}
+                  onChange={(e) => setAddSearch(e.target.value)}
                   autoFocus
                   className="w-full bg-surface-container-low border border-outline-variant rounded-lg pl-10 pr-4 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
                 />
               </div>
               <div className="max-h-80 overflow-y-auto space-y-1">
-                {searchingStocks && (
-                  <div className="flex items-center justify-center py-6 text-sm text-on-surface-variant">
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Searching Yahoo Finance…
-                  </div>
-                )}
-                {!searchingStocks && filteredAdd.slice(0, 20).map((stock) => (
+                {filteredAdd.slice(0, 20).map((stock) => (
                   <button
                     key={stock.symbol}
-                    onClick={() => addStock(stock)}
+                    onClick={() => addStock(stock.symbol)}
                     disabled={adding === stock.symbol}
                     className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-surface-container-high transition-colors text-left"
                   >
@@ -594,7 +619,6 @@ export default function WatchlistPage() {
                       </span>
                       <span className="text-xs text-on-surface-variant">
                         {stock.name} · {stock.exchange}
-                        {stock.currency ? ` · ${stock.currency}` : ""}
                       </span>
                     </div>
                     {adding === stock.symbol ? (
@@ -604,13 +628,10 @@ export default function WatchlistPage() {
                     )}
                   </button>
                 ))}
-                {stockSearchError && (
-                  <div className="text-center py-4 text-sm text-error">{stockSearchError}</div>
-                )}
-                {!searchingStocks && !stockSearchError && filteredAdd.length === 0 && (
+                {filteredAdd.length === 0 && (
                   <div className="text-center py-8">
                     <p className="text-on-surface-variant text-sm">
-                      {addSearch ? "No Canadian or U.S. listings found" : "All suggested stocks are in your watchlist"}
+                      {addSearch ? "No stocks found" : "All popular stocks are in your watchlist"}
                     </p>
                   </div>
                 )}
@@ -711,14 +732,15 @@ export default function WatchlistPage() {
         </div>
       )}
 
-      <div className="bg-surface-container-low border border-outline-variant rounded-xl overflow-hidden">
+      {watchlistView === "list" ? (
+      <div className="bg-surface-container-low border border-outline-variant rounded-[24px] overflow-hidden">
         <div className="hidden md:grid grid-cols-12 gap-2 px-5 py-2.5 bg-surface-container border-b border-outline-variant text-on-surface-variant text-xs font-mono uppercase tracking-wider">
           <span className="col-span-1" />
-          <span className="col-span-3">Symbol</span>
+          <span className="col-span-2">Symbol</span>
           <span className="col-span-2 text-right">Price</span>
           <span className="col-span-2 text-right">Change</span>
           <span className="col-span-2 text-right">% Change</span>
-          <span className="col-span-1 text-right">Chart</span>
+          <span className="col-span-2 text-right">Intraday</span>
           <span className="col-span-1" />
         </div>
 
@@ -746,32 +768,20 @@ export default function WatchlistPage() {
                 <div className="hidden md:flex md:col-span-1 items-center">
                   <GripVertical className="w-4 h-4 text-on-surface-variant/30 group-hover:text-on-surface-variant cursor-grab" />
                 </div>
-                <div className="md:col-span-3">
+                <div className="md:col-span-2">
                   <a href={`/markets/${stock.symbol}`} className="block hover:text-primary transition-colors">
                     <span className="font-mono font-medium text-on-surface block">
                       {stock.symbol}
                     </span>
                     <span className="text-xs text-on-surface-variant">
                       {stock.companyName} · {stock.exchangeCode}
-                      {stock.currency ? ` · ${stock.currency}` : ""}
-                    </span>
-                    <span className="text-[10px] text-on-surface-variant/70 block mt-0.5">
-                      {stock.dataType === "end_of_day"
-                        ? "End of day"
-                        : stock.dataType === "delayed"
-                          ? "Delayed"
-                          : "Latest available"}
-                      {stock.marketTimestamp
-                        ? ` · ${new Date(stock.marketTimestamp).toLocaleString()}`
-                        : ""}
-                      {` · Source: ${stock.source}`}
                     </span>
                   </a>
                 </div>
                 <div className="md:col-span-2 md:text-right">
                   <span className="text-xs text-on-surface-variant md:hidden mr-2">Price:</span>
                   <span className="font-mono text-on-surface">
-                    {stock.price > 0 ? `${formatPrice(stock.price)}${stock.currency ? ` ${stock.currency}` : ""}` : "—"}
+                    {stock.price > 0 ? formatPrice(stock.price) : "—"}
                   </span>
                 </div>
                 <div className={cn("md:col-span-2 md:text-right font-mono text-sm", trendColor)}>
@@ -782,7 +792,7 @@ export default function WatchlistPage() {
                   <span className="text-xs text-on-surface-variant md:hidden mr-2">%</span>
                   {stock.price > 0 ? formatPercent(stock.changePercent) : "—"}
                 </div>
-                <div className="hidden md:flex md:col-span-1 justify-end">
+                <div className="hidden md:flex md:col-span-2 justify-end">
                   {stock.price > 0 && (
                     <MiniChart
                       symbol={stock.symbol}
@@ -802,7 +812,7 @@ export default function WatchlistPage() {
                     <Bell className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => removeStock(stock.symbol)}
+                    onClick={() => void removeStock(stock)}
                     className="p-1.5 text-on-surface-variant/30 hover:text-error transition-all"
                     aria-label={`Remove ${stock.symbol} from watchlist`}
                   >
@@ -814,6 +824,45 @@ export default function WatchlistPage() {
           );
         })}
       </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {loading && (
+            <div className="col-span-full flex items-center justify-center py-12">
+              <Loader2 className="mr-2 h-5 w-5 animate-spin text-primary" />
+              <span className="text-sm text-on-surface-variant">Loading watchlist...</span>
+            </div>
+          )}
+          {!loading && filtered.map((stock) => {
+            const trend = getTrendDirection(stock.change);
+            const trendColor = trend === "up" ? "text-primary" : trend === "down" ? "text-error" : "text-on-surface-variant";
+            return (
+              <article key={stock.symbol} className="rounded-[28px] bg-surface-container-low p-5 transition-colors hover:bg-surface-container">
+                <div className="flex items-start justify-between gap-3">
+                  <a href={`/markets/${stock.symbol}`} className="min-w-0 hover:text-primary">
+                    <span className="block font-mono text-lg font-semibold text-on-surface">{stock.symbol}</span>
+                    <span className="block truncate text-xs text-on-surface-variant">{stock.companyName} · {stock.exchangeCode}</span>
+                  </a>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => { setShowAlertModal(stock); setAlertPrice(stock.price > 0 ? String(Math.round(stock.price)) : ""); }} className="rounded-full p-2 text-on-surface-variant hover:bg-surface-container-high hover:text-primary" aria-label={`Set price alert for ${stock.symbol}`}><Bell className="h-4 w-4" /></button>
+                    <button onClick={() => void removeStock(stock)} className="rounded-full p-2 text-on-surface-variant hover:bg-surface-container-high hover:text-error" aria-label={`Remove ${stock.symbol} from watchlist`}><Trash2 className="h-4 w-4" /></button>
+                  </div>
+                </div>
+                <MiniChart symbol={stock.symbol} positive={trend === "up"} className="my-5 h-20" />
+                <div className="flex items-end justify-between gap-4 border-t border-outline-variant pt-4">
+                  <div>
+                    <p className="text-xs text-on-surface-variant">Latest available</p>
+                    <p className="mt-1 font-mono text-2xl font-semibold text-on-surface">{stock.price > 0 ? formatPrice(stock.price) : "—"}</p>
+                  </div>
+                  <div className={cn("text-right font-mono", trendColor)}>
+                    <p className="text-sm">{stock.price > 0 ? formatChange(stock.change) : "—"}</p>
+                    <p className="mt-1 text-sm">{stock.price > 0 ? formatPercent(stock.changePercent) : "—"}</p>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
 
       {!loading && filtered.length === 0 && (
         <div className="text-center py-12">

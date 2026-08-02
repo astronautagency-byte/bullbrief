@@ -3,8 +3,9 @@
 import { useId, useMemo, useState } from "react";
 import {
   Area,
-  AreaChart,
+  Bar,
   CartesianGrid,
+  ComposedChart,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -15,6 +16,7 @@ import {
 type StockPerformanceChartProps = {
   data: number[];
   labels: string[];
+  volumes?: number[];
   previousClose: number | null;
   positive: boolean;
   currency: string;
@@ -49,6 +51,7 @@ function PriceTooltip({
 export function StockPerformanceChart({
   data,
   labels,
+  volumes = [],
   previousClose,
   positive,
   currency,
@@ -56,8 +59,8 @@ export function StockPerformanceChart({
   const gradientId = useId().replace(/:/g, "");
   const [activeValue, setActiveValue] = useState<number | null>(null);
   const points = useMemo(
-    () => data.map((value, index) => ({ label: labels[index], value })),
-    [data, labels]
+    () => data.map((value, index) => ({ label: labels[index], value, volume: volumes[index] ?? 0 })),
+    [data, labels, volumes]
   );
   const color = positive ? "#4be277" : "#ff7a73";
   const minimum = Math.min(...data, previousClose ?? Number.POSITIVE_INFINITY);
@@ -75,7 +78,7 @@ export function StockPerformanceChart({
         </div>
       )}
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart
+        <ComposedChart
           data={points}
           margin={{ top: 12, right: 8, bottom: 0, left: 0 }}
           onMouseMove={(state) => {
@@ -106,6 +109,7 @@ export function StockPerformanceChart({
             dy={8}
           />
           <YAxis
+            yAxisId="price"
             orientation="right"
             axisLine={false}
             tickLine={false}
@@ -114,9 +118,11 @@ export function StockPerformanceChart({
             tick={{ fill: "var(--app-fg-muted)", fontSize: 10 }}
             tickFormatter={(value) => Number(value).toFixed(2)}
           />
+          <YAxis yAxisId="volume" hide domain={[0, "dataMax"]} />
           {previousClose !== null && (
             <ReferenceLine
               y={previousClose}
+              yAxisId="price"
               stroke="rgba(188,203,185,0.55)"
               strokeDasharray="5 5"
               label={{
@@ -135,7 +141,15 @@ export function StockPerformanceChart({
             }}
             isAnimationActive={false}
           />
+          <Bar
+            yAxisId="volume"
+            dataKey="volume"
+            fill="rgba(188,203,185,0.34)"
+            maxBarSize={5}
+            isAnimationActive={false}
+          />
           <Area
+            yAxisId="price"
             type="linear"
             dataKey="value"
             stroke={color}
@@ -150,7 +164,7 @@ export function StockPerformanceChart({
             }}
             animationDuration={700}
           />
-        </AreaChart>
+        </ComposedChart>
       </ResponsiveContainer>
     </div>
   );

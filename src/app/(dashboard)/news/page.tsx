@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/cn";
 import { formatRelativeTime, stripHtml, type Article } from "@/lib/types";
-import { Badge, SentimentBadge } from "@/components/ui/badge";
+import { SentimentBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHead } from "@/components/page-head";
 import {
@@ -12,7 +12,6 @@ import {
   ExternalLink,
   Newspaper,
   Loader2,
-  RefreshCw,
 } from "lucide-react";
 
 type FilterMode = "all" | "canadian" | "us";
@@ -25,7 +24,6 @@ export default function NewsPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
-  const [total, setTotal] = useState(0);
 
   const fetchNews = useCallback(
     async (pageNum: number, reset = false) => {
@@ -58,7 +56,6 @@ export default function NewsPage() {
         } else {
           setArticles((prev) => [...prev, ...(json.data ?? [])]);
         }
-        setTotal(json.total ?? 0);
         setHasMore(json.hasMore ?? false);
       } catch (err) {
         console.error("News fetch error:", err);
@@ -70,8 +67,11 @@ export default function NewsPage() {
   );
 
   useEffect(() => {
-    setPage(1);
-    fetchNews(1, true);
+    const timer = window.setTimeout(() => {
+      setPage(1);
+      void fetchNews(1, true);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [fetchNews]);
 
   const loadMore = () => {
@@ -167,16 +167,18 @@ export default function NewsPage() {
             key={article.providerId}
             className="group flex flex-col sm:flex-row gap-4 p-4 rounded-xl bg-surface-container-low border border-outline-variant hover:border-primary/30 transition-all cursor-pointer"
           >
-            {article.imageUrl && (
-              <div className="sm:w-32 sm:h-24 flex-shrink-0 rounded-lg overflow-hidden bg-surface-container-high">
+            <div className="h-40 sm:w-36 sm:h-24 flex-shrink-0 rounded-2xl overflow-hidden bg-surface-container-high">
+              {article.imageUrl ? (
                 <img
                   src={article.imageUrl}
                   alt=""
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />
-              </div>
-            )}
+              ) : (
+                <div className="flex h-full w-full items-center justify-center font-display text-3xl text-on-surface-variant/40" aria-hidden="true">{article.sourceName.slice(0, 1)}</div>
+              )}
+            </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1.5">
                 <span className="text-xs text-on-surface-variant font-mono">

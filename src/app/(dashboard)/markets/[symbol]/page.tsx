@@ -44,6 +44,7 @@ function StockDetailClient({ symbol }: { symbol: string }) {
   const [quote, setQuote] = useState<Quote | null>(null);
   const [chartData, setChartData] = useState<number[]>([]);
   const [chartLabels, setChartLabels] = useState<string[]>([]);
+  const [chartVolumes, setChartVolumes] = useState<number[]>([]);
   const [chartRange, setChartRange] = useState("1D");
   const [loading, setLoading] = useState(true);
   const [loadingChart, setLoadingChart] = useState(true);
@@ -58,6 +59,7 @@ function StockDetailClient({ symbol }: { symbol: string }) {
       if (json.quote) setQuote(json.quote);
       if (json.history?.length) {
         setChartData(json.history.map((point: { value: number }) => point.value));
+        setChartVolumes(json.history.map((point: { volume?: number }) => point.volume ?? 0));
         setChartLabels(
           json.history.map((point: { date: string }) => {
             const date = new Date(point.date);
@@ -73,6 +75,7 @@ function StockDetailClient({ symbol }: { symbol: string }) {
       } else {
         setChartData([]);
         setChartLabels([]);
+        setChartVolumes([]);
       }
     } finally {
       setLoading(false);
@@ -234,6 +237,7 @@ function StockDetailClient({ symbol }: { symbol: string }) {
             <StockPerformanceChart
               data={chartData}
               labels={chartLabels}
+              volumes={chartVolumes}
               previousClose={quote?.previousClose ?? null}
               positive={isPositive}
               currency={currency}

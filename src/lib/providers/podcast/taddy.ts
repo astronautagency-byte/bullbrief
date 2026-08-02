@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- External podcast payloads are normalized by provider helpers. */
 import type { Podcast, Episode } from "@/lib/types";
 import type { PodcastProvider } from "./index";
 

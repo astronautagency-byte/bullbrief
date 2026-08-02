@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- External provider payloads are normalized after receipt. */
 import type { Article } from "@/lib/types";
 
 const GROQ_BASE = "https://api.groq.com/openai/v1/chat/completions";

@@ -74,7 +74,7 @@ export function NotificationPanel() {
       </button>
 
       {open && (
-        <div className="fixed right-3 top-14 mt-2 w-[calc(100vw-1.5rem)] max-w-96 bg-surface-container rounded-xl border border-outline-variant shadow-2xl z-[100] overflow-hidden md:right-6">
+        <div className="fixed right-3 top-[102px] w-[calc(100vw-1.5rem)] max-w-96 max-h-[calc(100vh-7rem)] bg-surface-container rounded-[28px] border border-outline-variant z-[200] overflow-hidden md:right-6">
           <div className="flex items-center justify-between px-4 py-3 border-b border-outline-variant">
             <div className="flex items-center gap-2">
               <h3 className="font-display font-bold text-sm text-on-surface">Notifications</h3>

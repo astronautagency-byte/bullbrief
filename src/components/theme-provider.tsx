@@ -42,18 +42,23 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const stored = localStorage.getItem("bb-theme") as Theme | null;
-    const initial = stored || "dark";
-    setThemeState(initial);
-    resolve(initial);
+    const timer = window.setTimeout(() => {
+      const stored = localStorage.getItem("bb-theme") as Theme | null;
+      const initial = stored || "dark";
+      setThemeState(initial);
+      resolve(initial);
+    }, 0);
 
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const handler = () => {
-      if (theme === "system") resolve("system");
+      if (localStorage.getItem("bb-theme") === "system") resolve("system");
     };
     mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
+    return () => {
+      window.clearTimeout(timer);
+      mq.removeEventListener("change", handler);
+    };
+  }, [resolve]);
 
   const setTheme = useCallback((t: Theme) => {
     setThemeState(t);

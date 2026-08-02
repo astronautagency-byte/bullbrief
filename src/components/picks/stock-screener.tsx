@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect, react-hooks/static-components -- Legacy local screener calculation and inline sort indicator. */
 
 import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/cn";
@@ -128,7 +129,7 @@ export function StockScreener() {
     setLoading(true);
 
     // Filter local database
-    let filtered = STOCK_DATABASE.filter((s) => {
+    const filtered = STOCK_DATABASE.filter((s) => {
       const matchesQuery = !query ||
         s.symbol.toLowerCase().includes(query.toLowerCase()) ||
         s.name.toLowerCase().includes(query.toLowerCase());
