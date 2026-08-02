@@ -44,6 +44,9 @@ export async function updateSession(request: NextRequest) {
     "/privacy",
     "/terms",
     "/disclaimer",
+    "/manifest.json",
+    "/robots.txt",
+    "/sitemap.xml",
   ];
 
   const isPublic =
