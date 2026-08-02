@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
   Bell,
   Bookmark,
   Bot,
-  Check,
   ChevronRight,
   Grid2X2,
   LineChart,
@@ -16,11 +16,12 @@ import {
   Sparkles,
 } from "lucide-react";
 import { BrandLogo } from "@/components/ui/brand-logo";
+import { HeroReveal, MotionLink, ProductFloat, ScrollReveal } from "@/components/landing/landing-motion";
 
 export const metadata: Metadata = {
-  title: "BullBrief — Markets, made clear",
+  title: "BullBrief — A clearer market day for Canadian investors",
   description:
-    "A focused daily market brief, personalized watchlists, relevant news and practical stock research in one calm workspace.",
+    "A daily market briefing for self-directed Canadian investors following TSX and U.S. stocks.",
 };
 
 const marketRows = [
@@ -172,9 +173,9 @@ function AssistantMockup() {
 }
 
 const features = [
-  ["A brief that starts with you", "Your watched companies, material market moves, relevant headlines and useful audio—organized before you start clicking."],
-  ["Research without the tab pile", "Move from a market overview to stock performance, company data and side-by-side comparisons in one consistent workspace."],
-  ["Useful for client conversations", "Bring a cleaner view of what changed, why it may matter and what deserves a follow-up—without presenting noise as insight."],
+  ["Start with your stocks", "Build one watchlist across TSX and U.S. listings. Your daily brief puts those companies ahead of the rest of the market."],
+  ["See the story behind the move", "Connect price action with relevant headlines, company data and simple comparisons without opening another tab."],
+  ["Ask a useful follow-up", "Use Bull AI to summarize a move, compare watched companies or turn a noisy market day into a short list of things to check."],
 ];
 
 export default function LandingPage() {
@@ -182,49 +183,51 @@ export default function LandingPage() {
     <main className="min-h-screen overflow-hidden bg-[#1f211d] text-[#f6f5f0] selection:bg-[#4be277] selection:text-[#0b3519]">
       <header className="fixed inset-x-0 top-0 z-50 border-b border-white/8 bg-[#1f211d]/90 backdrop-blur-xl">
         <div className="mx-auto flex h-18 max-w-[1440px] items-center justify-between px-5 sm:px-8 lg:px-12">
-          <Link href="/" aria-label="BullBrief home"><BrandLogo variant="wordmark" size="md" /></Link>
-          <nav className="hidden items-center gap-7 text-sm text-white/60 md:flex" aria-label="Landing page navigation"><a href="#product" className="transition-colors hover:text-white">Product</a><a href="#features" className="transition-colors hover:text-white">Why BullBrief</a><a href="#advisors" className="transition-colors hover:text-white">For advisors</a></nav>
+          <Link href="/" aria-label="BullBrief home"><BrandLogo variant="horizontal" size="md" /></Link>
+          <nav className="hidden items-center gap-7 text-sm text-white/60 md:flex" aria-label="Landing page navigation"><a href="#problem" className="transition-colors hover:text-white">Why BullBrief</a><a href="#product" className="transition-colors hover:text-white">Product</a><a href="#features" className="transition-colors hover:text-white">How it helps</a></nav>
           <div className="flex items-center gap-2"><Link href="/login" className="rounded-full px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/8">Log in</Link><Link href="/signup" className="rounded-full bg-[#f4f1e8] px-4 py-2.5 text-sm font-semibold text-[#20221e] transition-transform hover:scale-[1.02] active:scale-[.98]">Sign up</Link></div>
         </div>
       </header>
 
       <section className="relative px-5 pb-20 pt-36 sm:px-8 sm:pt-44 lg:px-12 lg:pb-28">
         <div className="mx-auto max-w-[1440px]">
-          <div className="mx-auto max-w-5xl text-center">
-            <p className="mb-6 font-mono text-[10px] uppercase tracking-[0.24em] text-[#79eb96]">Your daily market brief is here</p>
-            <h1 className="font-display text-[clamp(3.35rem,8.2vw,8.3rem)] font-medium leading-[0.86] tracking-[-0.065em]">Know what matters.<br /><span className="italic text-[#b8b9b0]">Skip what doesn’t.</span></h1>
-            <p className="mx-auto mt-8 max-w-2xl text-base leading-relaxed text-white/60 sm:text-lg">BullBrief brings your watchlist, market context, relevant news and practical research into one calm place.</p>
-            <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row"><Link href="/signup" className="group flex w-full items-center justify-center gap-2 rounded-full bg-[#4be277] px-7 py-4 text-sm font-bold text-[#0b3519] transition-transform hover:scale-[1.02] sm:w-auto">Create your brief <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></Link><Link href="/login" className="flex w-full items-center justify-center rounded-full border border-white/18 px-7 py-4 text-sm font-semibold transition-colors hover:bg-white/7 sm:w-auto">Log in</Link></div>
-            <p className="mt-4 text-[11px] text-white/35">Free to start. No payment details required.</p>
+          <div className="relative mx-auto max-w-6xl text-center">
+            <Image src="/BullBrief_Logo_Mark_Transparent.png" width={208} height={208} alt="" aria-hidden="true" className="pointer-events-none absolute -right-16 -top-24 hidden w-52 rotate-12 opacity-[0.055] lg:block" />
+            <HeroReveal><p className="mb-6 font-mono text-[10px] uppercase tracking-[0.24em] text-[#79eb96]">For self-directed Canadian investors</p></HeroReveal>
+            <HeroReveal delay={0.08}><h1 className="font-display text-[clamp(3.2rem,7.6vw,7.6rem)] font-medium leading-[0.88] tracking-[-0.062em]">Your stocks. Your news.<br /><span className="italic text-[#b8b9b0]">One morning read.</span></h1></HeroReveal>
+            <HeroReveal delay={0.16}><p className="mx-auto mt-8 max-w-2xl text-base leading-relaxed text-white/62 sm:text-lg">BullBrief is a daily market briefing for Canadians who follow TSX and U.S. stocks—and would rather understand their watchlist than watch the market all day.</p></HeroReveal>
+            <HeroReveal delay={0.24}><div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row"><MotionLink className="w-full sm:w-auto"><Link href="/signup" className="group flex w-full items-center justify-center gap-2 rounded-full bg-[#4be277] px-7 py-4 text-sm font-bold text-[#0b3519]">Build my free brief <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></Link></MotionLink><Link href="#product" className="flex w-full items-center justify-center rounded-full border border-white/18 px-7 py-4 text-sm font-semibold transition-colors hover:bg-white/7 sm:w-auto">See how it works</Link></div><p className="mt-4 text-[11px] text-white/35">Free to start. No payment details required.</p></HeroReveal>
           </div>
-          <div id="product" className="landing-hero-window relative mx-auto mt-16 max-w-6xl scroll-mt-28"><div className="absolute -inset-16 -z-10 bg-[#4be277]/8 blur-[100px]" /><BriefMockup /></div>
+          <ProductFloat className="relative mx-auto mt-16 max-w-6xl"><div id="product" className="scroll-mt-28"><div className="absolute -inset-16 -z-10 bg-[#4be277]/8 blur-[100px]" /><BriefMockup /></div></ProductFloat>
         </div>
       </section>
 
-      <section className="border-y border-white/8 bg-[#e9e5d8] px-5 py-24 text-[#22241f] sm:px-8 lg:px-12 lg:py-32">
-        <div className="mx-auto grid max-w-[1280px] gap-12 lg:grid-cols-[.8fr_1.2fr] lg:items-center">
-          <div className="max-w-lg"><p className="font-mono text-[10px] uppercase tracking-[.22em] opacity-50">One personal market view</p><h2 className="mt-5 font-display text-5xl leading-[.95] tracking-[-.05em] sm:text-6xl">Follow fewer things. Understand them better.</h2><p className="mt-6 text-base leading-relaxed opacity-65">Your watchlist is more than a saved list. It shapes the brief you open, the news you see and the updates worth bringing to your attention.</p><ul className="mt-8 space-y-4 text-sm">{["List and grid views", "U.S. and Canadian listings", "Relevant, non-intrusive updates"].map(item => <li key={item} className="flex items-center gap-3"><span className="rounded-full bg-[#1f211d] p-1 text-[#4be277]"><Check className="h-3 w-3" /></span>{item}</li>)}</ul></div>
-          <WatchlistMockup />
+      <section id="problem" className="scroll-mt-20 border-y border-white/8 bg-[#e9e5d8] px-5 py-24 text-[#22241f] sm:px-8 lg:px-12 lg:py-32">
+        <div className="mx-auto grid max-w-[1280px] gap-12 lg:grid-cols-[.82fr_1.18fr] lg:items-center">
+          <ScrollReveal className="max-w-lg"><div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-[#1f211d]"><Image src="/BullBrief_Logo_Mark_Transparent.png" width={28} height={28} alt="" className="h-7 w-7 object-contain" /></div><p className="font-mono text-[10px] uppercase tracking-[.22em] opacity-50">The market tab pile adds up</p><h2 className="mt-5 font-display text-5xl leading-[.95] tracking-[-.05em] sm:text-6xl">You shouldn’t need six apps to check your stocks.</h2><p className="mt-6 text-base leading-relaxed opacity-65">Prices in one place. Headlines in another. Podcasts somewhere else. By the time you have the full picture, you’ve spent more time collecting information than understanding it.</p><ul className="mt-8 space-y-4 text-sm">{["The same broad headlines for everyone", "Canadian listings treated like an afterthought", "More data, but no clearer next question"].map(item => <li key={item} className="flex items-center gap-3"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#1f211d] text-[10px] text-[#4be277]">×</span>{item}</li>)}</ul></ScrollReveal>
+          <ScrollReveal delay={0.08}><WatchlistMockup /></ScrollReveal>
         </div>
       </section>
+
+      <section className="border-b border-white/8 px-5 py-20 sm:px-8 lg:px-12 lg:py-28"><ScrollReveal className="mx-auto max-w-4xl text-center"><div className="mx-auto mb-6 flex items-center justify-center gap-3 text-[#4be277]"><span className="h-px w-12 bg-current opacity-40" /><Image src="/BullBrief_Logo_Mark_Transparent.png" width={36} height={36} alt="" className="h-9 w-9 object-contain" /><span className="h-px w-12 bg-current opacity-40" /></div><p className="font-mono text-[10px] uppercase tracking-[.22em] text-[#79eb96]">A personal market briefing</p><h2 className="mt-5 font-display text-5xl leading-[.94] tracking-[-.05em] sm:text-7xl">Open BullBrief. See what changed. Get on with your day.</h2><p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-white/55">Your watchlist shapes the briefing, so the companies and stories you care about naturally rise to the top.</p></ScrollReveal></section>
 
       <section id="features" className="scroll-mt-20 px-5 py-24 sm:px-8 lg:px-12 lg:py-36">
         <div className="mx-auto max-w-[1280px]">
-          <div className="grid gap-12 lg:grid-cols-[1.1fr_.9fr] lg:items-center"><StockMockup /><div className="max-w-lg lg:pl-10"><p className="font-mono text-[10px] uppercase tracking-[.22em] text-[#79eb96]">From movement to context</p><h2 className="mt-5 font-display text-5xl leading-[.95] tracking-[-.05em] sm:text-6xl">A stock page that answers the next question.</h2><p className="mt-6 text-base leading-relaxed text-white/55">See the movement, volume and key company data together. Then compare the name, save it or ask Bull AI for a plain-language explanation.</p><Link href="/signup" className="group mt-8 inline-flex items-center gap-2 border-b border-white/25 pb-1 text-sm font-semibold">Explore BullBrief <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></Link></div></div>
-          <div className="mt-28 grid gap-px overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/10 lg:grid-cols-3">{features.map(([title,copy]) => <article key={title} className="bg-[#1f211d] p-7 sm:p-9"><ChevronRight className="h-5 w-5 text-[#4be277]" /><h3 className="mt-14 font-display text-2xl">{title}</h3><p className="mt-4 text-sm leading-relaxed text-white/48">{copy}</p></article>)}</div>
+          <div className="grid gap-12 lg:grid-cols-[1.1fr_.9fr] lg:items-center"><ScrollReveal><StockMockup /></ScrollReveal><ScrollReveal delay={0.08} className="max-w-lg lg:pl-10"><p className="font-mono text-[10px] uppercase tracking-[.22em] text-[#79eb96]">From movement to context</p><h2 className="mt-5 font-display text-5xl leading-[.95] tracking-[-.05em] sm:text-6xl">Know what moved—and what might explain it.</h2><p className="mt-6 text-base leading-relaxed text-white/55">See price, volume and company context together. Then compare the stock, save it or ask Bull AI for a plain-language explanation.</p><Link href="/signup" className="group mt-8 inline-flex items-center gap-2 border-b border-white/25 pb-1 text-sm font-semibold">Explore the product <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></Link></ScrollReveal></div>
+          <div className="mt-28 grid gap-px overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/10 lg:grid-cols-3">{features.map(([title,copy], index) => <ScrollReveal key={title} delay={index * 0.07} className="h-full"><article className="group h-full bg-[#1f211d] p-7 transition-colors duration-300 hover:bg-[#252922] sm:p-9"><div className="flex items-center justify-between"><ChevronRight className="h-5 w-5 text-[#4be277] transition-transform duration-300 group-hover:translate-x-1" /><span className="font-mono text-[9px] text-white/25">0{index + 1}</span></div><h3 className="mt-14 font-display text-2xl">{title}</h3><p className="mt-4 text-sm leading-relaxed text-white/48">{copy}</p></article></ScrollReveal>)}</div>
         </div>
       </section>
 
-      <section id="advisors" className="scroll-mt-20 bg-[#171916] px-5 py-24 sm:px-8 lg:px-12 lg:py-32">
+      <section className="bg-[#171916] px-5 py-24 sm:px-8 lg:px-12 lg:py-32">
         <div className="mx-auto grid max-w-[1280px] gap-14 lg:grid-cols-2 lg:items-center">
-          <div className="max-w-xl"><div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full border border-[#4be277]/25 bg-[#4be277]/8 text-[#4be277]"><Bot className="h-5 w-5" /></div><p className="font-mono text-[10px] uppercase tracking-[.22em] text-[#79eb96]">Bull AI Assistant</p><h2 className="mt-5 font-display text-5xl leading-[.95] tracking-[-.05em] sm:text-6xl">Ask the market question you actually have.</h2><p className="mt-6 text-base leading-relaxed text-white/55">Start with the information already in your brief. Summarize a move, compare watched companies or prepare a focused follow-up for a client conversation.</p><p className="mt-5 text-xs leading-relaxed text-white/32">Bull AI supports research and organization. It does not replace professional judgment or provide personalized investment advice.</p></div>
-          <AssistantMockup />
+          <ScrollReveal className="max-w-xl"><div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full border border-[#4be277]/25 bg-[#4be277]/8 text-[#4be277]"><Bot className="h-5 w-5" /></div><p className="font-mono text-[10px] uppercase tracking-[.22em] text-[#79eb96]">Bull AI Assistant</p><h2 className="mt-5 font-display text-5xl leading-[.95] tracking-[-.05em] sm:text-6xl">Ask the market question you actually have.</h2><p className="mt-6 text-base leading-relaxed text-white/55">Start with the information already in your brief. Summarize a move, compare watched companies or decide what deserves a closer look.</p><p className="mt-5 text-xs leading-relaxed text-white/32">Bull AI supports research and organization. It does not provide personalized investment advice.</p></ScrollReveal>
+          <ScrollReveal delay={0.08}><AssistantMockup /></ScrollReveal>
         </div>
       </section>
 
-      <section className="px-5 py-24 sm:px-8 lg:px-12 lg:py-36"><div className="mx-auto max-w-5xl text-center"><p className="font-mono text-[10px] uppercase tracking-[.22em] text-[#79eb96]">A better daily habit</p><h2 className="mt-6 font-display text-6xl leading-[.9] tracking-[-.055em] sm:text-7xl lg:text-8xl">Open one brief.<br />Leave with a plan.</h2><p className="mx-auto mt-7 max-w-xl text-base leading-relaxed text-white/52">Build a market routine around the companies, stories and decisions that deserve your attention.</p><div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row"><Link href="/signup" className="group flex items-center justify-center gap-2 rounded-full bg-[#4be277] px-8 py-4 text-sm font-bold text-[#0b3519]">Sign up free <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></Link><Link href="/login" className="rounded-full border border-white/18 px-8 py-4 text-sm font-semibold hover:bg-white/7">Log in</Link></div></div></section>
+      <section className="relative px-5 py-24 sm:px-8 lg:px-12 lg:py-36"><Image src="/BullBrief_Logo_Mark_Transparent.png" width={288} height={288} alt="" aria-hidden="true" className="pointer-events-none absolute -bottom-20 -left-20 w-72 -rotate-12 opacity-[0.045]" /><ScrollReveal className="mx-auto max-w-5xl text-center"><p className="font-mono text-[10px] uppercase tracking-[.22em] text-[#79eb96]">A better daily habit</p><h2 className="mt-6 font-display text-6xl leading-[.9] tracking-[-.055em] sm:text-7xl lg:text-8xl">Less market watching.<br />More understanding.</h2><p className="mx-auto mt-7 max-w-xl text-base leading-relaxed text-white/52">Build a calmer routine around the companies and stories that actually deserve your attention.</p><div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row"><MotionLink><Link href="/signup" className="group flex items-center justify-center gap-2 rounded-full bg-[#4be277] px-8 py-4 text-sm font-bold text-[#0b3519]">Build my free brief <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></Link></MotionLink><Link href="/login" className="rounded-full border border-white/18 px-8 py-4 text-sm font-semibold hover:bg-white/7">Log in</Link></div></ScrollReveal></section>
 
-      <footer className="border-t border-white/8 px-5 py-10 sm:px-8 lg:px-12"><div className="mx-auto flex max-w-[1440px] flex-col gap-8 sm:flex-row sm:items-end sm:justify-between"><div><BrandLogo variant="wordmark" size="md" /><p className="mt-3 text-xs text-white/35">Your daily market brief is here.</p></div><div className="flex flex-wrap gap-x-6 gap-y-3 text-xs text-white/42"><Link href="/privacy" className="hover:text-white">Privacy</Link><Link href="/terms" className="hover:text-white">Terms</Link><Link href="/disclaimer" className="hover:text-white">Disclaimer</Link><Link href="/login" className="hover:text-white">Log in</Link></div></div><div className="mx-auto mt-8 max-w-[1440px] border-t border-white/7 pt-6 text-[10px] leading-relaxed text-white/25">Market data displayed in product mockups is illustrative. BullBrief provides information and research tools, not investment advice. © {new Date().getFullYear()} BullBrief.</div></footer>
+      <footer className="border-t border-white/8 px-5 py-10 sm:px-8 lg:px-12"><div className="mx-auto flex max-w-[1440px] flex-col gap-8 sm:flex-row sm:items-end sm:justify-between"><div><BrandLogo variant="horizontal" size="md" /><p className="mt-3 text-xs text-white/35">A clearer market day starts here.</p></div><div className="flex flex-wrap gap-x-6 gap-y-3 text-xs text-white/42"><Link href="/privacy" className="hover:text-white">Privacy</Link><Link href="/terms" className="hover:text-white">Terms</Link><Link href="/disclaimer" className="hover:text-white">Disclaimer</Link><Link href="/login" className="hover:text-white">Log in</Link></div></div><div className="mx-auto mt-8 max-w-[1440px] border-t border-white/7 pt-6 text-[10px] leading-relaxed text-white/25">Market data displayed in product mockups is illustrative. BullBrief provides information and research tools, not investment advice. © {new Date().getFullYear()} BullBrief.</div></footer>
     </main>
   );
 }

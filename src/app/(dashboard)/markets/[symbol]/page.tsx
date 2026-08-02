@@ -28,11 +28,9 @@ const RANGE_MAP: Record<string, "1d" | "5d" | "1mo" | "3mo" | "6mo" | "1y" | "5y
   "1D": "1d",
   "5D": "5d",
   "1M": "1mo",
-  "3M": "3mo",
   "6M": "6mo",
   "1Y": "1y",
   "5Y": "5y",
-  All: "max",
 };
 
 export default function StockDetailPage() {
@@ -44,7 +42,6 @@ function StockDetailClient({ symbol }: { symbol: string }) {
   const [quote, setQuote] = useState<Quote | null>(null);
   const [chartData, setChartData] = useState<number[]>([]);
   const [chartLabels, setChartLabels] = useState<string[]>([]);
-  const [chartVolumes, setChartVolumes] = useState<number[]>([]);
   const [chartRange, setChartRange] = useState("1D");
   const [loading, setLoading] = useState(true);
   const [loadingChart, setLoadingChart] = useState(true);
@@ -59,7 +56,6 @@ function StockDetailClient({ symbol }: { symbol: string }) {
       if (json.quote) setQuote(json.quote);
       if (json.history?.length) {
         setChartData(json.history.map((point: { value: number }) => point.value));
-        setChartVolumes(json.history.map((point: { volume?: number }) => point.volume ?? 0));
         setChartLabels(
           json.history.map((point: { date: string }) => {
             const date = new Date(point.date);
@@ -67,15 +63,14 @@ function StockDetailClient({ symbol }: { symbol: string }) {
               ? date.toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit" })
               : date.toLocaleDateString("en-CA", {
                   month: "short",
-                  day: chartRange === "5Y" || chartRange === "All" ? undefined : "numeric",
-                  year: chartRange === "5Y" || chartRange === "All" ? "2-digit" : undefined,
+                  day: chartRange === "5Y" ? undefined : "numeric",
+                  year: chartRange === "5Y" ? "2-digit" : undefined,
                 });
           })
         );
       } else {
         setChartData([]);
         setChartLabels([]);
-        setChartVolumes([]);
       }
     } finally {
       setLoading(false);
@@ -230,20 +225,19 @@ function StockDetailClient({ symbol }: { symbol: string }) {
 
         <div className="relative px-2 pb-2 pt-3 md:px-4">
           {loadingChart ? (
-            <div className="flex h-[310px] items-center justify-center md:h-[390px]">
+            <div className="flex h-[250px] items-center justify-center md:h-[300px]">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
           ) : chartData.length > 1 ? (
             <StockPerformanceChart
               data={chartData}
               labels={chartLabels}
-              volumes={chartVolumes}
               previousClose={quote?.previousClose ?? null}
               positive={isPositive}
               currency={currency}
             />
           ) : (
-            <div className="flex h-[310px] items-center justify-center text-sm text-on-surface-variant md:h-[390px]">
+            <div className="flex h-[250px] items-center justify-center text-sm text-on-surface-variant md:h-[300px]">
               Chart data is unavailable for this period.
             </div>
           )}

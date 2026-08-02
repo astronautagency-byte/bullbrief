@@ -59,7 +59,7 @@ function rssImage(item: MediaItem & { enclosure?: { url?: string }; content?: st
     || null;
 }
 
-async function openGraphImage(articleUrl: string): Promise<string | null> {
+export async function openGraphImage(articleUrl: string): Promise<string | null> {
   if (!articleUrl) return null;
   try {
     const response = await fetch(articleUrl, {
@@ -70,13 +70,27 @@ async function openGraphImage(articleUrl: string): Promise<string | null> {
     });
     if (!response.ok || !response.headers.get("content-type")?.includes("text/html")) return null;
     const html = (await response.text()).slice(0, 400_000);
-    const match = html.match(/<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image)["'][^>]+content=["']([^"']+)["']/i)
+    const match = html.match(/<meta[^>]+(?:property|name)=["'](?:og:image|og:image:url|twitter:image|twitter:image:src)["'][^>]+content=["']([^"']+)["']/i)
       || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:image|twitter:image)["']/i);
     if (!match?.[1]) return null;
     return new URL(match[1].replace(/&amp;/g, "&"), response.url).toString();
   } catch {
     return null;
   }
+}
+
+export async function enrichArticleImages(articles: Article[]): Promise<Article[]> {
+  const enriched = [...articles];
+  const missing = enriched.map((article, index) => ({ article, index })).filter(({ article }) => !article.imageUrl);
+  const workers = Array.from({ length: Math.min(6, missing.length) }, async () => {
+    while (missing.length) {
+      const next = missing.shift();
+      if (!next) return;
+      enriched[next.index] = { ...next.article, imageUrl: await openGraphImage(next.article.url) };
+    }
+  });
+  await Promise.all(workers);
+  return enriched;
 }
 
 export async function fetchRSSNews(options: {
@@ -147,12 +161,7 @@ export async function fetchRSSNews(options: {
   });
 
   const paginated = unique.slice(offset, offset + limit);
-  const enriched = await Promise.all(
-    paginated.map(async (article, index) => {
-      if (article.imageUrl || index >= 16) return article;
-      return { ...article, imageUrl: await openGraphImage(article.url) };
-    })
-  );
+  const enriched = await enrichArticleImages(paginated);
 
   return {
     articles: enriched,

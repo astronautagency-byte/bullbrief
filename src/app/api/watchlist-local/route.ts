@@ -78,7 +78,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const symbolsParam = searchParams.get("symbols");
   const symbols = symbolsParam
-    ? symbolsParam.split(",").filter(Boolean)
+    ? symbolsParam.split(",").map((symbol) => symbol.trim().toUpperCase()).filter(Boolean)
     : [];
 
   const priceMap: Record<string, Quote> = {};
@@ -99,8 +99,8 @@ export async function GET(request: Request) {
       const quote = priceMap[s];
       return {
         symbol: s,
-        companyName: quote?.companyName || STOCK_NAMES[s]?.name || s,
-        exchangeCode: quote?.exchangeCode || STOCK_NAMES[s]?.exchange || "Unknown exchange",
+        companyName: quote?.companyName || STOCK_NAMES[s]?.name || STOCK_NAMES[s.replace(/\.(TO|V|NE)$/, "")]?.name || s,
+        exchangeCode: quote?.exchangeCode || STOCK_NAMES[s]?.exchange || STOCK_NAMES[s.replace(/\.(TO|V|NE)$/, "")]?.exchange || "Unknown exchange",
         currency: quote?.currency || null,
         price: quote?.price ?? null,
         change: quote?.change ?? null,

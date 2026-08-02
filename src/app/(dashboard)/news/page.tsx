@@ -6,6 +6,7 @@ import { formatRelativeTime, stripHtml, type Article } from "@/lib/types";
 import { SentimentBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHead } from "@/components/page-head";
+import { NewsThumbnail } from "@/components/news-thumbnail";
 import {
   Search,
   Bookmark,
@@ -168,16 +169,7 @@ export default function NewsPage() {
             className="group flex flex-col sm:flex-row gap-4 p-4 rounded-xl bg-surface-container-low border border-outline-variant hover:border-primary/30 transition-all cursor-pointer"
           >
             <div className="h-40 sm:w-36 sm:h-24 flex-shrink-0 rounded-2xl overflow-hidden bg-surface-container-high">
-              {article.imageUrl ? (
-                <img
-                  src={article.imageUrl}
-                  alt=""
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center font-display text-3xl text-on-surface-variant/40" aria-hidden="true">{article.sourceName.slice(0, 1)}</div>
-              )}
+              <NewsThumbnail src={article.imageUrl} />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1.5">

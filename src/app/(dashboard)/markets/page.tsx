@@ -231,7 +231,7 @@ export default function MarketsPage() {
                 formatValue={(v) =>
                   primaryIndex.symbol === "CADUSD=X"
                     ? v.toFixed(4)
-                    : `$${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    : v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                 }
               />
             )}

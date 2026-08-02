@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getMultiQuotes } from "@/lib/providers/yahoo/client";
-import { fetchRSSNews } from "@/lib/providers/rss-news/client";
+import { enrichArticleImages, fetchRSSNews } from "@/lib/providers/rss-news/client";
 import { getLatestNews } from "@/lib/providers/marketaux/client";
 import { groqGenerateBriefSummary } from "@/lib/providers/groq/client";
 import type { BriefingData, WatchlistMovers, Article } from "@/lib/types";
@@ -40,7 +40,7 @@ export async function GET() {
     const marketauxArticles = marketauxNews.status === "fulfilled" ? marketauxNews.value.articles : [];
     const rssArticles = rssNews.status === "fulfilled" ? rssNews.value.articles : [];
     const articleKeys = new Set<string>();
-    const articles: Article[] = [...marketauxArticles, ...rssArticles]
+    const combinedArticles: Article[] = [...marketauxArticles, ...rssArticles]
       .filter((article) => {
         const key = article.title.toLowerCase().replace(/\W/g, "").slice(0, 80);
         if (articleKeys.has(key)) return false;
@@ -48,6 +48,7 @@ export async function GET() {
         return true;
       })
       .slice(0, 10);
+    const articles = await enrichArticleImages(combinedArticles);
 
     const movers: WatchlistMovers = {
       topGainer: null,

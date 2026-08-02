@@ -31,6 +31,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { PageHead } from "@/components/page-head";
 import { MiniChart } from "@/components/ui/mini-chart";
+import { NewsThumbnail } from "@/components/news-thumbnail";
 
 interface WatchlistStock {
   symbol: string;
@@ -256,7 +257,7 @@ export default function BriefPage() {
       </div>
 
       {/* Bull AI Assistant */}
-      <section aria-labelledby="bull-ai-heading" className="rounded-[40px] bg-[#e8f0e7] dark:bg-[#2a382d] overflow-hidden">
+      <section aria-labelledby="bull-ai-heading" className="rounded-[40px] border border-outline-variant bg-surface-container-low overflow-hidden shadow-[0_18px_55px_rgba(0,0,0,0.08)]">
         <div className="grid lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)]">
           <div className="p-5 md:p-6 border-b lg:border-b-0 lg:border-r border-outline-variant">
             <div className="flex items-center gap-2 text-primary text-xs font-mono uppercase tracking-[0.16em]"><Sparkles className="w-4 h-4" /> Briefing desk</div>
@@ -361,11 +362,7 @@ export default function BriefPage() {
                 className="flex gap-4 p-5 rounded-[28px] bg-surface-container-low hover:bg-surface-container transition-colors"
               >
                 <div className="h-20 w-24 flex-none overflow-hidden rounded-2xl bg-surface-container-high">
-                  {article.imageUrl ? (
-                    <img src={article.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center font-display text-2xl text-on-surface-variant/50" aria-hidden="true">{article.sourceName.slice(0, 1)}</div>
-                  )}
+                  <NewsThumbnail src={article.imageUrl} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 mb-1.5">

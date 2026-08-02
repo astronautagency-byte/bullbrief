@@ -89,6 +89,10 @@ html.light {
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -206,6 +210,10 @@ html.light {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
   .animate-ticker,
   .watchlist-live-dot {
     animation: none;
