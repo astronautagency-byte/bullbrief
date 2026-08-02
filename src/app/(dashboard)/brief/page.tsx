@@ -16,44 +16,50 @@ import {
 } from "@/lib/types";
 import { Card } from "@/components/ui/card";
 import { AudioPlayer } from "@/components/ui/audio-player";
-import { Badge, SentimentBadge } from "@/components/ui/badge";
+import { SentimentBadge } from "@/components/ui/badge";
 import {
   RefreshCw,
-  ExternalLink,
   Newspaper,
   Loader2,
   Send,
   Podcast,
   Sparkles,
+  Grid2X2,
+  List,
+  Clock3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHead } from "@/components/page-head";
+import { MiniChart } from "@/components/ui/mini-chart";
 
 interface WatchlistStock {
   symbol: string;
   companyName: string;
-  price: number;
-  change: number;
-  changePercent: number;
+  exchangeCode: string;
+  currency: string | null;
+  price: number | null;
+  change: number | null;
+  changePercent: number | null;
+  volume: number | null;
+  marketTimestamp: string | null;
+  dataType: string;
+  available: boolean;
 }
 
-const STOCK_NAMES: Record<string, string> = {
-  AAPL: "Apple Inc.", MSFT: "Microsoft Corp.", GOOGL: "Alphabet Inc.",
-  AMZN: "Amazon.com Inc.", NVDA: "NVIDIA Corp.", META: "Meta Platforms",
-  TSLA: "Tesla Inc.", NFLX: "Netflix Inc.", AMD: "Advanced Micro Devices",
-  JPM: "JPMorgan Chase", V: "Visa Inc.", JNJ: "Johnson & Johnson",
-  WMT: "Walmart Inc.", UNH: "UnitedHealth Group", XOM: "Exxon Mobil",
-  "BRK.B": "Berkshire Hathaway", PG: "Procter & Gamble", MA: "Mastercard Inc.",
-  HD: "Home Depot", DIS: "Walt Disney Co.", BAC: "Bank of America",
-  PFE: "Pfizer Inc.", CRM: "Salesforce Inc.", COST: "Costco Wholesale",
-  COIN: "Coinbase Global", PLTR: "Palantir Technologies", UBER: "Uber Technologies",
-  ABNB: "Airbnb Inc.", SHOP: "Shopify Inc.", BABA: "Alibaba Group", SQ: "Block Inc.",
-};
+interface WatchlistItem {
+  symbol: string;
+  companyName: string;
+  exchangeCode: string;
+}
+
+interface WatchlistRecord {
+  isDefault: boolean;
+  items: WatchlistItem[];
+}
 
 export default function BriefPage() {
   const [briefing, setBriefing] = useState<BriefingData | null>(null);
   const [articles, setArticles] = useState<Article[]>([]);
-  const [keyInsights, setKeyInsights] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,54 +71,48 @@ export default function BriefPage() {
   const [activeEpisode, setActiveEpisode] = useState<string | null>(null);
 
   const [watchlistStocks, setWatchlistStocks] = useState<WatchlistStock[]>([]);
+  const [watchlistView, setWatchlistView] = useState<"grid" | "list">("grid");
+  const [watchlistLoading, setWatchlistLoading] = useState(true);
   const [userName, setUserName] = useState<string | null>(null);
 
   const fetchWatchlistPrices = useCallback(async () => {
     try {
-      const stored = localStorage.getItem("bullbrief_watchlist");
-      const symbols: string[] = stored ? JSON.parse(stored) : [];
-      if (symbols.length === 0) { setWatchlistStocks([]); return; }
-
-      const res = await fetch(`/api/watchlist-local?symbols=${encodeURIComponent(symbols.join(","))}`);
-      const json = await res.json();
-      const priceData: Record<string, { price: number; change: number; changePercent: number }> = {};
-      for (const s of json.data ?? []) {
-        priceData[s.symbol] = { price: s.price, change: s.change, changePercent: s.changePercent };
+      const watchlistResponse = await fetch("/api/watchlists", { cache: "no-store" });
+      let items: WatchlistItem[] = [];
+      if (watchlistResponse.ok) {
+        const watchlistJson = await watchlistResponse.json();
+        const watchlists: WatchlistRecord[] = watchlistJson.data ?? [];
+        const selected = watchlists.find((watchlist) => watchlist.isDefault) ?? watchlists[0];
+        items = selected?.items ?? [];
+      } else {
+        const localSymbols: string[] = JSON.parse(localStorage.getItem("bullbrief_watchlist") || "[]");
+        items = localSymbols.map((symbol) => ({ symbol, companyName: symbol, exchangeCode: "Local watchlist" }));
       }
-
-      setWatchlistStocks(
-        symbols.slice(0, 6).map((sym) => ({
-          symbol: sym,
-          companyName: STOCK_NAMES[sym] ?? sym,
-          price: priceData[sym]?.price ?? 0,
-          change: priceData[sym]?.change ?? 0,
-          changePercent: priceData[sym]?.changePercent ?? 0,
-        }))
-      );
-    } catch {}
-  }, []);
-
-  const refreshWatchlistPrices = useCallback(async () => {
-    try {
-      const stored = localStorage.getItem("bullbrief_watchlist");
-      const symbols: string[] = stored ? JSON.parse(stored) : [];
-      if (symbols.length === 0) return;
-
-      const res = await fetch(`/api/watchlist-local?symbols=${encodeURIComponent(symbols.join(","))}`);
-      const json = await res.json();
-      const priceData: Record<string, { price: number; change: number; changePercent: number }> = {};
-      for (const s of json.data ?? []) {
-        priceData[s.symbol] = { price: s.price, change: s.change, changePercent: s.changePercent };
+      if (items.length === 0) {
+        setWatchlistStocks([]);
+        return;
       }
-
-      setWatchlistStocks((prev) =>
-        prev.map((item) => {
-          const p = priceData[item.symbol];
-          if (!p) return item;
-          return { ...item, price: p.price, change: p.change, changePercent: p.changePercent };
-        })
-      );
-    } catch {}
+      const symbols = items.map((item) => item.symbol);
+      const quoteResponse = await fetch(`/api/watchlist-local?symbols=${encodeURIComponent(symbols.join(","))}`, { cache: "no-store" });
+      if (!quoteResponse.ok) throw new Error("Quotes unavailable");
+      const quoteJson = await quoteResponse.json();
+      const quotes = new Map<string, WatchlistStock>((quoteJson.data ?? []).map((quote: WatchlistStock) => [quote.symbol, quote]));
+      setWatchlistStocks(items.map((item) => quotes.get(item.symbol) ?? {
+        ...item,
+        currency: null,
+        price: null,
+        change: null,
+        changePercent: null,
+        volume: null,
+        marketTimestamp: null,
+        dataType: "unavailable",
+        available: false,
+      }));
+    } catch {
+      setWatchlistStocks([]);
+    } finally {
+      setWatchlistLoading(false);
+    }
   }, []);
 
   const fetchBrief = useCallback(async () => {
@@ -134,7 +134,6 @@ export default function BriefPage() {
           return aYf - bYf;
         });
         setArticles(yahooFirst.slice(0, 4));
-        setKeyInsights(json.keyInsights ?? []);
       } else {
         throw new Error("Failed to load brief");
       }
@@ -143,23 +142,41 @@ export default function BriefPage() {
         const pJson = await podcastRes.value.json();
         setPodcastEpisodes((pJson.data ?? []).slice(0, 3));
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to load brief");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load brief");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchBrief();
-    fetchWatchlistPrices();
+    const timer = window.setTimeout(() => {
+      void fetchBrief();
+      void fetchWatchlistPrices();
+    }, 0);
+    const viewTimer = window.setTimeout(() => {
+      const storedView = localStorage.getItem("bullbrief_brief_watchlist_view");
+      if (storedView === "list" || storedView === "grid") setWatchlistView(storedView);
+    }, 0);
     fetch("/api/auth/session")
       .then((r) => r.json())
       .then((json) => setUserName(json.user?.name ?? null))
       .catch(() => {});
-    const interval = setInterval(refreshWatchlistPrices, 3000);
-    return () => clearInterval(interval);
-  }, [fetchBrief, fetchWatchlistPrices, refreshWatchlistPrices]);
+    const interval = setInterval(fetchWatchlistPrices, 60_000);
+    const onVisibility = () => { if (document.visibilityState === "visible") void fetchWatchlistPrices(); };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.clearTimeout(timer);
+      window.clearTimeout(viewTimer);
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [fetchBrief, fetchWatchlistPrices]);
+
+  const selectWatchlistView = (view: "grid" | "list") => {
+    setWatchlistView(view);
+    localStorage.setItem("bullbrief_brief_watchlist_view", view);
+  };
 
   const handleChat = async () => {
     if (!chatInput.trim() || chatLoading) return;
@@ -213,7 +230,7 @@ export default function BriefPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10 md:space-y-14">
       <PageHead
         title="Daily Brief"
         description="Your personalized daily market briefing with watchlist prices, top stories, and podcasts."
@@ -223,7 +240,8 @@ export default function BriefPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="font-display font-bold text-2xl md:text-3xl text-on-surface italic">{greetingText}</h1>
+          <p className="text-sm text-on-surface-variant mb-2">Your daily market brief</p>
+          <h1 className="font-display font-medium text-4xl md:text-5xl leading-[1.05] text-on-surface">{greetingText}</h1>
           <div className="flex items-center gap-3 mt-1">
             <p className="text-on-surface-variant">{dateStr}</p>
             <span className={cn("flex items-center gap-1 text-xs font-mono", marketOpen ? "text-primary" : "text-on-surface-variant")}>
@@ -237,35 +255,59 @@ export default function BriefPage() {
         </Button>
       </div>
 
-      {/* Watchlist Stocks */}
-      {watchlistStocks.length > 0 && (
-        <div>
-          <h2 className="font-display font-bold text-sm text-on-surface-variant mb-2 uppercase tracking-wider">Your Watchlist</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-            {watchlistStocks.map((stock) => {
-              const trend = getTrendDirection(stock.change);
-              return (
-                <a
-                  key={stock.symbol}
-                  href={`/markets/${stock.symbol}`}
-                  className="p-3 rounded-xl bg-surface-container-low border border-outline-variant hover:border-primary/30 transition-all"
-                >
-                  <p className="text-xs text-on-surface-variant truncate">{stock.companyName}</p>
-                  <p className="font-body text-lg font-bold text-on-surface mt-0.5">{formatPrice(stock.price)}</p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className={cn("text-xs font-body", trend === "up" ? "text-primary" : trend === "down" ? "text-error" : "text-on-surface-variant")}>
-                      {formatChange(stock.change)}
-                    </span>
-                    <span className={cn("text-[10px] font-mono px-1 py-0.5 rounded", stock.changePercent >= 0 ? "bg-primary/10 text-primary" : "bg-error/10 text-error")}>
-                      {formatPercent(stock.changePercent)}
-                    </span>
-                  </div>
-                </a>
-              );
-            })}
+      {/* Bull AI Assistant */}
+      <section aria-labelledby="bull-ai-heading" className="rounded-[40px] bg-[#e8f0e7] dark:bg-[#2a382d] overflow-hidden">
+        <div className="grid lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)]">
+          <div className="p-5 md:p-6 border-b lg:border-b-0 lg:border-r border-outline-variant">
+            <div className="flex items-center gap-2 text-primary text-xs font-mono uppercase tracking-[0.16em]"><Sparkles className="w-4 h-4" /> Briefing desk</div>
+            <h2 id="bull-ai-heading" className="font-display font-medium text-3xl text-on-surface mt-3">Bull AI Assistant</h2>
+            <p className="text-sm text-on-surface-variant mt-2 max-w-md">Turn today’s prices, headlines, and portfolio context into a focused briefing.</p>
+            <div className="flex flex-wrap gap-2 mt-4">
+              {["What changed in my watchlist?", "What is moving markets today?", "Summarize my top risks"].map((q) => (
+                <button key={q} onClick={() => setChatInput(q)} className="px-3 py-1.5 text-xs bg-surface-container-high/70 border border-outline-variant rounded-full text-on-surface-variant hover:text-on-surface hover:border-primary/40 transition-colors">{q}</button>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-col min-h-48">
+            <div aria-live="polite" className="flex-1 overflow-y-auto p-4 space-y-3 max-h-64">
+              {chatMessages.length === 0 && <p className="text-sm text-on-surface-variant py-4">Ask about your watchlist, the market pulse, or a story you want explained.</p>}
+              {chatMessages.map((msg, i) => <div key={i} className={cn("max-w-[88%] p-3 rounded-xl text-sm", msg.role === "user" ? "bg-primary text-on-primary ml-auto" : "bg-surface-container-high text-on-surface")}>{msg.text}</div>)}
+              {chatLoading && <div className="bg-surface-container-high text-on-surface p-3 rounded-xl text-sm max-w-[88%]"><Loader2 className="w-4 h-4 animate-spin" /></div>}
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); handleChat(); }} className="border-t border-outline-variant p-3 flex items-center gap-2">
+              <label htmlFor="brief-ai-question" className="sr-only">Ask Bull AI about markets</label>
+              <input id="brief-ai-question" type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Ask about your watchlist, markets, or news…" className="flex-1 bg-background border border-outline-variant rounded-full px-5 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:border-on-surface focus:outline-none" />
+              <Button type="submit" size="sm" disabled={!chatInput.trim() || chatLoading} aria-label="Send question"><Send className="w-4 h-4" /></Button>
+            </form>
           </div>
         </div>
-      )}
+        <p className="px-5 pb-3 text-[10px] text-on-surface-variant/60">AI analysis is informational only, not financial advice.</p>
+      </section>
+
+      <section aria-labelledby="brief-watchlist-heading">
+        <div className="flex items-end justify-between gap-4 mb-3">
+          <div><p className="text-xs text-on-surface-variant mb-1">Portfolio pulse</p><h2 id="brief-watchlist-heading" className="font-display font-medium text-3xl text-on-surface">Your Watchlist</h2></div>
+          <div className="flex items-center rounded-lg border border-outline-variant bg-surface-container-low p-1" aria-label="Watchlist layout">
+            <button onClick={() => selectWatchlistView("grid")} aria-label="Grid view" aria-pressed={watchlistView === "grid"} className={cn("p-1.5 rounded-md", watchlistView === "grid" ? "bg-primary text-on-primary" : "text-on-surface-variant")}><Grid2X2 className="w-4 h-4" /></button>
+            <button onClick={() => selectWatchlistView("list")} aria-label="List view" aria-pressed={watchlistView === "list"} className={cn("p-1.5 rounded-md", watchlistView === "list" ? "bg-primary text-on-primary" : "text-on-surface-variant")}><List className="w-4 h-4" /></button>
+          </div>
+        </div>
+        {watchlistLoading ? <div className="h-28 rounded-xl border border-outline-variant bg-surface-container-low animate-pulse" /> : watchlistStocks.length > 0 ? (
+          <div className={cn(watchlistView === "grid" ? "grid sm:grid-cols-2 xl:grid-cols-3 gap-3" : "rounded-xl border border-outline-variant divide-y divide-outline-variant overflow-hidden")}>
+            {watchlistStocks.map((stock) => {
+              const change = stock.change ?? 0;
+              const changePercent = stock.changePercent ?? 0;
+              const trend = getTrendDirection(change);
+              return <a key={stock.symbol} href={`/markets/${stock.symbol}`} className={cn("group bg-surface-container-low hover:bg-surface-container transition-colors", watchlistView === "grid" ? "p-5 rounded-[28px]" : "grid grid-cols-[minmax(0,1fr)_7rem_auto] md:grid-cols-[minmax(0,1.4fr)_10rem_8rem_8rem] items-center gap-3 px-5 py-4")}>
+                <div className="min-w-0"><div className="flex items-baseline gap-2"><strong className="font-mono text-sm text-on-surface">{stock.symbol}</strong><span className="text-xs text-on-surface-variant truncate">{stock.companyName}</span></div><p className="text-[10px] text-on-surface-variant mt-1">{stock.exchangeCode}{stock.currency ? ` · ${stock.currency}` : ""}</p></div>
+                <MiniChart symbol={stock.symbol} positive={change >= 0} className={watchlistView === "grid" ? "my-3 h-14" : "h-9"} />
+                <div className={cn("font-mono", watchlistView === "grid" ? "flex items-end justify-between" : "text-right")}><span className="text-lg font-semibold text-on-surface">{stock.price == null ? "—" : formatPrice(stock.price)}</span><span className={cn("block text-xs", trend === "up" ? "text-primary" : trend === "down" ? "text-error" : "text-on-surface-variant")}>{stock.change == null ? "Data unavailable" : `${formatChange(change)} · ${formatPercent(changePercent)}`}</span></div>
+                <div className={cn("text-[10px] text-on-surface-variant items-center gap-1", watchlistView === "grid" ? "flex mt-3 pt-3 border-t border-outline-variant" : "hidden md:flex justify-end")}><Clock3 className="w-3 h-3" />{stock.marketTimestamp ? `${stock.dataType === "delayed" ? "Delayed · " : ""}As of ${formatRelativeTime(stock.marketTimestamp)}` : "Quote unavailable"}</div>
+              </a>;
+            })}
+          </div>
+        ) : <div className="rounded-xl border border-dashed border-outline-variant bg-surface-container-low p-6 text-center"><p className="text-sm text-on-surface">Your account watchlist is empty.</p><a href="/watchlist" className="inline-block mt-2 text-sm text-primary">Add stocks to personalize this brief</a></div>}
+      </section>
 
       {/* Index Cards */}
       {briefing && (
@@ -276,7 +318,7 @@ export default function BriefPage() {
               <a
                 key={idx.symbol}
                 href={`/markets/${idx.symbol}`}
-                className="p-3 rounded-xl bg-surface-container-low border border-outline-variant hover:border-primary/30 transition-all"
+                className="p-5 rounded-[28px] bg-surface-container-low hover:bg-surface-container transition-colors"
               >
                 <p className="text-xs text-on-surface-variant truncate">{idx.name}</p>
                 <p className="font-body text-lg font-bold text-on-surface mt-0.5">
@@ -316,18 +358,25 @@ export default function BriefPage() {
                 href={article.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block p-4 rounded-xl bg-surface-container-low border border-outline-variant hover:border-primary/30 transition-all"
+                className="flex gap-4 p-5 rounded-[28px] bg-surface-container-low hover:bg-surface-container transition-colors"
               >
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className="text-xs text-on-surface-variant font-mono">{article.sourceName}</span>
-                  <span className="text-xs text-on-surface-variant/40">·</span>
-                  <span className="text-xs text-on-surface-variant font-mono">{formatRelativeTime(article.publishedAt)}</span>
-                  {article.sentimentLabel && <SentimentBadge sentiment={article.sentimentLabel} />}
+                <div className="h-20 w-24 flex-none overflow-hidden rounded-2xl bg-surface-container-high">
+                  {article.imageUrl ? (
+                    <img src={article.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center font-display text-2xl text-on-surface-variant/50" aria-hidden="true">{article.sourceName.slice(0, 1)}</div>
+                  )}
                 </div>
-                <h3 className="font-medium text-on-surface text-sm line-clamp-2">{article.title}</h3>
-                {article.description && (
-                  <p className="text-xs text-on-surface-variant mt-1 line-clamp-2">{stripHtml(article.description)}</p>
-                )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-xs text-on-surface-variant font-mono">{article.sourceName}</span>
+                    <span className="text-xs text-on-surface-variant/40">·</span>
+                    <span className="text-xs text-on-surface-variant font-mono">{formatRelativeTime(article.publishedAt)}</span>
+                    {article.sentimentLabel && <SentimentBadge sentiment={article.sentimentLabel} />}
+                  </div>
+                  <h3 className="font-medium text-on-surface text-sm line-clamp-2">{article.title}</h3>
+                  {article.description && <p className="text-xs text-on-surface-variant mt-1 line-clamp-2">{stripHtml(article.description)}</p>}
+                </div>
               </a>
             ))}
           </div>
@@ -394,61 +443,6 @@ export default function BriefPage() {
         </div>
       </div>
 
-      {/* AI Assistant */}
-      <div>
-        <h2 className="font-display font-bold text-lg text-on-surface mb-3">AI Assistant</h2>
-        <Card className="flex flex-col">
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0 max-h-64">
-            {chatMessages.length === 0 && (
-              <div className="text-center py-6">
-                <p className="text-on-surface-variant text-sm">Ask me anything about the markets</p>
-                <div className="flex flex-wrap gap-2 justify-center mt-3">
-                  {["What's moving today?", "How is the S&P 500 doing?", "Summarize today's news"].map((q) => (
-                    <button
-                      key={q}
-                      onClick={() => setChatInput(q)}
-                      className="px-3 py-1.5 text-xs bg-surface-container-high border border-outline-variant rounded-full text-on-surface-variant hover:border-primary/30 transition-colors"
-                    >
-                      {q}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            {chatMessages.map((msg, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "max-w-[85%] p-3 rounded-xl text-sm",
-                  msg.role === "user" ? "bg-primary text-on-primary ml-auto" : "bg-surface-container-high text-on-surface"
-                )}
-              >
-                {msg.text}
-              </div>
-            ))}
-            {chatLoading && (
-              <div className="bg-surface-container-high text-on-surface p-3 rounded-xl text-sm max-w-[85%]">
-                <Loader2 className="w-4 h-4 animate-spin" />
-              </div>
-            )}
-          </div>
-          <div className="border-t border-outline-variant p-3">
-            <form onSubmit={(e) => { e.preventDefault(); handleChat(); }} className="flex items-center gap-2">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Ask about markets, stocks, news..."
-                className="flex-1 bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
-              />
-              <Button type="submit" size="sm" disabled={!chatInput.trim() || chatLoading}>
-                <Send className="w-4 h-4" />
-              </Button>
-            </form>
-            <p className="text-[10px] text-on-surface-variant/50 mt-1.5 text-center">AI analysis is informational only, not financial advice</p>
-          </div>
-        </Card>
-      </div>
     </div>
   );
 }

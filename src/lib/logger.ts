@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Logger deliberately accepts arbitrary diagnostic arguments. */
 export const logger = {
   info: (...args: any[]) => {
     if (process.env.NODE_ENV === "development") {

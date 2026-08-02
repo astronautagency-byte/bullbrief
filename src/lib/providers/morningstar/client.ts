@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- External service payloads are normalized by provider helpers. */
 const SERVICE_URL = process.env.MORNINGSTAR_SERVICE_URL || "http://localhost:8000";
 
 export class MorningstarError extends Error {

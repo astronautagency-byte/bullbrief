@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/purity -- Legacy Recharts payloads and SVG identifier generation. */
 
 import { useState, useCallback, useMemo } from "react";
 import {

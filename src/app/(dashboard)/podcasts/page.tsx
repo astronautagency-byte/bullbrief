@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect -- Topic selection intentionally synchronizes search state. */
 
 import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/cn";

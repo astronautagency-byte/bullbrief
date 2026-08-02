@@ -1,27 +1,60 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { readAccountWatchlist } from "@/lib/account-watchlist";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
+  if (!prisma) {
+    return NextResponse.json({ data: [] });
+  }
+
+  const session = await auth();
+  if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  return NextResponse.json({
-    data: [readAccountWatchlist(user.user_metadata)],
-  });
+  let watchlists;
+  try {
+    watchlists = await prisma.watchlist.findMany({
+      where: { userId: session.user.id },
+      include: {
+        items: { orderBy: { sortOrder: "asc" } },
+      },
+      orderBy: { createdAt: "asc" },
+    });
+  } catch {
+    return NextResponse.json(
+      { error: "Account watchlists are temporarily unavailable", data: [] },
+      { status: 503 }
+    );
+  }
+
+  return NextResponse.json({ data: watchlists });
 }
 
-export async function POST() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
+export async function POST(request: Request) {
+  if (!prisma) {
+    return NextResponse.json({ error: "Database not configured" }, { status: 503 });
+  }
+
+  const session = await auth();
+  if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  return NextResponse.json(
-    { data: readAccountWatchlist(user.user_metadata) },
-    { status: 201 }
-  );
+
+  const body = await request.json();
+  const { name } = body;
+
+  const watchlistCount = await prisma.watchlist.count({
+    where: { userId: session.user.id },
+  });
+
+  const watchlist = await prisma.watchlist.create({
+    data: {
+      userId: session.user.id,
+      name: name || "My Watchlist",
+      isDefault: watchlistCount === 0,
+    },
+  });
+
+  return NextResponse.json({ data: watchlist }, { status: 201 });
 }

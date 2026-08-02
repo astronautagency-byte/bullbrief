@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect -- Legacy comparison payload and selection synchronization. */
 
 import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/cn";

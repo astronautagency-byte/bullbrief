@@ -51,41 +51,41 @@
   --color-negative: #ef4444;
   --color-warning: #f59e0b;
 
-  --font-display: var(--font-anybody);
+  --font-display: var(--font-editorial);
   --font-body: var(--font-geist);
   --font-mono: var(--font-jetbrains-mono);
 }
 
 /* Dark theme (default) */
 html.dark {
-  --app-bg: #051424;
-  --app-fg: #d4e4fa;
-  --app-fg-muted: #bccbb9;
-  --app-on-primary: #003915;
-  --app-surface-bright: #2c3a4c;
-  --app-surface-lowest: #010f1f;
-  --app-surface-low: #0d1c2d;
-  --app-surface: #122131;
-  --app-surface-high: #1c2b3c;
-  --app-surface-highest: #273647;
-  --app-outline: #869585;
-  --app-outline-variant: #3d4a3d;
+  --app-bg: #1f211d;
+  --app-fg: #f6f5f0;
+  --app-fg-muted: #b8b9b0;
+  --app-on-primary: #0b3519;
+  --app-surface-bright: #41443d;
+  --app-surface-lowest: #181a17;
+  --app-surface-low: #262923;
+  --app-surface: #2c2f29;
+  --app-surface-high: #353832;
+  --app-surface-highest: #41443d;
+  --app-outline: #777b70;
+  --app-outline-variant: #454941;
 }
 
 /* Light theme */
 html.light {
-  --app-bg: #f8fafc;
-  --app-fg: #1a2332;
-  --app-fg-muted: #5a6a7a;
-  --app-on-primary: #ffffff;
-  --app-surface-bright: #e2e8f0;
+  --app-bg: #faf9f6;
+  --app-fg: #282b27;
+  --app-fg-muted: #686b64;
+  --app-on-primary: #0b3519;
+  --app-surface-bright: #ffffff;
   --app-surface-lowest: #ffffff;
-  --app-surface-low: #f1f5f9;
-  --app-surface: #e8edf2;
-  --app-surface-high: #dce3ea;
-  --app-surface-highest: #cbd5e1;
-  --app-outline: #94a3b8;
-  --app-outline-variant: #cbd5e1;
+  --app-surface-low: #f3f1ec;
+  --app-surface: #eeece6;
+  --app-surface-high: #e8e5de;
+  --app-surface-highest: #dedbd3;
+  --app-outline: #8c8e87;
+  --app-outline-variant: #dedbd3;
 }
 
 @layer base {
@@ -112,6 +112,15 @@ html.light {
     color: var(--app-fg);
     font-family: var(--font-body), sans-serif;
     transition: background-color 0.2s, color 0.2s;
+    letter-spacing: -0.005em;
+  }
+
+  h1, h2, h3, .font-display {
+    letter-spacing: -0.025em;
+  }
+
+  button, a, input {
+    -webkit-tap-highlight-color: transparent;
   }
 
   * {
@@ -199,6 +208,32 @@ html.light {
 @media (prefers-reduced-motion: reduce) {
   .animate-ticker,
   .watchlist-live-dot {
+    animation: none;
+  }
+}
+
+@keyframes landing-chart-draw {
+  from { stroke-dashoffset: 420; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes landing-window-arrive {
+  from { opacity: 0; transform: translateY(28px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.landing-chart-line {
+  stroke-dasharray: 420;
+  animation: landing-chart-draw 1.4s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.landing-hero-window {
+  animation: landing-window-arrive .9s cubic-bezier(.22, 1, .36, 1) .15s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-chart-line,
+  .landing-hero-window {
     animation: none;
   }
 }

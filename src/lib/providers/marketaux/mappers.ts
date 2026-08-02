@@ -21,12 +21,20 @@ export function mapArticle(item: MarketauxNewsResponse["data"][0]): Article {
     else sentimentLabel = "neutral";
   }
 
+  const articleDomain = new URL(item.url).hostname.replace(/^www\./, "");
+  const sourceName = typeof item.source === "string"
+    ? item.source
+    : item.source?.name;
+  const sourceUrl = typeof item.source === "string"
+    ? item.source_url
+    : item.source?.url;
+
   return {
     providerId: item.uuid,
     title: item.title,
     description: item.description ?? item.snippet,
-    sourceName: item.source.name,
-    sourceDomain: item.source.url ? new URL(item.source.url).hostname : null,
+    sourceName: sourceName || articleDomain,
+    sourceDomain: sourceUrl ? new URL(sourceUrl).hostname : articleDomain,
     url: item.url,
     imageUrl: item.image_url,
     publishedAt: item.published_at,

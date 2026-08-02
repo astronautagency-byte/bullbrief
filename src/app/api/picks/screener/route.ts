@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Morningstar provider results are normalized at the route boundary. */
 import { NextResponse } from "next/server";
 import { screenStocks } from "@/lib/providers/morningstar/client";
 

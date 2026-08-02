@@ -28,19 +28,19 @@ export function TopNav({ onMobileMenuToggle, mobileMenuOpen }: TopNavProps) {
     <header
       className={cn(
         "fixed top-0 right-0 z-[80]",
-        "md:ml-64 md:w-[calc(100%-16rem)]",
+        "md:ml-60 md:w-[calc(100%-15rem)]",
         "w-full"
       )}
     >
-      <div className="bg-surface-container-high/80 backdrop-blur-md border-b border-outline-variant">
-        <div className="h-14 flex items-center justify-between px-4 md:px-6">
+      <div className="relative z-20 bg-background/90 backdrop-blur-xl border-b border-outline-variant">
+        <div className="h-16 flex items-center justify-between px-4 md:px-10">
           <div className="flex items-center gap-2">
             <Link href="/brief" className="md:hidden flex items-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/BullBrief_Logo_Mark_Transparent.png"
                 alt="BullBrief"
-                className="h-8 w-8"
+                className="h-8 w-8 dark:brightness-0 dark:invert"
               />
             </Link>
             <button
@@ -57,7 +57,7 @@ export function TopNav({ onMobileMenuToggle, mobileMenuOpen }: TopNavProps) {
             <div className="relative">
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="w-8 h-8 rounded-full border border-outline-variant bg-surface-container overflow-hidden hover:border-primary/50 transition-colors"
+              className="w-9 h-9 rounded-full border border-outline-variant bg-surface-container-low overflow-hidden hover:bg-surface-container transition-colors"
               >
                 <div className="w-full h-full flex items-center justify-center text-on-surface-variant text-sm font-medium">
                   U
@@ -69,17 +69,17 @@ export function TopNav({ onMobileMenuToggle, mobileMenuOpen }: TopNavProps) {
                     className="fixed inset-0 z-40"
                     onClick={() => setShowUserMenu(false)}
                   />
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-surface-container rounded-xl border border-outline-variant shadow-2xl z-50 overflow-hidden">
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-surface-container-low rounded-3xl border border-outline-variant z-50 overflow-hidden p-1.5">
                     <Link
                       href="/settings"
                       onClick={() => setShowUserMenu(false)}
-                      className="flex items-center gap-2 px-4 py-3 text-sm text-on-surface hover:bg-surface-container-high transition-colors"
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm text-on-surface hover:bg-surface-container transition-colors"
                     >
                       Settings
                     </Link>
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-2 px-4 py-3 text-sm text-error hover:bg-surface-container-high transition-colors"
+                      className="w-full flex items-center gap-2 px-4 py-2.5 rounded-full text-sm text-error hover:bg-surface-container transition-colors"
                     >
                       <LogOut className="w-4 h-4" />
                       Log out
@@ -93,7 +93,9 @@ export function TopNav({ onMobileMenuToggle, mobileMenuOpen }: TopNavProps) {
       </div>
 
       {/* Ticker Strip */}
-      <TickerStrip />
+      <div className="relative z-10">
+        <TickerStrip />
+      </div>
     </header>
   );
 }

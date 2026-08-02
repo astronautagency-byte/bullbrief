@@ -63,12 +63,26 @@ export async function verifyToken(
 export async function auth(): Promise<{ user: AuthUser } | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
-  if (!token) return null;
+  if (token) {
+    const user = await verifyToken(token);
+    if (user) return { user };
+  }
 
-  const user = await verifyToken(token);
-  if (!user) return null;
-
-  return { user };
+  try {
+    const { createClient } = await import("@/lib/supabase/server");
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.email) return null;
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.user_metadata?.name ?? null,
+      },
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function signIn(
@@ -157,14 +171,13 @@ export async function signOut(): Promise<void> {
   cookieStore.delete(COOKIE_NAME);
 }
 
-export function setAuthCookie(token: string) {
-  cookies().then((store) => {
-    store.set(COOKIE_NAME, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60,
-      path: "/",
-    });
+export async function setAuthCookie(token: string) {
+  const store = await cookies();
+  store.set(COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 7 * 24 * 60 * 60,
+    path: "/",
   });
 }

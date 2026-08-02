@@ -13,7 +13,8 @@ export type MarketauxNewsResponse = {
       name: string;
       url: string;
       logo_url: string | null;
-    };
+    } | string;
+    source_url?: string;
     related?: Array<{
       uuid: string;
       title: string;

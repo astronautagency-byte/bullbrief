@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect -- Legacy fetch orchestration retained for this release. */
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { cn } from "@/lib/cn";
@@ -225,7 +226,7 @@ export default function MarketsPage() {
                 key={`${primaryIndex.symbol}-${chartRange}`}
                 symbol={primaryIndex.symbol}
                 range={chartRange}
-                interval={5000}
+                interval={60_000}
                 height={280}
                 formatValue={(v) =>
                   primaryIndex.symbol === "CADUSD=X"

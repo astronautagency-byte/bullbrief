@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Anybody, Geist, JetBrains_Mono } from "next/font/google";
+import { Anybody, Geist, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { NotificationProvider } from "@/components/notification-provider";
 import "./globals.css";
@@ -18,6 +18,12 @@ const geist = Geist({
 
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+});
+
+const sourceSerif = Source_Serif_4({
+  variable: "--font-editorial",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
 });
@@ -103,7 +109,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#051424",
+  themeColor: "#1f211d",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -117,7 +123,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`dark ${anybody.variable} ${geist.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className={`dark ${anybody.variable} ${geist.variable} ${jetbrainsMono.variable} ${sourceSerif.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
@@ -127,7 +133,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="BullBrief" />
         <link rel="apple-touch-icon" href="/BullBrief_App_Icon.png" />
         <meta name="application-name" content="BullBrief — Your Daily Market Brief is Here" />
-        <meta name="theme-color" content="#051424" />
+        <meta name="theme-color" content="#1f211d" />
       </head>
       <body className="min-h-full bg-background text-foreground font-body">
         <script

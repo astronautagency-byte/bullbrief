@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getStockPrices } from "@/lib/providers/yahoo/client";
+import type { Quote } from "@/lib/types";
 
 const STOCK_NAMES: Record<string, { name: string; exchange: string }> = {
   AAPL: { name: "Apple Inc.", exchange: "NASDAQ" },
@@ -80,31 +81,13 @@ export async function GET(request: Request) {
     ? symbolsParam.split(",").filter(Boolean)
     : [];
 
-  const priceMap: Record<string, {
-    price: number;
-    change: number;
-    changePercent: number;
-    companyName: string | null;
-    exchangeCode: string | null;
-    currency: string | null;
-    dataType: string;
-    marketTimestamp: string | null;
-  }> = {};
+  const priceMap: Record<string, Quote> = {};
 
   if (symbols.length > 0) {
     try {
       const yahooQuotes = await getStockPrices(symbols);
       for (const q of yahooQuotes) {
-        priceMap[q.symbol] = {
-          price: q.price ?? 0,
-          change: q.change ?? 0,
-          changePercent: q.changePercent ?? 0,
-          companyName: q.companyName,
-          exchangeCode: q.exchangeCode,
-          currency: q.currency,
-          dataType: q.dataType,
-          marketTimestamp: q.marketTimestamp,
-        };
+        priceMap[q.symbol] = q;
       }
     } catch (err) {
       console.error("Yahoo Finance failed:", err);
@@ -112,17 +95,29 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json({
-    data: symbols.map((s) => ({
-      symbol: s,
-      companyName: priceMap[s]?.companyName ?? STOCK_NAMES[s]?.name ?? s,
-      exchangeCode: priceMap[s]?.exchangeCode ?? STOCK_NAMES[s]?.exchange ?? "Unknown exchange",
-      currency: priceMap[s]?.currency ?? (s.endsWith(".TO") ? "CAD" : null),
-      price: priceMap[s]?.price ?? 0,
-      change: priceMap[s]?.change ?? 0,
-      changePercent: priceMap[s]?.changePercent ?? 0,
-      dataType: priceMap[s]?.dataType ?? "delayed",
-      marketTimestamp: priceMap[s]?.marketTimestamp ?? null,
-      source: "Yahoo Finance",
-    })),
+    data: symbols.map((s) => {
+      const quote = priceMap[s];
+      return {
+        symbol: s,
+        companyName: quote?.companyName || STOCK_NAMES[s]?.name || s,
+        exchangeCode: quote?.exchangeCode || STOCK_NAMES[s]?.exchange || "Unknown exchange",
+        currency: quote?.currency || null,
+        price: quote?.price ?? null,
+        change: quote?.change ?? null,
+        changePercent: quote?.changePercent ?? null,
+        previousClose: quote?.previousClose ?? null,
+        open: quote?.open ?? null,
+        high: quote?.high ?? null,
+        low: quote?.low ?? null,
+        volume: quote?.volume ?? null,
+        marketCap: quote?.marketCap ?? null,
+        pe: quote?.pe ?? null,
+        marketTimestamp: quote?.marketTimestamp ?? null,
+        retrievedAt: quote?.retrievedAt ?? null,
+        dataType: quote?.dataType ?? "unavailable",
+        isStale: quote?.isStale ?? true,
+        available: Boolean(quote),
+      };
+    }),
   });
 }

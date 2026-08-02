@@ -50,11 +50,11 @@ export interface DemoUserPreference {
   countryFocus: string;
 }
 
-let watchlists = new Map<string, DemoWatchlist>();
-let watchlistItems = new Map<string, DemoWatchlistItem>();
-let savedArticles = new Map<string, DemoSavedArticle>();
-let savedEpisodes = new Map<string, DemoSavedEpisode>();
-let userPreferences = new Map<string, DemoUserPreference>();
+const watchlists = new Map<string, DemoWatchlist>();
+const watchlistItems = new Map<string, DemoWatchlistItem>();
+const savedArticles = new Map<string, DemoSavedArticle>();
+const savedEpisodes = new Map<string, DemoSavedEpisode>();
+const userPreferences = new Map<string, DemoUserPreference>();
 
 function genId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;

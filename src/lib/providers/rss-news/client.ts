@@ -6,6 +6,13 @@ const parser = new Parser({
   headers: {
     "User-Agent": "BullBrief/1.0",
   },
+  customFields: {
+    item: [
+      ["media:content", "mediaContent"],
+      ["media:thumbnail", "mediaThumbnail"],
+      ["content:encoded", "contentEncoded"],
+    ],
+  },
 });
 
 const RSS_FEEDS = [
@@ -17,18 +24,6 @@ const RSS_FEEDS = [
   { url: "https://www.cnbc.com/id/100003114/device/rss/rss.html", source: "CNBC", domain: "cnbc.com" },
   { url: "https://www.cnbc.com/id/10001147/device/rss/rss.html", source: "CNBC", domain: "cnbc.com" },
 ];
-
-function categorizeArticle(title: string, description: string): string {
-  const text = `${title} ${description}`.toLowerCase();
-  if (text.match(/tech|ai|chip|semiconductor|apple|google|microsoft|nvidia/)) return "technology";
-  if (text.match(/earnings|revenue|profit|quarterly|eps/)) return "earnings";
-  if (text.match(/fed|rate|inflation|gdp|employment|recession/)) return "macro";
-  if (text.match(/crypto|bitcoin|ethereum/)) return "crypto";
-  if (text.match(/oil|energy|gas|opec/)) return "energy";
-  if (text.match(/canadian|tsx|tsx|canada|cad/)) return "canada";
-  if (text.match(/ipo|merger|acquisition|deal/)) return "deals";
-  return "general";
-}
 
 function inferSentiment(title: string, description: string): "positive" | "negative" | "neutral" {
   const text = `${title} ${description}`.toLowerCase();
@@ -44,8 +39,44 @@ function inferSentiment(title: string, description: string): "positive" | "negat
 }
 
 function extractImage(html: string): string | undefined {
-  const match = html.match(/<img[^>]+src="([^"]+)"/);
+  const match = html.match(/<img[^>]+src=["']([^"']+)["']/i);
   return match?.[1];
+}
+
+type MediaItem = {
+  mediaContent?: { $?: { url?: string }; url?: string };
+  mediaThumbnail?: { $?: { url?: string }; url?: string };
+  contentEncoded?: string;
+};
+
+function rssImage(item: MediaItem & { enclosure?: { url?: string }; content?: string }): string | null {
+  return item.enclosure?.url
+    || item.mediaContent?.$?.url
+    || item.mediaContent?.url
+    || item.mediaThumbnail?.$?.url
+    || item.mediaThumbnail?.url
+    || extractImage(item.contentEncoded || item.content || "")
+    || null;
+}
+
+async function openGraphImage(articleUrl: string): Promise<string | null> {
+  if (!articleUrl) return null;
+  try {
+    const response = await fetch(articleUrl, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; BullBrief/1.0; +https://bullbrief.vercel.app)" },
+      redirect: "follow",
+      signal: AbortSignal.timeout(3500),
+      next: { revalidate: 3600 },
+    });
+    if (!response.ok || !response.headers.get("content-type")?.includes("text/html")) return null;
+    const html = (await response.text()).slice(0, 400_000);
+    const match = html.match(/<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image)["'][^>]+content=["']([^"']+)["']/i)
+      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:image|twitter:image)["']/i);
+    if (!match?.[1]) return null;
+    return new URL(match[1].replace(/&amp;/g, "&"), response.url).toString();
+  } catch {
+    return null;
+  }
 }
 
 export async function fetchRSSNews(options: {
@@ -77,7 +108,7 @@ export async function fetchRSSNews(options: {
           url: item.link || "",
           sourceName: item.creator || feed.source,
           sourceDomain: feed.domain,
-          imageUrl: item.enclosure?.url || extractImage(item.content || "") || null,
+          imageUrl: rssImage(item as typeof item & MediaItem),
           publishedAt: item.pubDate || item.isoDate || new Date().toISOString(),
           relatedSymbols: [],
           industries: [],
@@ -116,9 +147,15 @@ export async function fetchRSSNews(options: {
   });
 
   const paginated = unique.slice(offset, offset + limit);
+  const enriched = await Promise.all(
+    paginated.map(async (article, index) => {
+      if (article.imageUrl || index >= 16) return article;
+      return { ...article, imageUrl: await openGraphImage(article.url) };
+    })
+  );
 
   return {
-    articles: paginated,
+    articles: enriched,
     total: unique.length,
   };
 }

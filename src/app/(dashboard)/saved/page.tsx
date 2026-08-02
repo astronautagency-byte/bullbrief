@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/purity -- Demo timestamps are intentionally relative to render time. */
 
 import { useState } from "react";
 import { cn } from "@/lib/cn";

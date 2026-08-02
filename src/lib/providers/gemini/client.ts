@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- External provider payloads are validated after receipt. */
 import { Article } from "@/lib/types";
 import { GeminiArticleAnalysis, GeminiArticleAnalysisSchema } from "./types";
 import { z } from "zod";

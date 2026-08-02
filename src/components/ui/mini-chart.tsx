@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useId, useCallback } from "react";
 import {
   AreaChart,
   Area,
+  ReferenceLine,
   ResponsiveContainer,
 } from "recharts";
 import { cn } from "@/lib/cn";
@@ -86,7 +87,7 @@ export function MiniChart({
 
   useEffect(() => {
     if (!isLoading) {
-      const interval = setInterval(pollPrice, 3000);
+      const interval = setInterval(pollPrice, 60_000);
       return () => clearInterval(interval);
     }
   }, [isLoading, pollPrice]);
@@ -94,7 +95,16 @@ export function MiniChart({
   const strokeColor = positive ? "#4BE277" : "#FF7A73";
   const glowColor = positive ? "rgba(18,209,98,0.5)" : "rgba(255,92,92,0.5)";
 
+  const values = data.map((point) => point.value);
+  const minimum = Math.min(...values);
+  const maximum = Math.max(...values);
+  const baseline = data[0]?.value ?? minimum;
+  const splitOffset = maximum === minimum
+    ? 50
+    : Math.max(0, Math.min(100, ((maximum - baseline) / (maximum - minimum)) * 100));
+
   const fillId = `mini-fill-${chartId}`;
+  const strokeId = `mini-stroke-${chartId}`;
   const glowId = `mini-glow-${chartId}`;
 
   if (isLoading || data.length < 2) {
@@ -110,6 +120,10 @@ export function MiniChart({
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
           <defs>
+            <linearGradient id={strokeId} x1="0" x2="0" y1="0" y2="1">
+              <stop offset={`${splitOffset}%`} stopColor="#4BE277" />
+              <stop offset={`${splitOffset}%`} stopColor="#FF5C5C" />
+            </linearGradient>
             <linearGradient id={fillId} x1="0" x2="0" y1="0" y2="1">
               <stop offset="0%" stopColor={strokeColor} stopOpacity={0.35} />
               <stop offset="40%" stopColor={strokeColor} stopOpacity={0.15} />
@@ -123,10 +137,15 @@ export function MiniChart({
               </feMerge>
             </filter>
           </defs>
+          <ReferenceLine
+            y={baseline}
+            stroke="rgba(158,175,167,0.34)"
+            strokeDasharray="2 3"
+          />
           <Area
             type="linear"
             dataKey="value"
-            stroke={strokeColor}
+            stroke={`url(#${strokeId})`}
             strokeWidth={1.5}
             fill={`url(#${fillId})`}
             dot={false}

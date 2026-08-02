@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/purity -- Legacy SVG identifier generation retained for compatibility. */
 
 import { cn } from "@/lib/cn";
 

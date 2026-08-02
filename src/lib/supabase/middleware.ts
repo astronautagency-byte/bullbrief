@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { jwtVerify } from "jose";
 
 export async function updateSession(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -43,6 +44,9 @@ export async function updateSession(request: NextRequest) {
     "/privacy",
     "/terms",
     "/disclaimer",
+    "/manifest.json",
+    "/robots.txt",
+    "/sitemap.xml",
   ];
 
   const isPublic =
@@ -57,7 +61,19 @@ export async function updateSession(request: NextRequest) {
     pathname.endsWith(".woff") ||
     pathname.endsWith(".woff2");
 
-  if (!user && !isPublic) {
+  const appToken = request.cookies.get("bullbrief-token")?.value;
+  let appUser = null;
+  if (appToken) {
+    try {
+      const secret = new TextEncoder().encode(process.env.AUTH_SECRET || "development-secret-change-in-production");
+      const { payload } = await jwtVerify(appToken, secret);
+      appUser = payload;
+    } catch {
+      appUser = null;
+    }
+  }
+
+  if (!user && !appUser && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("callbackUrl", pathname);

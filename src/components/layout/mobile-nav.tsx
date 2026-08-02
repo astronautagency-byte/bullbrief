@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { cn } from "@/lib/cn";
 import Link from "next/link";
 import {
@@ -38,13 +37,13 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
   return (
     <div className="fixed inset-0 z-50 md:hidden">
       <div
-        className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-on-surface/20 backdrop-blur-sm"
         onClick={onClose}
       />
       <nav
         className={cn(
-          "absolute left-0 top-0 h-full w-72 bg-surface-container-low",
-          "border-r border-outline-variant p-4",
+          "absolute left-0 top-0 h-full w-72 bg-background",
+          "border-r border-outline-variant p-6",
           "transform transition-transform"
         )}
       >
@@ -67,7 +66,7 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
               key={item.href}
               href={item.href}
               onClick={onClose}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-on-surface transition-colors"
+              className="flex items-center gap-3 px-4 py-3 rounded-full text-on-surface-variant font-medium hover:bg-surface-container-low hover:text-on-surface transition-colors"
             >
               <item.icon className="w-5 h-5" />
               <span>{item.label}</span>
