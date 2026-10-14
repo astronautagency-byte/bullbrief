@@ -96,6 +96,11 @@ model WatchlistItem {
   symbol       String
   companyName  String?
   exchangeCode String?
+  quantity     Decimal? @db.Decimal(20, 6)
+  averageCost  Decimal? @db.Decimal(20, 6)
+  currency     String?
+  householdLabel String?
+  positionAsOf DateTime?
   sortOrder    Int      @default(0)
   addedAt      DateTime @default(now())
 

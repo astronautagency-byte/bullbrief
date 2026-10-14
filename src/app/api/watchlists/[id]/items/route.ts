@@ -4,6 +4,12 @@ import { prisma } from "@/lib/prisma";
 
 const MAX_WATCHLIST_ITEMS = 100;
 
+function optionalPositionNumber(value: unknown) {
+  if (value === undefined || value === null || value === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 && number <= 1_000_000_000 ? number : undefined;
+}
+
 async function ownedWatchlist(id: string, userId: string) {
   if (!prisma) return null;
   return prisma.watchlist.findFirst({ where: { id, userId } });
@@ -34,12 +40,22 @@ export async function POST(
   }
 
   try {
+    const quantity = optionalPositionNumber(body.quantity);
+    const averageCost = optionalPositionNumber(body.averageCost);
+    if (quantity === undefined || averageCost === undefined) {
+      return NextResponse.json({ error: "Quantity and average cost must be valid positive numbers" }, { status: 400 });
+    }
     const item = await prisma.watchlistItem.create({
       data: {
         watchlistId: id,
         symbol,
         companyName: typeof body.companyName === "string" ? body.companyName.slice(0, 160) : null,
         exchangeCode: typeof body.exchangeCode === "string" ? body.exchangeCode.slice(0, 80) : null,
+        quantity,
+        averageCost,
+        currency: typeof body.currency === "string" ? body.currency.trim().toUpperCase().slice(0, 3) : null,
+        householdLabel: typeof body.householdLabel === "string" ? body.householdLabel.trim().slice(0, 100) : null,
+        positionAsOf: quantity !== null ? new Date() : null,
         sortOrder: count,
       },
     });
@@ -66,6 +82,26 @@ export async function PATCH(
     return NextResponse.json({ error: "Watchlist not found" }, { status: 404 });
   }
   const body = await request.json();
+  if (typeof body.itemId === "string") {
+    const quantity = optionalPositionNumber(body.quantity);
+    const averageCost = optionalPositionNumber(body.averageCost);
+    if (quantity === undefined || averageCost === undefined) {
+      return NextResponse.json({ error: "Quantity and average cost must be valid positive numbers" }, { status: 400 });
+    }
+    const result = await db.watchlistItem.updateMany({
+      where: { id: body.itemId, watchlistId: id },
+      data: {
+        quantity,
+        averageCost,
+        currency: typeof body.currency === "string" ? body.currency.trim().toUpperCase().slice(0, 3) || null : null,
+        householdLabel: typeof body.householdLabel === "string" ? body.householdLabel.trim().slice(0, 100) || null : null,
+        positionAsOf: quantity !== null ? new Date() : null,
+      },
+    });
+    if (!result.count) return NextResponse.json({ error: "Position not found" }, { status: 404 });
+    const item = await db.watchlistItem.findFirst({ where: { id: body.itemId, watchlistId: id } });
+    return NextResponse.json({ data: item });
+  }
   if (!Array.isArray(body.items)) {
     return NextResponse.json({ error: "items array required" }, { status: 400 });
   }

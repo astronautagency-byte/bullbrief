@@ -18,6 +18,9 @@ import {
   BellRing,
   Grid2X2,
   List,
+  Pencil,
+  WalletCards,
+  CircleDollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { legacySymbolsMissingFromAccount } from "@/lib/watchlist-sync";
@@ -33,6 +36,11 @@ interface WatchlistStock {
   price: number;
   change: number;
   changePercent: number;
+  currency: string;
+  quantity: number | null;
+  averageCost: number | null;
+  householdLabel: string | null;
+  positionAsOf: string | null;
   addedAt?: string;
 }
 
@@ -112,6 +120,13 @@ export default function WatchlistPage() {
   const [adding, setAdding] = useState<string | null>(null);
   const [storageMode, setStorageMode] = useState<"account" | "local">("account");
   const [watchlistView, setWatchlistView] = useState<"list" | "grid">("list");
+  const [showPositionModal, setShowPositionModal] = useState<WatchlistStock | null>(null);
+  const [positionQuantity, setPositionQuantity] = useState("");
+  const [positionAverageCost, setPositionAverageCost] = useState("");
+  const [positionHousehold, setPositionHousehold] = useState("");
+  const [positionCurrency, setPositionCurrency] = useState("CAD");
+  const [positionSaving, setPositionSaving] = useState(false);
+  const [positionError, setPositionError] = useState("");
 
   const [alerts, setAlerts] = useState<PriceAlertItem[]>([]);
   const [showAlertModal, setShowAlertModal] = useState<WatchlistStock | null>(null);
@@ -221,8 +236,9 @@ export default function WatchlistPage() {
       if (legacySymbols.length && legacyMigrationComplete) localStorage.removeItem("bullbrief_watchlist");
 
       setActiveWatchlistId(serverWatchlist.id);
+      setWatchlistName(serverWatchlist.name || "Client portfolio");
       setStorageMode("account");
-      const items: Array<{ id: string; symbol: string; companyName: string | null; exchangeCode: string | null; addedAt: string }> =
+      const items: Array<{ id: string; symbol: string; companyName: string | null; exchangeCode: string | null; quantity: string | number | null; averageCost: string | number | null; householdLabel: string | null; currency: string | null; positionAsOf: string | null; addedAt: string }> =
         serverWatchlist.items ?? [];
       const symbols = items.map((item) => item.symbol);
       if (!symbols.length) {
@@ -232,9 +248,9 @@ export default function WatchlistPage() {
 
       const res = await fetch(`/api/watchlist-local?symbols=${symbols.join(",")}`);
       const json = await res.json();
-      const priceData: Record<string, { price: number; change: number; changePercent: number }> = {};
+      const priceData: Record<string, { price: number; change: number; changePercent: number; currency?: string | null }> = {};
       for (const s of json.data ?? []) {
-        priceData[s.symbol] = { price: s.price, change: s.change, changePercent: s.changePercent };
+        priceData[s.symbol] = { price: s.price, change: s.change, changePercent: s.changePercent, currency: s.currency };
       }
 
       setWatchlist(
@@ -247,6 +263,11 @@ export default function WatchlistPage() {
           price: priceData[item.symbol]?.price ?? 0,
           change: priceData[item.symbol]?.change ?? 0,
           changePercent: priceData[item.symbol]?.changePercent ?? 0,
+          currency: item.currency ?? priceData[item.symbol]?.currency ?? (item.symbol.endsWith(".TO") ? "CAD" : "USD"),
+          quantity: item.quantity === null ? null : Number(item.quantity),
+          averageCost: item.averageCost === null ? null : Number(item.averageCost),
+          householdLabel: item.householdLabel,
+          positionAsOf: item.positionAsOf,
           addedAt: item.addedAt,
         }))
       );
@@ -276,6 +297,11 @@ export default function WatchlistPage() {
               price: quote?.price ?? 0,
               change: quote?.change ?? 0,
               changePercent: quote?.changePercent ?? 0,
+              currency: symbol.endsWith(".TO") ? "CAD" : "USD",
+              quantity: null,
+              averageCost: null,
+              householdLabel: null,
+              positionAsOf: null,
             };
           }));
         } catch {
@@ -408,6 +434,55 @@ export default function WatchlistPage() {
     setWatchlist((prev) => prev.filter((item) => item.itemId !== stock.itemId));
   };
 
+  const openPositionEditor = (stock: WatchlistStock) => {
+    setShowPositionModal(stock);
+    setPositionQuantity(stock.quantity === null ? "" : String(stock.quantity));
+    setPositionAverageCost(stock.averageCost === null ? "" : String(stock.averageCost));
+    setPositionHousehold(stock.householdLabel ?? "");
+    setPositionCurrency(stock.currency || (stock.symbol.endsWith(".TO") ? "CAD" : "USD"));
+    setPositionError("");
+  };
+
+  const savePosition = async () => {
+    if (!showPositionModal || showPositionModal.watchlistId === "local") return;
+    const quantity = Number(positionQuantity);
+    const averageCost = positionAverageCost === "" ? null : Number(positionAverageCost);
+    if (!Number.isFinite(quantity) || quantity <= 0 || (averageCost !== null && (!Number.isFinite(averageCost) || averageCost < 0))) {
+      setPositionError("Enter a quantity greater than zero and a valid average cost.");
+      return;
+    }
+    setPositionSaving(true);
+    setPositionError("");
+    try {
+      const response = await fetch(`/api/watchlists/${showPositionModal.watchlistId}/items`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          itemId: showPositionModal.itemId,
+          quantity,
+          averageCost,
+          householdLabel: positionHousehold,
+          currency: positionCurrency,
+        }),
+      });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error || "Could not save position");
+      setWatchlist((current) => current.map((item) => item.itemId === showPositionModal.itemId ? {
+        ...item,
+        quantity,
+        averageCost,
+        householdLabel: positionHousehold.trim() || null,
+        currency: positionCurrency,
+        positionAsOf: new Date().toISOString(),
+      } : item));
+      setShowPositionModal(null);
+    } catch (error) {
+      setPositionError(error instanceof Error ? error.message : "Could not save position");
+    } finally {
+      setPositionSaving(false);
+    }
+  };
+
   const createAlert = async () => {
     if (!showAlertModal || !alertPrice) return;
     setAlertSaving(true);
@@ -468,12 +543,25 @@ export default function WatchlistPage() {
 
   const activeAlerts = alerts.filter((a) => !a.triggered);
   const triggeredAlerts = alerts.filter((a) => a.triggered);
+  const positioned = watchlist.filter((stock) => stock.quantity !== null && stock.quantity > 0);
+  const valuesByCurrency = positioned.reduce<Record<string, number>>((totals, stock) => {
+    if (stock.price <= 0 || stock.quantity === null) return totals;
+    const currency = stock.currency || "CAD";
+    totals[currency] = (totals[currency] ?? 0) + stock.price * stock.quantity;
+    return totals;
+  }, {});
+  const currencyValues = Object.entries(valuesByCurrency).sort(([a], [b]) => a.localeCompare(b));
+  const formatMarketValue = (value: number, currency: string) => new Intl.NumberFormat("en-CA", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(value);
 
   return (
     <div className="space-y-4 md:space-y-6">
       <PageHead
-        title="Watchlist"
-        description="Track your favorite stocks with real-time prices, charts, and price alerts. Build and manage your personalized stock watchlist."
+        title="Client portfolios"
+        description="Monitor advisor-supplied positions, current market values, material movements, and client portfolio context."
         canonical="https://bullbrief.vercel.app/watchlist"
       />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -496,7 +584,7 @@ export default function WatchlistPage() {
               {watchlistName}
             </h1>
           )}
-          <Badge>{watchlist.length} stocks</Badge>
+          <Badge>{watchlist.length} holdings</Badge>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm">
@@ -505,7 +593,7 @@ export default function WatchlistPage() {
           </Button>
           <Button size="sm" onClick={() => setShowAddModal(true)}>
             <Plus className="w-4 h-4" />
-            Add Stock
+            Add holding
           </Button>
         </div>
       </div>
@@ -515,6 +603,44 @@ export default function WatchlistPage() {
           Saved on this device while account sync is unavailable. Your selections will be reconciled when the database reconnects.
         </div>
       )}
+
+      <section aria-label="Tracked portfolio value" className="overflow-hidden rounded-[24px] border border-outline-variant bg-surface-container-lowest">
+        <div className="grid lg:grid-cols-[minmax(0,1.5fr)_minmax(12rem,0.6fr)_minmax(12rem,0.6fr)]">
+          <div className="border-b border-outline-variant p-5 lg:border-b-0 lg:border-r md:p-6">
+            <div className="flex items-center gap-2 text-primary">
+              <WalletCards className="h-4 w-4" />
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em]">Tracked market value</p>
+            </div>
+            {currencyValues.length ? (
+              <div className="mt-3 flex flex-wrap items-baseline gap-x-5 gap-y-2">
+                {currencyValues.map(([currency, value], index) => (
+                  <div key={currency} className="flex items-baseline gap-2">
+                    <span className={cn("font-mono font-semibold text-on-surface", index === 0 ? "text-3xl md:text-4xl" : "text-xl")}>
+                      {formatMarketValue(value, currency)}
+                    </span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">{currency}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <button onClick={() => watchlist[0] && openPositionEditor(watchlist[0])} className="mt-3 text-left font-display text-2xl font-semibold text-on-surface hover:text-primary">
+                Add position quantities to calculate value
+              </button>
+            )}
+            <p className="mt-2 text-xs text-on-surface-variant">Calculated from advisor-supplied quantities and the latest available market prices. Currencies are kept separate.</p>
+          </div>
+          <div className="border-b border-outline-variant p-5 lg:border-b-0 lg:border-r">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">Positions valued</p>
+            <p className="mt-3 font-mono text-2xl font-semibold text-on-surface">{positioned.length}<span className="text-sm text-on-surface-variant"> / {watchlist.length}</span></p>
+            <p className="mt-1 text-xs text-on-surface-variant">Holdings with a saved quantity</p>
+          </div>
+          <div className="p-5">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">Needs position data</p>
+            <p className={cn("mt-3 font-mono text-2xl font-semibold", watchlist.length - positioned.length ? "text-warning" : "text-primary")}>{watchlist.length - positioned.length}</p>
+            <p className="mt-1 text-xs text-on-surface-variant">Add units to complete the view</p>
+          </div>
+        </div>
+      </section>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
         <div className="relative flex-1 max-w-sm w-full">
@@ -596,7 +722,7 @@ export default function WatchlistPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-surface-container rounded-xl border border-outline-variant w-full max-w-md shadow-2xl">
             <div className="flex items-center justify-between p-4 border-b border-outline-variant">
-              <h2 className="font-display font-bold text-lg text-on-surface">Add Stock</h2>
+              <h2 className="font-display font-bold text-lg text-on-surface">Add holding</h2>
               <button
                 onClick={() => { setShowAddModal(false); setAddSearch(""); }}
                 className="p-1 text-on-surface-variant hover:text-on-surface transition-colors"
@@ -647,6 +773,61 @@ export default function WatchlistPage() {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPositionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg overflow-hidden rounded-[24px] border border-outline-variant bg-surface-container shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-outline-variant p-5">
+              <div>
+                <div className="flex items-center gap-2 text-primary">
+                  <CircleDollarSign className="h-4 w-4" />
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em]">Advisor-supplied position</p>
+                </div>
+                <h2 className="mt-2 font-display text-2xl font-semibold text-on-surface">{showPositionModal.symbol}</h2>
+                <p className="mt-1 text-sm text-on-surface-variant">{showPositionModal.companyName}</p>
+              </div>
+              <button onClick={() => setShowPositionModal(null)} className="rounded-full p-2 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface" aria-label="Close position editor"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="space-y-4 p-5">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-semibold text-on-surface">Shares or units</span>
+                  <input type="number" min="0" step="0.000001" value={positionQuantity} onChange={(event) => setPositionQuantity(event.target.value)} placeholder="0" className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-4 py-3 font-mono text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary" autoFocus />
+                </label>
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-semibold text-on-surface">Average cost per unit <span className="font-normal text-on-surface-variant">optional</span></span>
+                  <input type="number" min="0" step="0.01" value={positionAverageCost} onChange={(event) => setPositionAverageCost(event.target.value)} placeholder="0.00" className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-4 py-3 font-mono text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary" />
+                </label>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_8rem]">
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-semibold text-on-surface">Household or account</span>
+                  <input type="text" maxLength={100} value={positionHousehold} onChange={(event) => setPositionHousehold(event.target.value)} placeholder="Example: Morgan household" className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary" />
+                </label>
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-semibold text-on-surface">Currency</span>
+                  <select value={positionCurrency} onChange={(event) => setPositionCurrency(event.target.value)} className="w-full appearance-none rounded-xl border border-outline-variant bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+                    <option value="CAD">CAD</option>
+                    <option value="USD">USD</option>
+                  </select>
+                </label>
+              </div>
+              {positionQuantity && showPositionModal.price > 0 && Number(positionQuantity) > 0 && (
+                <div className="flex items-center justify-between rounded-xl bg-primary/10 px-4 py-3">
+                  <span className="text-xs font-semibold text-on-surface-variant">Calculated market value</span>
+                  <span className="font-mono text-lg font-semibold text-on-surface">{formatMarketValue(Number(positionQuantity) * showPositionModal.price, positionCurrency)}</span>
+                </div>
+              )}
+              {positionError && <p role="alert" className="rounded-xl bg-error/10 px-4 py-3 text-sm text-error">{positionError}</p>}
+              <p className="text-xs leading-5 text-on-surface-variant">This supports advisor monitoring and does not replace the dealer book of record. Confirm quantities whenever the client portfolio changes.</p>
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-outline-variant p-4">
+              <Button variant="ghost" onClick={() => setShowPositionModal(null)}>Cancel</Button>
+              <Button onClick={() => void savePosition()} disabled={positionSaving || !positionQuantity} loading={positionSaving}>Save position</Button>
             </div>
           </div>
         </div>
@@ -748,9 +929,9 @@ export default function WatchlistPage() {
         <div className="hidden md:grid grid-cols-12 gap-2 px-5 py-2.5 bg-surface-container border-b border-outline-variant text-on-surface-variant text-xs font-mono uppercase tracking-wider">
           <span className="col-span-1" />
           <span className="col-span-2">Symbol</span>
-          <span className="col-span-2 text-right">Price</span>
-          <span className="col-span-2 text-right">Change</span>
-          <span className="col-span-2 text-right">% Change</span>
+          <span className="col-span-2 text-right">Quantity</span>
+          <span className="col-span-2 text-right">Market value</span>
+          <span className="col-span-2 text-right">Today</span>
           <span className="col-span-2 text-right">Intraday</span>
           <span className="col-span-1" />
         </div>
@@ -790,18 +971,20 @@ export default function WatchlistPage() {
                   </a>
                 </div>
                 <div className="md:col-span-2 md:text-right">
-                  <span className="text-xs text-on-surface-variant md:hidden mr-2">Price:</span>
+                  <span className="text-xs text-on-surface-variant md:hidden mr-2">Quantity:</span>
                   <span className="font-mono text-on-surface">
-                    {stock.price > 0 ? formatPrice(stock.price) : "-"}
+                    {stock.quantity === null ? "Not added" : stock.quantity.toLocaleString("en-CA", { maximumFractionDigits: 6 })}
                   </span>
+                  {stock.householdLabel && <span className="mt-0.5 block truncate text-[10px] text-on-surface-variant">{stock.householdLabel}</span>}
+                </div>
+                <div className="md:col-span-2 md:text-right">
+                  <span className="text-xs text-on-surface-variant md:hidden mr-2">Market value:</span>
+                  <span className="font-mono text-sm font-semibold text-on-surface">{stock.quantity !== null && stock.price > 0 ? formatMarketValue(stock.quantity * stock.price, stock.currency) : "-"}</span>
+                  <span className="mt-0.5 block text-[10px] text-on-surface-variant">{stock.price > 0 ? `${formatPrice(stock.price)} ${stock.currency}` : "Price unavailable"}</span>
                 </div>
                 <div className={cn("md:col-span-2 md:text-right font-mono text-sm", trendColor)}>
-                  <span className="text-xs text-on-surface-variant md:hidden mr-2">Change:</span>
-                  {stock.price > 0 ? formatChange(stock.change) : "-"}
-                </div>
-                <div className={cn("md:col-span-2 md:text-right font-mono text-sm", trendColor)}>
-                  <span className="text-xs text-on-surface-variant md:hidden mr-2">%</span>
-                  {stock.price > 0 ? formatPercent(stock.changePercent) : "-"}
+                  <span className="text-xs text-on-surface-variant md:hidden mr-2">Today:</span>
+                  {stock.price > 0 ? `${formatChange(stock.change)} · ${formatPercent(stock.changePercent)}` : "-"}
                 </div>
                 <div className="hidden md:flex md:col-span-2 justify-end">
                   {stock.price > 0 && (
@@ -812,6 +995,13 @@ export default function WatchlistPage() {
                   )}
                 </div>
                 <div className="md:col-span-1 flex justify-end gap-1">
+                  <button
+                    onClick={() => openPositionEditor(stock)}
+                    className="p-1.5 text-on-surface-variant/40 hover:text-primary transition-colors"
+                    aria-label={`${stock.quantity === null ? "Add" : "Edit"} position for ${stock.symbol}`}
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
                   <button
                     onClick={() => {
                       setShowAlertModal(stock);
@@ -859,6 +1049,17 @@ export default function WatchlistPage() {
                   </div>
                 </div>
                 <MiniChart symbol={stock.symbol} positive={trend === "up"} className="my-5 h-20" />
+                <div className="mb-4 grid grid-cols-2 gap-3 rounded-2xl bg-surface-container-high/60 p-3">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Quantity</p>
+                    <p className="mt-1 font-mono text-sm font-semibold text-on-surface">{stock.quantity === null ? "Not added" : stock.quantity.toLocaleString("en-CA", { maximumFractionDigits: 6 })}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Market value</p>
+                    <p className="mt-1 font-mono text-sm font-semibold text-on-surface">{stock.quantity !== null && stock.price > 0 ? formatMarketValue(stock.quantity * stock.price, stock.currency) : "-"}</p>
+                  </div>
+                  {stock.householdLabel && <p className="col-span-2 truncate border-t border-outline-variant pt-2 text-xs text-on-surface-variant">{stock.householdLabel}</p>}
+                </div>
                 <div className="flex items-end justify-between gap-4 border-t border-outline-variant pt-4">
                   <div>
                     <p className="text-xs text-on-surface-variant">Latest available</p>
@@ -869,6 +1070,7 @@ export default function WatchlistPage() {
                     <p className="mt-1 text-sm">{stock.price > 0 ? formatPercent(stock.changePercent) : "-"}</p>
                   </div>
                 </div>
+                <button onClick={() => openPositionEditor(stock)} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full border border-outline-variant px-4 py-2 text-xs font-semibold text-on-surface-variant hover:border-primary/40 hover:text-primary"><Pencil className="h-3.5 w-3.5" />{stock.quantity === null ? "Add position details" : "Edit position"}</button>
               </article>
             );
           })}
