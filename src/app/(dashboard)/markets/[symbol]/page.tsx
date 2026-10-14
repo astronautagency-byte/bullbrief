@@ -3,278 +3,63 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import {
-  ArrowLeft,
-  Bell,
-  ChevronDown,
-  Clock3,
-  Loader2,
-  Plus,
-  RefreshCw,
-  Star,
-} from "lucide-react";
+import { ArrowLeft, BarChart3, Bell, Building2, Clock3, FileChartColumn, History, Landmark, LineChart, Loader2, Newspaper, Plus, RefreshCw, Star, Target } from "lucide-react";
 import { cn } from "@/lib/cn";
-import {
-  formatChange,
-  formatPercent,
-  formatPrice,
-  formatVolume,
-  getDataFreshnessLabel,
-  type Quote,
-} from "@/lib/types";
+import { formatChange, formatPercent, formatPrice, formatVolume, getDataFreshnessLabel, type Quote } from "@/lib/types";
 import { StockPerformanceChart } from "@/components/markets/stock-performance-chart";
 
-const RANGE_MAP: Record<string, "1d" | "5d" | "1mo" | "3mo" | "6mo" | "1y" | "5y" | "max"> = {
-  "1D": "1d",
-  "5D": "5d",
-  "1M": "1mo",
-  "6M": "6mo",
-  "1Y": "1y",
-  "5Y": "5y",
-};
+const RANGE_MAP = { "1D": "1d", "5D": "5d", "1M": "1mo", "6M": "6mo", "1Y": "1y", "5Y": "5y" } as const;
+type View = "summary" | "chart" | "statistics" | "history" | "profile" | "financials" | "analysis";
+const NAV: Array<{ id: View; label: string; icon: typeof BarChart3 }> = [
+  { id: "summary", label: "Summary", icon: BarChart3 }, { id: "chart", label: "Chart", icon: LineChart },
+  { id: "statistics", label: "Statistics", icon: FileChartColumn }, { id: "history", label: "Historical data", icon: History },
+  { id: "profile", label: "Profile", icon: Building2 }, { id: "financials", label: "Financials", icon: Landmark },
+  { id: "analysis", label: "Analyst ratings", icon: Target },
+];
+type Fundamentals = { sector: string | null; industry: string | null; dividendYield: number | null; priceToBook: number | null; priceToSales: number | null; priceToCashFlow: number | null; fairValue: number | null; economicMoat: string | null; profileDescription: string | null; website: string | null; employees: number | null };
+type Analysis = { source: string; recommendationKey: string | null; recommendationMean: number | null; analystCount: number | null; targetLow: number | null; targetMean: number | null; targetMedian: number | null; targetHigh: number | null; earningsGrowth: number | null; revenueGrowth: number | null; recommendationTrend: Array<{ period: string; strongBuy: number; buy: number; hold: number; sell: number; strongSell: number }>; earningsHistory: Array<{ quarter: string; actual: number | null; estimate: number | null; surprisePercent: number | null }>; profile: { description: string | null; website: string | null; employees: number | null; city: string | null; country: string | null }; technical: { provider: string | null; shortTerm: string | null; intermediateTerm: string | null; longTerm: string | null; support: number | null; resistance: number | null; valuation: string | null; valuationDetail: string | null } | null; research: { provider: string | null; title: string | null; publishedAt: string | null } | null };
+type HistoryPoint = { date: string; value: number; volume: number };
+type FinancialPeriod = { date: string; currency: string; revenue: number | null; operatingIncome: number | null; netIncome: number | null; dilutedEps: number | null };
+type FinancialSeries = { annual: FinancialPeriod[]; quarterly: FinancialPeriod[] };
 
-export default function StockDetailPage() {
-  const params = useParams<{ symbol: string }>();
-  return <StockDetailClient symbol={params.symbol.toUpperCase()} />;
-}
+export default function StockDetailPage() { const params = useParams<{ symbol: string }>(); return <StockDetailClient symbol={params.symbol.toUpperCase()} />; }
 
 function StockDetailClient({ symbol }: { symbol: string }) {
-  type Fundamentals = {
-    sector: string | null;
-    industry: string | null;
-    dividendYield: number | null;
-    priceToBook: number | null;
-    priceToSales: number | null;
-    priceToCashFlow: number | null;
-    fairValue: number | null;
-    economicMoat: string | null;
-  };
-  const [quote, setQuote] = useState<Quote | null>(null);
-  const [fundamentals, setFundamentals] = useState<Fundamentals | null>(null);
-  const [chartData, setChartData] = useState<number[]>([]);
-  const [chartLabels, setChartLabels] = useState<string[]>([]);
-  const [chartRange, setChartRange] = useState("1D");
-  const [loading, setLoading] = useState(true);
-  const [loadingChart, setLoadingChart] = useState(true);
-  const [isInWatchlist, setIsInWatchlist] = useState(false);
-
-  const fetchQuote = useCallback(async () => {
-    try {
-      const response = await fetch(
-        `/api/markets/stock?symbol=${encodeURIComponent(symbol)}&range=${RANGE_MAP[chartRange]}`
-      );
-      const json = await response.json();
-      if (json.quote) setQuote(json.quote);
-      if (json.fundamentals) setFundamentals(json.fundamentals);
-      if (json.history?.length) {
-        setChartData(json.history.map((point: { value: number }) => point.value));
-        setChartLabels(
-          json.history.map((point: { date: string }) => {
-            const date = new Date(point.date);
-            return chartRange === "1D"
-              ? date.toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit" })
-              : date.toLocaleDateString("en-CA", {
-                  month: "short",
-                  day: chartRange === "5Y" ? undefined : "numeric",
-                  year: chartRange === "5Y" ? "2-digit" : undefined,
-                });
-          })
-        );
-      } else {
-        setChartData([]);
-        setChartLabels([]);
-      }
-    } finally {
-      setLoading(false);
-      setLoadingChart(false);
-    }
-  }, [chartRange, symbol]);
-
-  useEffect(() => {
-    void fetchQuote();
-  }, [fetchQuote]);
-
-  const periodChange = (chartData.at(-1) ?? 0) - (chartData[0] ?? 0);
-  const periodChangePercent = chartData[0] ? (periodChange / chartData[0]) * 100 : 0;
-  const isPositive = periodChange >= 0;
-  const currency = quote?.currency ?? "USD";
-
-  const stats = useMemo(() => {
-    const available = [
-      ["Previous close", quote?.previousClose != null ? formatPrice(quote.previousClose) : null],
-      ["Open", quote?.open != null ? formatPrice(quote.open) : null],
-      ["Day range", quote?.low != null && quote.high != null ? `${formatPrice(quote.low)} - ${formatPrice(quote.high)}` : null],
-      ["52-week range", quote?.fiftyTwoWeekLow != null && quote.fiftyTwoWeekHigh != null ? `${formatPrice(quote.fiftyTwoWeekLow)} - ${formatPrice(quote.fiftyTwoWeekHigh)}` : null],
-      ["Volume", quote?.volume != null ? formatVolume(quote.volume) : null],
-      ["Avg. volume", quote?.averageVolume != null ? formatVolume(quote.averageVolume) : null],
-      ["Market cap", quote?.marketCap != null ? formatVolume(quote.marketCap) : null],
-      ["P/E ratio", quote?.pe != null ? quote.pe.toFixed(2) : null],
-      ["Dividend yield", fundamentals?.dividendYield != null ? `${fundamentals.dividendYield.toFixed(2)}%` : null],
-      ["Price / book", fundamentals?.priceToBook != null ? fundamentals.priceToBook.toFixed(2) : null],
-      ["Price / sales", fundamentals?.priceToSales != null ? fundamentals.priceToSales.toFixed(2) : null],
-      ["Sector", fundamentals?.sector ?? null],
-      ["Industry", fundamentals?.industry ?? null],
-      ["Currency", quote?.currency ?? null],
-      ["Exchange", quote?.exchangeCode ?? null],
-    ];
-    return available.filter((entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].length > 0);
-  }, [fundamentals, quote]);
-
-  if (loading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-7 w-7 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between gap-4 border-b border-outline-variant/70 pb-4">
-        <Link
-          href="/markets"
-          className="group flex items-center gap-2 text-xs text-on-surface-variant transition-colors hover:text-on-surface"
-        >
-          <span className="rounded-md border border-outline-variant bg-surface-container-low p-1.5 transition-colors group-hover:border-primary/40">
-            <ArrowLeft className="h-4 w-4" />
-          </span>
-          Markets
-        </Link>
-        <button
-          onClick={() => {
-            setLoadingChart(true);
-            void fetchQuote();
-          }}
-          className="flex items-center gap-2 text-xs text-on-surface-variant transition-colors hover:text-primary"
-        >
-          <RefreshCw className={cn("h-3.5 w-3.5", loadingChart && "animate-spin")} />
-          Refresh quote
-        </button>
-      </div>
-
-      <section className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary">
-              {quote?.exchangeCode || "Market"} · {currency}
-            </span>
-            <span className="h-1 w-1 rounded-full bg-outline" />
-            <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider text-on-surface-variant">
-              <Clock3 className="h-3 w-3" />
-              {getDataFreshnessLabel(quote?.dataType ?? "real_time")}
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <h1 className="font-display text-2xl font-bold tracking-tight text-on-surface md:text-3xl">
-              {quote?.companyName ?? symbol}
-            </h1>
-            <button
-              aria-label="Save stock"
-              onClick={() => setIsInWatchlist(!isInWatchlist)}
-              className="text-on-surface-variant transition-colors hover:text-primary"
-            >
-              <Star className={cn("h-5 w-5", isInWatchlist && "fill-primary text-primary")} />
-            </button>
-          </div>
-          <p className="mt-1 font-mono text-sm text-on-surface-variant">{symbol}</p>
-        </div>
-
-        <div className="flex gap-2">
-          <button className="flex items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-xs font-semibold text-on-surface transition-colors hover:border-primary/40">
-            <Bell className="h-4 w-4" />
-            Create alert
-          </button>
-          <button
-            onClick={() => setIsInWatchlist(!isInWatchlist)}
-            className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-on-primary transition-transform active:scale-95"
-          >
-            <Plus className={cn("h-4 w-4 transition-transform", isInWatchlist && "rotate-45")} />
-            {isInWatchlist ? "Remove from watchlist" : "Add to watchlist"}
-          </button>
-        </div>
-      </section>
-
-      <section>
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span className="font-mono text-4xl font-semibold tracking-[-0.06em] text-on-surface md:text-5xl">
-            {formatPrice(quote?.price ?? null)}
-          </span>
-          <span className={cn("font-mono text-lg font-semibold", (quote?.change ?? 0) >= 0 ? "text-primary" : "text-error")}>
-            {formatChange(quote?.change ?? null)} ({formatPercent(quote?.changePercent ?? null)})
-          </span>
-          <span className="font-mono text-xs uppercase text-on-surface-variant">{currency}</span>
-        </div>
-        <p className="mt-2 text-xs text-on-surface-variant">
-          As of {quote?.marketTimestamp ? new Date(quote.marketTimestamp).toLocaleString("en-CA", { hour: "numeric", minute: "2-digit", timeZoneName: "short" }) : "latest market update"}
-        </p>
-      </section>
-
-      <section className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest">
-        <div className="flex flex-col gap-3 border-b border-outline-variant/70 px-4 py-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex gap-1 overflow-x-auto">
-            {Object.keys(RANGE_MAP).map((range) => (
-              <button
-                key={range}
-                onClick={() => {
-                  setLoadingChart(true);
-                  setChartRange(range);
-                }}
-                className={cn(
-                  "rounded-md px-3 py-1.5 font-mono text-[11px] transition-colors",
-                  chartRange === range
-                    ? "bg-primary/15 text-primary"
-                    : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
-                )}
-              >
-                {range}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-3 font-mono text-[11px]">
-            <span className="text-on-surface-variant">{chartRange} performance</span>
-            <span className={isPositive ? "text-primary" : "text-error"}>
-              {periodChange >= 0 ? "+" : ""}{periodChange.toFixed(2)} ({periodChangePercent >= 0 ? "+" : ""}{periodChangePercent.toFixed(2)}%)
-            </span>
-          </div>
-        </div>
-
-        <div className="relative px-2 pb-2 pt-3 md:px-4">
-          {loadingChart ? (
-            <div className="flex h-[250px] items-center justify-center md:h-[300px]">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            </div>
-          ) : chartData.length > 1 ? (
-            <StockPerformanceChart
-              data={chartData}
-              labels={chartLabels}
-              previousClose={quote?.previousClose ?? null}
-              positive={isPositive}
-              currency={currency}
-            />
-          ) : (
-            <div className="flex h-[250px] items-center justify-center text-sm text-on-surface-variant md:h-[300px]">
-              Chart data is unavailable for this period.
-            </div>
-          )}
-        </div>
-      </section>
-
-      <section className="grid grid-cols-1 gap-x-8 md:grid-cols-2 xl:grid-cols-4">
-        {stats.map(([label, value]) => (
-          <div key={label} className="flex items-center justify-between gap-4 border-b border-outline-variant/60 py-3">
-            <span className="text-xs text-on-surface-variant">{label}</span>
-            <span className="text-right font-mono text-xs font-semibold text-on-surface">{value}</span>
-          </div>
-        ))}
-      </section>
-
-      <button className="flex w-full items-center justify-between rounded-xl border border-outline-variant bg-surface-container-low px-4 py-4 text-left transition-colors hover:border-primary/30">
-        <span>
-          <span className="block text-sm font-semibold text-on-surface">{quote?.companyName ?? symbol} overview</span>
-          <span className="mt-0.5 block text-xs text-on-surface-variant">Company profile, valuation and trading details</span>
-        </span>
-        <ChevronDown className="h-4 w-4 text-on-surface-variant" />
-      </button>
-    </div>
-  );
+  const [quote, setQuote] = useState<Quote | null>(null); const [fundamentals, setFundamentals] = useState<Fundamentals | null>(null);
+  const [analysis, setAnalysis] = useState<Analysis | null>(null); const [history, setHistory] = useState<HistoryPoint[]>([]);
+  const [financialSeries, setFinancialSeries] = useState<FinancialSeries | null>(null);
+  const [chartRange, setChartRange] = useState<keyof typeof RANGE_MAP>("1D"); const [activeView, setActiveView] = useState<View>("summary");
+  const [loading, setLoading] = useState(true); const [loadingChart, setLoadingChart] = useState(true); const [isInWatchlist, setIsInWatchlist] = useState(false);
+  const fetchQuote = useCallback(async () => { try { const response = await fetch(`/api/markets/stock?symbol=${encodeURIComponent(symbol)}&range=${RANGE_MAP[chartRange]}`); const json = await response.json(); setQuote(json.quote ?? null); setFundamentals(json.fundamentals ?? null); setAnalysis(json.analysis ?? null); setFinancialSeries(json.financialSeries ?? null); setHistory(json.history ?? []); } finally { setLoading(false); setLoadingChart(false); } }, [chartRange, symbol]);
+  useEffect(() => { void fetchQuote(); }, [fetchQuote]);
+  const chartData = history.map((point) => point.value);
+  const chartLabels = history.map((point) => { const date = new Date(point.date); return chartRange === "1D" ? date.toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit" }) : date.toLocaleDateString("en-CA", { month: "short", day: chartRange === "5Y" ? undefined : "numeric", year: chartRange === "5Y" ? "2-digit" : undefined }); });
+  const periodChange = (chartData.at(-1) ?? 0) - (chartData[0] ?? 0); const periodChangePercent = chartData[0] ? (periodChange / chartData[0]) * 100 : 0; const isPositive = periodChange >= 0; const currency = quote?.currency ?? "USD";
+  const stats = useMemo(() => [["Previous close", quote?.previousClose != null ? formatPrice(quote.previousClose) : null], ["Open", quote?.open != null ? formatPrice(quote.open) : null], ["Day range", quote?.low != null && quote.high != null ? `${formatPrice(quote.low)} to ${formatPrice(quote.high)}` : null], ["52-week range", quote?.fiftyTwoWeekLow != null && quote.fiftyTwoWeekHigh != null ? `${formatPrice(quote.fiftyTwoWeekLow)} to ${formatPrice(quote.fiftyTwoWeekHigh)}` : null], ["Volume", quote?.volume != null ? formatVolume(quote.volume) : null], ["Average volume", quote?.averageVolume != null ? formatVolume(quote.averageVolume) : null], ["Market cap", quote?.marketCap != null ? formatVolume(quote.marketCap) : null], ["P/E ratio", quote?.pe != null ? quote.pe.toFixed(2) : null], ["Dividend yield", fundamentals?.dividendYield != null ? `${fundamentals.dividendYield.toFixed(2)}%` : null], ["Price / book", fundamentals?.priceToBook?.toFixed(2) ?? null], ["Price / sales", fundamentals?.priceToSales?.toFixed(2) ?? null], ["Price / cash flow", fundamentals?.priceToCashFlow?.toFixed(2) ?? null], ["Fair value", fundamentals?.fairValue != null ? formatPrice(fundamentals.fairValue) : null], ["Currency", quote?.currency ?? null], ["Exchange", quote?.exchangeCode ?? null]].filter((item): item is [string, string] => typeof item[1] === "string"), [fundamentals, quote]);
+  if (loading) return <div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="h-7 w-7 animate-spin text-primary" /></div>;
+  const showChart = activeView === "summary" || activeView === "chart";
+  return <div className="space-y-4">
+    <div className="flex items-center justify-between border-b border-outline-variant/70 pb-3"><Link href="/markets" className="flex items-center gap-2 text-xs text-on-surface-variant hover:text-on-surface"><ArrowLeft className="h-4 w-4" /> Markets</Link><button onClick={() => { setLoadingChart(true); void fetchQuote(); }} className="flex items-center gap-2 text-xs text-on-surface-variant hover:text-primary"><RefreshCw className={cn("h-3.5 w-3.5", loadingChart && "animate-spin")} /> Refresh</button></div>
+    <header className="flex flex-col gap-4 border-b border-outline-variant/70 pb-5 lg:flex-row lg:items-end lg:justify-between"><div><div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-on-surface-variant"><span>{quote?.exchangeCode || "Market"} · {currency}</span><span className="h-1 w-1 rounded-full bg-outline" /><Clock3 className="h-3 w-3" /> {getDataFreshnessLabel(quote?.dataType ?? "delayed")}</div><div className="flex items-center gap-3"><h1 className="font-display text-3xl font-bold text-on-surface">{quote?.companyName ?? symbol}</h1><button aria-label="Save security" onClick={() => setIsInWatchlist(!isInWatchlist)}><Star className={cn("h-5 w-5 text-on-surface-variant", isInWatchlist && "fill-primary text-primary")} /></button></div><div className="mt-3 flex flex-wrap items-baseline gap-3"><span className="font-mono text-4xl font-semibold tracking-[-0.06em] text-on-surface">{formatPrice(quote?.price ?? null)}</span><span className={cn("font-mono text-base font-semibold", (quote?.change ?? 0) >= 0 ? "text-primary" : "text-error")}>{formatChange(quote?.change ?? null)} ({formatPercent(quote?.changePercent ?? null)})</span><span className="font-mono text-xs text-on-surface-variant">{currency}</span></div></div><div className="flex gap-2"><button className="flex items-center gap-2 rounded-lg border border-outline-variant px-3 py-2 text-xs font-semibold"><Bell className="h-4 w-4" /> Create alert</button><button onClick={() => setIsInWatchlist(!isInWatchlist)} className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-on-primary"><Plus className="h-4 w-4" /> {isInWatchlist ? "In watchlist" : "Add to watchlist"}</button></div></header>
+    <div className="grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)]"><aside className="lg:sticky lg:top-20 lg:self-start"><nav aria-label="Security research sections" className="flex gap-1 overflow-x-auto border-b border-outline-variant pb-2 lg:flex-col lg:border-b-0 lg:border-r lg:pb-0 lg:pr-4">{NAV.map(({ id, label, icon: Icon }) => <button key={id} onClick={() => setActiveView(id)} className={cn("flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold transition-colors", activeView === id ? "bg-primary/15 text-primary" : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface")}><Icon className="h-4 w-4" />{label}</button>)}<Link href={`/news?q=${encodeURIComponent(symbol)}`} className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"><Newspaper className="h-4 w-4" /> News</Link></nav></aside>
+      <main className="min-w-0 space-y-5"><div className="flex items-center justify-between"><div><p className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary">Security research</p><h2 className="mt-1 font-display text-2xl font-semibold capitalize text-on-surface">{activeView === "analysis" ? "Analyst ratings" : activeView}</h2></div><p className="hidden text-xs text-on-surface-variant md:block">As of {quote?.marketTimestamp ? new Date(quote.marketTimestamp).toLocaleDateString("en-CA") : "latest update"}</p></div>
+        {showChart && <ChartPanel chartRange={chartRange} setChartRange={(range) => { setLoadingChart(true); setChartRange(range); }} data={chartData} labels={chartLabels} loading={loadingChart} previousClose={quote?.previousClose ?? null} positive={isPositive} currency={currency} change={periodChange} changePercent={periodChangePercent} />}
+        {activeView === "summary" && <><AnalystSnapshot analysis={analysis} quote={quote} compact /><TechnicalPanel analysis={analysis} /><StatsGrid stats={stats.slice(0, 8)} /></>}{activeView === "statistics" && <StatsGrid stats={stats} />}{activeView === "history" && <HistoryTable history={history} currency={currency} />}{activeView === "profile" && <ProfilePanel quote={quote} fundamentals={fundamentals} analysis={analysis} />}{activeView === "financials" && <FinancialsPanel quote={quote} fundamentals={fundamentals} analysis={analysis} financialSeries={financialSeries} />}{activeView === "analysis" && <><AnalystSnapshot analysis={analysis} quote={quote} /><TechnicalPanel analysis={analysis} /></>}
+      </main></div>
+  </div>;
 }
+
+function ChartPanel({ chartRange, setChartRange, data, labels, loading, previousClose, positive, currency, change, changePercent }: { chartRange: keyof typeof RANGE_MAP; setChartRange: (r: keyof typeof RANGE_MAP) => void; data: number[]; labels: string[]; loading: boolean; previousClose: number | null; positive: boolean; currency: string; change: number; changePercent: number }) { return <section className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant/70 px-4 py-3"><div className="flex gap-1">{Object.keys(RANGE_MAP).map((range) => <button key={range} onClick={() => setChartRange(range as keyof typeof RANGE_MAP)} className={cn("rounded-md px-3 py-1.5 font-mono text-[11px]", chartRange === range ? "bg-primary/15 text-primary" : "text-on-surface-variant hover:bg-surface-container-high")}>{range}</button>)}</div><span className={cn("font-mono text-[11px]", positive ? "text-primary" : "text-error")}>{change >= 0 ? "+" : ""}{change.toFixed(2)} ({changePercent >= 0 ? "+" : ""}{changePercent.toFixed(2)}%)</span></div><div className="relative px-3 py-3">{loading ? <div className="flex h-[300px] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : data.length > 1 ? <StockPerformanceChart data={data} labels={labels} previousClose={previousClose} positive={positive} currency={currency} /> : <div className="flex h-[300px] items-center justify-center text-sm text-on-surface-variant">Chart data is unavailable for this period.</div>}</div></section>; }
+function StatsGrid({ stats }: { stats: Array<[string, string]> }) { return <section className="grid overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest md:grid-cols-2">{stats.map(([label, value]) => <div key={label} className="flex items-center justify-between gap-4 border-b border-outline-variant/60 px-4 py-3 odd:md:border-r"><span className="text-xs text-on-surface-variant">{label}</span><span className="text-right font-mono text-xs font-semibold text-on-surface">{value}</span></div>)}</section>; }
+function AnalystSnapshot({ analysis, quote, compact = false }: { analysis: Analysis | null; quote: Quote | null; compact?: boolean }) { const price = quote?.price ?? 0; const mean = analysis?.targetMean ?? null; const upside = mean && price ? ((mean - price) / price) * 100 : null; const trend = analysis?.recommendationTrend?.[0]; const total = trend ? trend.strongBuy + trend.buy + trend.hold + trend.sell + trend.strongSell : 0; const isConsensus = analysis?.analystCount != null; return <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 md:p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-semibold text-on-surface">{isConsensus ? "Analyst consensus" : "Available analyst rating"}</p><p className="mt-1 text-xs text-on-surface-variant">Third-party research, not a BullBrief recommendation.</p></div><span className={cn("rounded-full px-3 py-1 font-mono text-[10px] uppercase tracking-wider", analysis ? "bg-primary/15 text-primary" : "bg-surface-container-high text-on-surface-variant")}>{analysis ? analysis.source : "Data unavailable"}</span></div><div className="mt-5 grid gap-4 sm:grid-cols-3"><Metric label={isConsensus ? "Consensus" : "Rating"} value={analysis?.recommendationKey ? titleCase(analysis.recommendationKey) : "Not available"} accent /><Metric label={isConsensus ? "Mean target" : "Target price"} value={mean != null ? `${formatPrice(mean)} ${quote?.currency ?? ""}` : "Not available"} detail={upside != null ? `${upside >= 0 ? "+" : ""}${upside.toFixed(1)}% implied` : undefined} /><Metric label="Analyst opinions" value={analysis?.analystCount != null ? String(analysis.analystCount) : analysis ? "Single provider" : "Not available"} /></div>{!compact && <><div className="mt-6"><div className="mb-2 flex justify-between text-[11px] text-on-surface-variant"><span>Strong buy</span><span>Strong sell</span></div>{total > 0 ? <div className="flex h-3 overflow-hidden rounded-full bg-surface-container-high"><Segment value={trend!.strongBuy} total={total} className="bg-emerald-400" /><Segment value={trend!.buy} total={total} className="bg-primary" /><Segment value={trend!.hold} total={total} className="bg-amber-400" /><Segment value={trend!.sell} total={total} className="bg-orange-500" /><Segment value={trend!.strongSell} total={total} className="bg-error" /></div> : <div className="rounded-lg border border-dashed border-outline-variant px-4 py-5 text-center text-xs text-on-surface-variant">A consensus distribution is not available for this security.</div>}</div><div className="mt-6 grid gap-3 sm:grid-cols-4"><Metric label="Low target" value={analysis?.targetLow != null ? formatPrice(analysis.targetLow) : "N/A"} /><Metric label="Median target" value={analysis?.targetMedian != null ? formatPrice(analysis.targetMedian) : "N/A"} /><Metric label={isConsensus ? "Mean target" : "Available target"} value={analysis?.targetMean != null ? formatPrice(analysis.targetMean) : "N/A"} /><Metric label="High target" value={analysis?.targetHigh != null ? formatPrice(analysis.targetHigh) : "N/A"} /></div><EarningsHistory analysis={analysis} /></>}</section>; }
+function Segment({ value, total, className }: { value: number; total: number; className: string }) { return <span className={className} style={{ width: `${(value / total) * 100}%` }} />; }
+function Metric({ label, value, detail, accent }: { label: string; value: string; detail?: string; accent?: boolean }) { return <div className="rounded-lg bg-surface-container-low px-4 py-3"><p className="font-mono text-[10px] uppercase tracking-wider text-on-surface-variant">{label}</p><p className={cn("mt-2 text-lg font-semibold", accent ? "text-primary" : "text-on-surface")}>{value}</p>{detail && <p className="mt-1 text-[11px] text-on-surface-variant">{detail}</p>}</div>; }
+function EarningsHistory({ analysis }: { analysis: Analysis | null }) { const rows = analysis?.earningsHistory ?? []; return <div className="mt-7"><h3 className="text-sm font-semibold text-on-surface">Earnings history</h3>{rows.length ? <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{rows.map((row) => { const beat = (row.surprisePercent ?? 0) >= 0; return <div key={row.quarter} className="rounded-lg border border-outline-variant p-3"><p className="font-mono text-[10px] text-on-surface-variant">{row.quarter}</p><p className="mt-2 text-sm font-semibold">{row.actual?.toFixed(2) ?? "N/A"} actual</p><p className="mt-1 text-xs text-on-surface-variant">{row.estimate?.toFixed(2) ?? "N/A"} estimate</p>{row.surprisePercent != null && <p className={cn("mt-2 font-mono text-xs", beat ? "text-primary" : "text-error")}>{beat ? "Beat" : "Miss"} {Math.abs(row.surprisePercent).toFixed(1)}%</p>}</div>; })}</div> : <p className="mt-3 text-xs text-on-surface-variant">Earnings history is unavailable for this security.</p>}</div>; }
+function TechnicalPanel({ analysis }: { analysis: Analysis | null }) { const technical = analysis?.technical; if (!technical || !Object.values(technical).some(Boolean)) return null; return <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5"><div className="flex items-center justify-between gap-3"><div><h3 className="text-sm font-semibold">Market signals</h3><p className="mt-1 text-xs text-on-surface-variant">Third-party technical context, not a recommendation.</p></div><span className="font-mono text-[10px] uppercase tracking-wider text-primary">{technical.provider ?? "Market research"}</span></div><div className="mt-4 grid gap-3 sm:grid-cols-3"><Metric label="Short term" value={technical.shortTerm ?? "Not available"} /><Metric label="Intermediate" value={technical.intermediateTerm ?? "Not available"} /><Metric label="Long term" value={technical.longTerm ?? "Not available"} /></div><div className="mt-3 grid gap-3 sm:grid-cols-3"><Metric label="Support" value={technical.support != null ? formatPrice(technical.support) : "Not available"} /><Metric label="Resistance" value={technical.resistance != null ? formatPrice(technical.resistance) : "Not available"} /><Metric label="Relative valuation" value={[technical.valuation, technical.valuationDetail].filter(Boolean).join(" · ") || "Not available"} /></div></section>; }
+function HistoryTable({ history, currency }: { history: HistoryPoint[]; currency: string }) { return <section className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest"><div className="grid grid-cols-3 border-b border-outline-variant bg-surface-container-low px-4 py-2 font-mono text-[10px] uppercase tracking-wider text-on-surface-variant"><span>Date</span><span className="text-right">Close</span><span className="text-right">Volume</span></div>{history.slice().reverse().slice(0, 30).map((row) => <div key={row.date} className="grid grid-cols-3 border-b border-outline-variant/50 px-4 py-3 text-xs"><span>{new Date(row.date).toLocaleDateString("en-CA")}</span><span className="text-right font-mono">{formatPrice(row.value)} {currency}</span><span className="text-right font-mono text-on-surface-variant">{formatVolume(row.volume)}</span></div>)}</section>; }
+function ProfilePanel({ quote, fundamentals, analysis }: { quote: Quote | null; fundamentals: Fundamentals | null; analysis: Analysis | null }) { const description = fundamentals?.profileDescription ?? analysis?.profile.description; return <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5"><h3 className="font-display text-xl font-semibold">{quote?.companyName} profile</h3><p className="mt-4 max-w-4xl text-sm leading-7 text-on-surface-variant">{description ?? "A current company profile is not available from the connected provider."}</p><div className="mt-6 grid gap-3 sm:grid-cols-3"><Metric label="Sector" value={fundamentals?.sector ?? "Not available"} /><Metric label="Industry" value={fundamentals?.industry ?? "Not available"} /><Metric label="Employees" value={(fundamentals?.employees ?? analysis?.profile.employees)?.toLocaleString() ?? "Not available"} /></div></section>; }
+function FinancialsPanel({ quote, fundamentals, analysis, financialSeries }: { quote: Quote | null; fundamentals: Fundamentals | null; analysis: Analysis | null; financialSeries: FinancialSeries | null }) { return <div className="space-y-4"><section className="grid gap-4 md:grid-cols-2"><div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5"><h3 className="text-sm font-semibold">Valuation</h3><div className="mt-4 space-y-3"><Row label="Market capitalization" value={quote?.marketCap != null ? formatVolume(quote.marketCap) : "Not available"} /><Row label="P/E ratio" value={quote?.pe?.toFixed(2) ?? "Not available"} /><Row label="Price / book" value={fundamentals?.priceToBook?.toFixed(2) ?? "Not available"} /><Row label="Price / sales" value={fundamentals?.priceToSales?.toFixed(2) ?? "Not available"} /></div></div><div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5"><h3 className="text-sm font-semibold">Growth and quality</h3><div className="mt-4 space-y-3"><Row label="Revenue growth" value={analysis?.revenueGrowth != null ? formatPercent(analysis.revenueGrowth * 100) : "Not available"} /><Row label="Earnings growth" value={analysis?.earningsGrowth != null ? formatPercent(analysis.earningsGrowth * 100) : "Not available"} /><Row label="Dividend yield" value={fundamentals?.dividendYield != null ? `${fundamentals.dividendYield.toFixed(2)}%` : "Not available"} /><Row label="Economic moat" value={fundamentals?.economicMoat ?? "Not available"} /></div></div></section><FinancialTable periods={financialSeries?.annual ?? []} /></div>; }
+function FinancialTable({ periods }: { periods: FinancialPeriod[] }) { if (!periods.length) return <section className="rounded-xl border border-outline-variant p-5 text-xs text-on-surface-variant">Financial statement history is not available for this security.</section>; return <section className="overflow-x-auto rounded-xl border border-outline-variant bg-surface-container-lowest"><div className="border-b border-outline-variant px-4 py-3"><h3 className="text-sm font-semibold">Annual financials</h3></div><table className="w-full min-w-[650px] text-xs"><thead><tr className="bg-surface-container-low text-on-surface-variant"><th className="px-4 py-3 text-left font-medium">Fiscal period</th><th className="px-4 py-3 text-right font-medium">Revenue</th><th className="px-4 py-3 text-right font-medium">Operating income</th><th className="px-4 py-3 text-right font-medium">Net income</th><th className="px-4 py-3 text-right font-medium">Diluted EPS</th></tr></thead><tbody>{periods.slice().reverse().map((period) => <tr key={period.date} className="border-t border-outline-variant/50"><td className="px-4 py-3 font-mono">{period.date}</td><td className="px-4 py-3 text-right font-mono">{formatFinancial(period.revenue, period.currency)}</td><td className="px-4 py-3 text-right font-mono">{formatFinancial(period.operatingIncome, period.currency)}</td><td className="px-4 py-3 text-right font-mono">{formatFinancial(period.netIncome, period.currency)}</td><td className="px-4 py-3 text-right font-mono">{period.dilutedEps?.toFixed(2) ?? "N/A"}</td></tr>)}</tbody></table></section>; }
+function formatFinancial(value: number | null, currency: string) { if (value == null) return "N/A"; return `${new Intl.NumberFormat("en-CA", { notation: "compact", maximumFractionDigits: 1 }).format(value)} ${currency}`; }
+function Row({ label, value }: { label: string; value: string }) { return <div className="flex justify-between gap-4 border-b border-outline-variant/50 pb-3 text-xs"><span className="text-on-surface-variant">{label}</span><span className="font-mono font-semibold text-on-surface">{value}</span></div>; }
+function titleCase(value: string) { return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase()); }

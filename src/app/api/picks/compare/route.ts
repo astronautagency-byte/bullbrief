@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getStockPrices } from "@/lib/providers/yahoo/client";
-import { getMultipleStockDetails } from "@/lib/providers/morningstar/rapidapi";
+import { getMultipleStockDetails } from "@/lib/providers/morningstar";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

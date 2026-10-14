@@ -2,6 +2,7 @@ import type { Quote } from "@/lib/types";
 
 const YAHOO_BASE = "https://query1.finance.yahoo.com/v8/finance/chart";
 const YAHOO_SEARCH_BASE = "https://query2.finance.yahoo.com/v1/finance/search";
+const YAHOO_SUMMARY_BASE = "https://query2.finance.yahoo.com/v10/finance/quoteSummary";
 const HEADERS = {
   "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
 };
@@ -107,6 +108,235 @@ export interface ChartData {
   symbol: string;
   points: HistoricalPoint[];
   currency: string;
+}
+
+export interface StockAnalysis {
+  source: "Yahoo Finance";
+  recommendationKey: string | null;
+  recommendationMean: number | null;
+  analystCount: number | null;
+  targetLow: number | null;
+  targetMean: number | null;
+  targetMedian: number | null;
+  targetHigh: number | null;
+  earningsGrowth: number | null;
+  revenueGrowth: number | null;
+  recommendationTrend: Array<{
+    period: string;
+    strongBuy: number;
+    buy: number;
+    hold: number;
+    sell: number;
+    strongSell: number;
+  }>;
+  earningsHistory: Array<{
+    quarter: string;
+    actual: number | null;
+    estimate: number | null;
+    surprisePercent: number | null;
+  }>;
+  profile: {
+    description: string | null;
+    website: string | null;
+    employees: number | null;
+    city: string | null;
+    country: string | null;
+  };
+  technical: {
+    provider: string | null;
+    shortTerm: string | null;
+    intermediateTerm: string | null;
+    longTerm: string | null;
+    support: number | null;
+    resistance: number | null;
+    valuation: string | null;
+    valuationDetail: string | null;
+  } | null;
+  research: {
+    provider: string | null;
+    title: string | null;
+    publishedAt: string | null;
+  } | null;
+}
+
+export interface StockFinancialPeriod {
+  date: string;
+  currency: string;
+  revenue: number | null;
+  operatingIncome: number | null;
+  netIncome: number | null;
+  dilutedEps: number | null;
+}
+
+export interface StockFinancialSeries {
+  annual: StockFinancialPeriod[];
+  quarterly: StockFinancialPeriod[];
+}
+
+function rawNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (value && typeof value === "object" && "raw" in value) {
+    const raw = (value as { raw?: unknown }).raw;
+    return typeof raw === "number" && Number.isFinite(raw) ? raw : null;
+  }
+  return null;
+}
+
+export async function getStockAnalysis(symbol: string): Promise<StockAnalysis | null> {
+  const yahooSymbol = toYahooSymbol(symbol);
+  const modules = [
+    "financialData",
+    "recommendationTrend",
+    "earningsHistory",
+    "earningsTrend",
+    "assetProfile",
+  ].join(",");
+
+  try {
+    const response = await fetch(
+      `${YAHOO_SUMMARY_BASE}/${encodeURIComponent(yahooSymbol)}?modules=${modules}`,
+      { headers: HEADERS, next: { revalidate: 900 } }
+    );
+    if (!response.ok) return getStockInsightRecommendation(yahooSymbol);
+    const payload = await response.json();
+    const result = payload?.quoteSummary?.result?.[0];
+    if (!result) return getStockInsightRecommendation(yahooSymbol);
+    const financial = result.financialData ?? {};
+    const profile = result.assetProfile ?? {};
+
+    return {
+      source: "Yahoo Finance",
+      recommendationKey: typeof financial.recommendationKey === "string" ? financial.recommendationKey : null,
+      recommendationMean: rawNumber(financial.recommendationMean),
+      analystCount: rawNumber(financial.numberOfAnalystOpinions),
+      targetLow: rawNumber(financial.targetLowPrice),
+      targetMean: rawNumber(financial.targetMeanPrice),
+      targetMedian: rawNumber(financial.targetMedianPrice),
+      targetHigh: rawNumber(financial.targetHighPrice),
+      earningsGrowth: rawNumber(financial.earningsGrowth),
+      revenueGrowth: rawNumber(financial.revenueGrowth),
+      recommendationTrend: (result.recommendationTrend?.trend ?? []).slice(0, 4).map((item: Record<string, unknown>) => ({
+        period: typeof item.period === "string" ? item.period : "Current",
+        strongBuy: rawNumber(item.strongBuy) ?? 0,
+        buy: rawNumber(item.buy) ?? 0,
+        hold: rawNumber(item.hold) ?? 0,
+        sell: rawNumber(item.sell) ?? 0,
+        strongSell: rawNumber(item.strongSell) ?? 0,
+      })),
+      earningsHistory: (result.earningsHistory?.history ?? []).slice(-4).map((item: Record<string, unknown>) => ({
+        quarter: typeof (item.quarter as { fmt?: unknown })?.fmt === "string" ? (item.quarter as { fmt: string }).fmt : "Quarter",
+        actual: rawNumber(item.epsActual),
+        estimate: rawNumber(item.epsEstimate),
+        surprisePercent: rawNumber(item.surprisePercent),
+      })),
+      profile: {
+        description: typeof profile.longBusinessSummary === "string" ? profile.longBusinessSummary : null,
+        website: typeof profile.website === "string" ? profile.website : null,
+        employees: rawNumber(profile.fullTimeEmployees),
+        city: typeof profile.city === "string" ? profile.city : null,
+        country: typeof profile.country === "string" ? profile.country : null,
+      },
+      technical: null,
+      research: null,
+    };
+  } catch {
+    return getStockInsightRecommendation(yahooSymbol);
+  }
+}
+
+async function getStockInsightRecommendation(yahooSymbol: string): Promise<StockAnalysis | null> {
+  try {
+    const response = await fetch(
+      `https://query2.finance.yahoo.com/ws/insights/v2/finance/insights?symbol=${encodeURIComponent(yahooSymbol)}`,
+      { headers: HEADERS, next: { revalidate: 900 } }
+    );
+    if (!response.ok) return null;
+    const payload = await response.json();
+    const result = payload?.finance?.result;
+    const recommendation = result?.recommendation;
+    if (!recommendation?.rating && typeof recommendation?.targetPrice !== "number") return null;
+    const report = result?.upsellSearchDD?.researchReports;
+    return {
+      source: typeof recommendation.provider === "string" ? recommendation.provider : "Third-party research",
+      recommendationKey: typeof recommendation.rating === "string" ? recommendation.rating.toLowerCase() : null,
+      recommendationMean: null,
+      analystCount: null,
+      targetLow: null,
+      targetMean: rawNumber(recommendation.targetPrice),
+      targetMedian: null,
+      targetHigh: null,
+      earningsGrowth: null,
+      revenueGrowth: null,
+      recommendationTrend: [],
+      earningsHistory: [],
+      profile: {
+        description: typeof report?.summary === "string" ? report.summary : null,
+        website: null,
+        employees: null,
+        city: null,
+        country: null,
+      },
+      technical: {
+        provider: typeof result?.instrumentInfo?.technicalEvents?.provider === "string" ? result.instrumentInfo.technicalEvents.provider : null,
+        shortTerm: typeof result?.instrumentInfo?.technicalEvents?.shortTermOutlook?.direction === "string" ? result.instrumentInfo.technicalEvents.shortTermOutlook.direction : null,
+        intermediateTerm: typeof result?.instrumentInfo?.technicalEvents?.intermediateTermOutlook?.direction === "string" ? result.instrumentInfo.technicalEvents.intermediateTermOutlook.direction : null,
+        longTerm: typeof result?.instrumentInfo?.technicalEvents?.longTermOutlook?.direction === "string" ? result.instrumentInfo.technicalEvents.longTermOutlook.direction : null,
+        support: rawNumber(result?.instrumentInfo?.keyTechnicals?.support),
+        resistance: rawNumber(result?.instrumentInfo?.keyTechnicals?.resistance),
+        valuation: typeof result?.instrumentInfo?.valuation?.description === "string" ? result.instrumentInfo.valuation.description : null,
+        valuationDetail: typeof result?.instrumentInfo?.valuation?.relativeValue === "string" ? result.instrumentInfo.valuation.relativeValue : null,
+      },
+      research: {
+        provider: typeof recommendation.provider === "string" ? recommendation.provider : null,
+        title: typeof report?.title === "string" ? report.title : null,
+        publishedAt: typeof report?.reportDate === "string" ? report.reportDate : null,
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function getStockFinancialSeries(symbol: string): Promise<StockFinancialSeries | null> {
+  const yahooSymbol = toYahooSymbol(symbol);
+  const now = Math.floor(Date.now() / 1000);
+  const start = now - 6 * 365 * 24 * 60 * 60;
+  const types = [
+    "annualTotalRevenue", "annualOperatingIncome", "annualNetIncome", "annualDilutedEPS",
+    "quarterlyTotalRevenue", "quarterlyOperatingIncome", "quarterlyNetIncome", "quarterlyDilutedEPS",
+  ];
+  try {
+    const response = await fetch(
+      `https://query2.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries/${encodeURIComponent(yahooSymbol)}?symbol=${encodeURIComponent(yahooSymbol)}&type=${types.join(",")}&period1=${start}&period2=${now}`,
+      { headers: HEADERS, next: { revalidate: 3600 } }
+    );
+    if (!response.ok) return null;
+    const payload = await response.json();
+    const series = payload?.timeseries?.result ?? [];
+    const byType = new Map<string, Array<Record<string, unknown>>>();
+    for (const item of series) {
+      const type = item?.meta?.type?.[0];
+      if (typeof type === "string" && Array.isArray(item[type])) byType.set(type, item[type]);
+    }
+    const assemble = (prefix: "annual" | "quarterly") => {
+      const revenue = byType.get(`${prefix}TotalRevenue`) ?? [];
+      return revenue.slice(-5).map((item) => {
+        const date = typeof item.asOfDate === "string" ? item.asOfDate : "";
+        const find = (name: string) => byType.get(`${prefix}${name}`)?.find((entry) => entry.asOfDate === date);
+        return {
+          date,
+          currency: typeof item.currencyCode === "string" ? item.currencyCode : "USD",
+          revenue: rawNumber(item.reportedValue),
+          operatingIncome: rawNumber(find("OperatingIncome")?.reportedValue),
+          netIncome: rawNumber(find("NetIncome")?.reportedValue),
+          dilutedEps: rawNumber(find("DilutedEPS")?.reportedValue),
+        };
+      });
+    };
+    return { annual: assemble("annual"), quarterly: assemble("quarterly") };
+  } catch {
+    return null;
+  }
 }
 
 export async function getStockPrice(

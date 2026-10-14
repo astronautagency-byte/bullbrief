@@ -1,5 +1,6 @@
 import type { KypProductRecord } from "@/lib/kyp";
 import { formatPercent, formatPrice, formatVolume } from "@/lib/types";
+import { Check, Plus } from "lucide-react";
 
 const EMPTY = "Not available";
 
@@ -89,7 +90,101 @@ function StockReport({ record }: { record: KypProductRecord }) {
   );
 }
 
-function FundReport({ record }: { record: KypProductRecord }) {
+type FundPeer = {
+  name: string;
+  code: string;
+  category: string;
+  score: number;
+  return3Y: number;
+  return5Y: number;
+  return10Y: number | null;
+  risk: "Low to medium" | "Medium" | "Medium to high";
+  mer: number;
+  process: "High" | "Above average" | "Average";
+  people: "High" | "Above average" | "Average";
+  parent: "High" | "Above average" | "Average";
+  esg: "Low" | "Medium" | "High";
+};
+
+const DEMO_PEERS: FundPeer[] = [
+  { name: "Maple Health Leaders F", code: "MHL401", category: "Health Care Equity", score: 4, return3Y: 10.8, return5Y: 9.4, return10Y: 8.7, risk: "Medium", mer: 0.96, process: "High", people: "Above average", parent: "High", esg: "Medium" },
+  { name: "North Harbour Global Health A", code: "NHG210", category: "Health Care Equity", score: 3, return3Y: 9.9, return5Y: 8.8, return10Y: 7.9, risk: "Medium", mer: 1.74, process: "Above average", people: "High", parent: "Above average", esg: "Low" },
+  { name: "Dominion Healthcare Index", code: "DHI115", category: "Health Care Equity", score: 4, return3Y: 11.2, return5Y: 9.1, return10Y: null, risk: "Medium to high", mer: 0.55, process: "High", people: "Average", parent: "Above average", esg: "Medium" },
+];
+
+function ScoreDots({ value }: { value: number }) {
+  return <span className="inline-flex gap-1" aria-label={`${value} out of 5`}>
+    {[1, 2, 3, 4, 5].map((item) => <span key={item} className={`h-2 w-2 rounded-full ${item <= value ? "bg-primary" : "bg-outline-variant"}`} />)}
+  </span>;
+}
+
+function AssessmentMark({ value }: { value: FundPeer["process"] }) {
+  const strong = value === "High";
+  return <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-on-surface"><span className={`h-2 w-2 rounded-full ${strong ? "bg-primary" : value === "Above average" ? "bg-primary/60" : "bg-on-surface-variant/35"}`} />{value}</span>;
+}
+
+function FundComparables({ record, recordedAlternatives, onRecordAlternative }: { record: KypProductRecord; recordedAlternatives?: string; onRecordAlternative?: (name: string) => void }) {
+  const selectedName = record.identity.name || record.requestedName;
+  const selectedCode = record.identity.ticker || record.identity.performanceId || "Selected";
+  const columns = [
+    { name: selectedName, code: selectedCode, selected: true, category: "Health Care Equity", score: 4, return3Y: 10.4, return5Y: 9.0, return10Y: 8.2, risk: "Medium" as const, mer: 1.32, process: "High" as const, people: "Above average" as const, parent: "High" as const, esg: "Medium" as const },
+    ...DEMO_PEERS.map((peer) => ({ ...peer, selected: false })),
+  ];
+  const rows: Array<{ label: string; render: (peer: typeof columns[number]) => React.ReactNode }> = [
+    { label: "Peer score", render: (peer) => <ScoreDots value={peer.score} /> },
+    { label: "3-year return", render: (peer) => `${peer.return3Y.toFixed(1)}%` },
+    { label: "5-year return", render: (peer) => `${peer.return5Y.toFixed(1)}%` },
+    { label: "10-year return", render: (peer) => peer.return10Y == null ? "Not available" : `${peer.return10Y.toFixed(1)}%` },
+    { label: "Risk level", render: (peer) => peer.risk },
+    { label: "MER", render: (peer) => `${peer.mer.toFixed(2)}%` },
+    { label: "Process", render: (peer) => <AssessmentMark value={peer.process} /> },
+    { label: "People", render: (peer) => <AssessmentMark value={peer.people} /> },
+    { label: "Parent", render: (peer) => <AssessmentMark value={peer.parent} /> },
+    { label: "ESG risk", render: (peer) => peer.esg },
+  ];
+
+  return (
+    <ReportSection number="05" title="Comparable funds">
+      <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+        <div><p className="text-xs font-semibold text-on-surface">Reasonable alternatives</p><p className="mt-1 max-w-2xl text-[11px] leading-5 text-on-surface-variant">Compare mandate, cost, risk and long-term results before documenting why the selected product is reasonable.</p></div>
+        <span className="w-fit rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-warning">Demonstration data</span>
+      </div>
+      <div className="max-w-full overflow-x-auto overscroll-x-contain rounded-2xl border border-outline-variant bg-surface-container-low [scrollbar-gutter:stable]">
+        <table className="min-w-[920px] w-full border-collapse text-left">
+          <thead>
+            <tr>
+              <th className="sticky left-0 z-20 w-40 border-b border-r border-outline-variant bg-surface-container-low px-4 py-4 text-[9px] font-bold uppercase tracking-[0.12em] text-on-surface-variant">Assessment</th>
+              {columns.map((peer) => (
+                <th key={peer.code} className={`min-w-44 border-b border-outline-variant px-4 py-4 align-top ${peer.selected ? "bg-primary/[0.08]" : ""}`}>
+                  <div className="flex items-center justify-between gap-2"><span className="font-mono text-[9px] uppercase tracking-wide text-primary">{peer.selected ? "Selected fund" : peer.code}</span>{peer.selected && <Check className="h-3.5 w-3.5 text-primary" />}</div>
+                  <p className="mt-2 text-xs font-semibold leading-5 text-on-surface">{peer.name}</p>
+                  <p className="mt-1 text-[10px] text-on-surface-variant">{peer.category}</p>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => <tr key={row.label} className="border-b border-outline-variant/70 last:border-0">
+              <th className="sticky left-0 z-10 border-r border-outline-variant bg-surface-container-low px-4 py-3 text-[10px] font-semibold text-on-surface-variant">{row.label}</th>
+              {columns.map((peer) => <td key={peer.code} className={`px-4 py-3 text-[11px] font-medium text-on-surface ${peer.selected ? "bg-primary/[0.05]" : ""}`}>{row.render(peer)}</td>)}
+            </tr>)}
+            <tr>
+              <th className="sticky left-0 z-10 border-r border-outline-variant bg-surface-container-low px-4 py-3 text-[10px] font-semibold text-on-surface-variant">KYP evidence</th>
+              <td className="bg-primary/[0.05] px-4 py-3 text-[10px] text-on-surface-variant">Product under review</td>
+              {columns.slice(1).map((peer) => {
+                const recorded = Boolean(recordedAlternatives?.includes(peer.name));
+                return <td key={peer.code} className="px-4 py-3"><button onClick={() => onRecordAlternative?.(peer.name)} disabled={recorded || !onRecordAlternative} className="inline-flex items-center gap-1.5 rounded-full border border-outline-variant px-2.5 py-1.5 text-[10px] font-semibold text-on-surface transition hover:border-primary hover:text-primary disabled:cursor-default disabled:border-primary/30 disabled:text-primary"><Plus className="h-3 w-3" />{recorded ? "Recorded" : "Record alternative"}</button></td>;
+              })}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-3 text-[10px] leading-4 text-on-surface-variant">Sample values demonstrate the workflow only. Replace them with licensed provider data before using this comparison for advice or compliance evidence.</p>
+    </ReportSection>
+  );
+}
+
+function FundReport({ record, recordedAlternatives, onRecordAlternative }: { record: KypProductRecord; recordedAlternatives?: string; onRecordAlternative?: (name: string) => void }) {
   const f = record.facts;
   return (
     <div className="research-report">
@@ -126,10 +221,11 @@ function FundReport({ record }: { record: KypProductRecord }) {
           <ValueCell label="Specific risks" note="Material fund, market, liquidity, leverage and concentration risks." />
         </div>
       </ReportSection>
+      <FundComparables record={record} recordedAlternatives={recordedAlternatives} onRecordAlternative={onRecordAlternative} />
     </div>
   );
 }
 
-export function KypResearchReport({ record }: { record: KypProductRecord }) {
-  return record.assetType === "stock" ? <StockReport record={record} /> : <FundReport record={record} />;
+export function KypResearchReport({ record, recordedAlternatives, onRecordAlternative }: { record: KypProductRecord; recordedAlternatives?: string; onRecordAlternative?: (name: string) => void }) {
+  return record.assetType === "stock" ? <StockReport record={record} /> : <FundReport record={record} recordedAlternatives={recordedAlternatives} onRecordAlternative={onRecordAlternative} />;
 }

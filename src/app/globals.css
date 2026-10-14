@@ -112,53 +112,6 @@ html.dark .bullbrief-wordmark {
   font-size: 5.5px;
 }
 
-@media print {
-  body:has(.kyp-pdf-report) .kyp-pdf-header {
-    display: grid !important;
-  }
-
-  .kyp-pdf-page {
-    position: relative !important;
-    display: block !important;
-    height: 10.8in !important;
-  }
-
-  .kyp-pdf-header {
-    display: grid !important;
-    position: absolute;
-    top: 0.38in;
-    right: 0.46in;
-    left: 0.46in;
-    height: 0.64in;
-    box-sizing: border-box;
-  }
-
-  .kyp-pdf-body {
-    position: absolute;
-    top: 1.16in;
-    right: 0.46in;
-    bottom: 0.56in;
-    left: 0.46in;
-    display: block !important;
-    padding-top: 0 !important;
-    overflow: visible !important;
-  }
-
-  .kyp-pdf-footer {
-    position: absolute;
-    right: 0.46in;
-    bottom: 0.28in;
-    left: 0.46in;
-    height: 0.22in;
-  }
-
-  .kyp-pdf-last {
-    height: 10in !important;
-    break-after: auto !important;
-    page-break-after: auto !important;
-  }
-}
-
 /* Dedicated KYP report. The application view remains hidden on screen and the
    report becomes the only printable surface. */
 @page kyp-report-page {
@@ -169,6 +122,10 @@ html.dark .bullbrief-wordmark {
 @media print {
   body:has(.kyp-pdf-report) {
     zoom: 1;
+    width: 8.5in !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
   }
 
   body:has(.kyp-pdf-report) .print-document-identity,
@@ -193,7 +150,7 @@ html.dark .bullbrief-wordmark {
     display: grid !important;
     grid-template-rows: 0.78in 1fr 0.34in;
     width: 8.5in;
-    height: 11in;
+    height: 10.5in;
     margin: 0;
     padding: 0.38in 0.46in 0.28in;
     overflow: hidden;
@@ -207,6 +164,11 @@ html.dark .bullbrief-wordmark {
   .kyp-pdf-page:last-child {
     break-after: auto;
     page-break-after: auto;
+  }
+
+  .kyp-pdf-page.kyp-pdf-last {
+    break-after: auto !important;
+    page-break-after: auto !important;
   }
 
   .kyp-pdf-header {
@@ -534,6 +496,89 @@ html.dark .bullbrief-wordmark {
   .kyp-pdf-table th {
     background: #edf3ef;
   }
+
+  .kyp-pdf-cover-line {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 0.2in;
+    margin-bottom: 0.14in;
+  }
+
+  .kyp-pdf-cover-line .kyp-pdf-page-title { margin-bottom: 3px; }
+  .kyp-pdf-cover-line > div > p:last-child { margin: 0; color: #4b5563; font-size: 7pt; }
+  .kyp-pdf-cover-line > div > p:last-child span { margin-left: 6px; color: #168a46; font-family: ui-monospace, monospace; }
+
+  .kyp-pdf-demo-flag,
+  .kyp-pdf-status {
+    flex: none;
+    padding: 5px 8px;
+    border: 1px solid #d5a72e;
+    border-radius: 999px;
+    color: #7a5a00;
+    background: #fff8dc;
+    font-size: 5.5pt;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .kyp-pdf-status.complete { border-color: #168a46; color: #0c6632; background: #e9f8ef; }
+
+  .kyp-pdf-decision-spine {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    margin: 0.1in 0 0.2in;
+    border: 1px solid #cbd2da;
+    border-left: 4px solid var(--brand-print-primary, #168a46);
+    border-radius: 8px;
+    background: #f7faf8;
+    overflow: hidden;
+  }
+
+  .kyp-pdf-metric { display: grid; align-content: start; min-height: 0.5in; padding: 0.1in; border-right: 1px solid #dce2df; }
+  .kyp-pdf-metric:last-child { border-right: 0; }
+  .kyp-pdf-metric span { color: #687386; font-size: 5.5pt; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+  .kyp-pdf-metric strong { margin-top: 4px; color: #172133; font-size: 9pt; line-height: 1.15; }
+  .kyp-pdf-metric small { margin-top: 3px; color: #687386; font-size: 5.5pt; line-height: 1.25; }
+
+  .kyp-pdf-summary-grid { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 0.24in; }
+  .kyp-pdf-lead { margin: 0; color: #172133; font-family: Georgia, serif; font-size: 10pt; line-height: 1.45; }
+  .kyp-pdf-decision-copy { margin: 0; padding: 0.12in; border-left: 3px solid #168a46; color: #172133; background: #f4f7f5; font-size: 7.2pt; line-height: 1.45; }
+
+  .kyp-pdf-allocation { display: grid; grid-template-columns: 1.25in 1fr; align-items: center; gap: 0.16in; padding: 0.08in 0.1in; border: 1px solid #dce2df; border-radius: 8px; }
+  .kyp-pdf-donut { display: grid; width: 1.05in; height: 1.05in; place-items: center; border-radius: 50%; background: conic-gradient(#168a46 0 72%, #51a977 72% 84%, #9dc8ae 84% 93%, #e5e9ed 93% 100%); }
+  .kyp-pdf-donut::before { content: ""; grid-area: 1 / 1; width: 0.7in; height: 0.7in; border-radius: 50%; background: white; }
+  .kyp-pdf-donut span { z-index: 1; grid-area: 1 / 1; display: grid; text-align: center; }
+  .kyp-pdf-donut strong { font-size: 11pt; }
+  .kyp-pdf-donut small { color: #687386; font-size: 5.5pt; }
+  .kyp-pdf-allocation-list { display: grid; gap: 0.07in; }
+  .kyp-pdf-allocation-list div { display: flex; justify-content: space-between; gap: 8px; color: #4b5563; font-size: 6pt; }
+  .kyp-pdf-allocation-list i { display: inline-block; width: 6px; height: 6px; margin-right: 5px; border-radius: 50%; background: #168a46; }
+  .kyp-pdf-allocation-list i.secondary { background: #51a977; }.kyp-pdf-allocation-list i.tertiary { background: #9dc8ae; }.kyp-pdf-allocation-list i.muted { background: #d6dce0; }
+  .kyp-pdf-quiet-grid { margin-top: 0.12in; }
+  .kyp-pdf-source-note { display: grid; grid-template-columns: 0.9in 1fr; gap: 0.12in; margin-top: 0.2in; padding: 0.1in 0.12in; border-radius: 7px; color: #5c6572; background: #f5f6f7; font-size: 6pt; line-height: 1.4; }
+  .kyp-pdf-source-note strong { color: #172133; text-transform: uppercase; }
+
+  .kyp-pdf-performance-row { display: grid; grid-template-columns: 1.55fr 0.75fr; gap: 0.18in; }
+  .kyp-pdf-fund-chart { height: 2.25in; padding: 0.08in 0.1in; border: 1px solid #dce2df; border-radius: 8px; box-sizing: border-box; }
+  .kyp-pdf-fund-chart svg { width: 100%; height: 1.72in; }
+  .kyp-pdf-fund-chart svg line { stroke: #e4e8ea; stroke-width: 1; }
+  .kyp-pdf-fund-chart svg path { fill: none; stroke-width: 2.2; }.kyp-pdf-fund-chart svg path.selected { stroke: #168a46; stroke-width: 3; }.kyp-pdf-fund-chart svg path.category { stroke: #6b89a8; }.kyp-pdf-fund-chart svg path.benchmark { stroke: #b2b9c1; stroke-dasharray: 5 4; }
+  .kyp-pdf-fund-chart svg text { fill: #687386; font-size: 9px; }
+  .kyp-pdf-chart-legend { display: flex; gap: 12px; color: #687386; font-size: 5.5pt; }
+  .kyp-pdf-chart-legend i { display: inline-block; width: 12px; height: 2px; margin-right: 4px; vertical-align: middle; background: #b2b9c1; }.kyp-pdf-chart-legend i.selected { background: #168a46; }.kyp-pdf-chart-legend i.category { background: #6b89a8; }
+  .kyp-pdf-metric-stack { display: grid; grid-template-columns: repeat(2, 1fr); border: 1px solid #dce2df; border-radius: 8px; overflow: hidden; }
+  .kyp-pdf-metric-stack .kyp-pdf-metric { min-height: 0.84in; border-right: 1px solid #dce2df; border-bottom: 1px solid #dce2df; }.kyp-pdf-metric-stack .kyp-pdf-metric:nth-child(even) { border-right: 0; }.kyp-pdf-metric-stack .kyp-pdf-metric:nth-last-child(-n+2) { border-bottom: 0; }
+  .kyp-pdf-peer-table td:first-child strong, .kyp-pdf-peer-table td:first-child small { display: block; }.kyp-pdf-peer-table td:first-child small { margin-top: 2px; color: #687386; }.kyp-pdf-peer-table tr.selected td { background: #edf7f1; }.kyp-pdf-peer-table tr.selected td:first-child { border-left: 3px solid #168a46; }
+  .kyp-pdf-analysis-notes { margin-top: 0.12in; }.kyp-pdf-analysis-notes > div { padding: 0 0.1in 0.08in; border: 1px solid #dce2df; border-radius: 8px; }
+
+  .kyp-pdf-assessment-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.18in; }
+  .kyp-pdf-assessment-grid section { display: grid; align-content: start; }.kyp-pdf-assessment-grid .kyp-pdf-cell { min-height: 0.72in; border: 1px solid #dce2df; border-bottom: 0; }.kyp-pdf-assessment-grid .kyp-pdf-cell:last-child { border-bottom: 1px solid #dce2df; }
+  .kyp-pdf-monitor-grid { grid-template-columns: 1fr 2fr; }
+  .kyp-pdf-signoff { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.12in; margin-top: 0.2in; padding: 0.12in; border-radius: 8px; background: #172133; }
+  .kyp-pdf-signoff div { display: grid; gap: 4px; }.kyp-pdf-signoff span { color: #b7c0cb; font-size: 5.5pt; text-transform: uppercase; }.kyp-pdf-signoff strong { color: white; font-size: 7.5pt; }
+  .kyp-pdf-disclosure { margin-top: 0.16in; padding-top: 0.1in; border-top: 1px solid #cbd2da; color: #687386; font-size: 5.6pt; line-height: 1.4; }.kyp-pdf-disclosure strong { color: #172133; text-transform: uppercase; }.kyp-pdf-disclosure p { margin: 3px 0 0; }
 
   .kyp-pdf-footer {
     display: flex;

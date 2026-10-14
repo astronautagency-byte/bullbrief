@@ -62,6 +62,47 @@ function DraftSummary({ draft }: { draft: Draft }) {
   </>;
 }
 
+function DemoFlag({ children = "Demonstration data" }: { children?: React.ReactNode }) {
+  return <span className="kyp-pdf-demo-flag">{children}</span>;
+}
+
+function Metric({ label, value, note }: { label: string; value: string; note?: string }) {
+  return <div className="kyp-pdf-metric"><span>{label}</span><strong>{value}</strong>{note && <small>{note}</small>}</div>;
+}
+
+function FundGrowthChart() {
+  return <div className="kyp-pdf-fund-chart">
+    <div className="kyp-pdf-chart-legend"><span><i className="selected" />Selected fund</span><span><i className="category" />Category</span><span><i className="benchmark" />Benchmark</span></div>
+    <svg viewBox="0 0 720 210" role="img" aria-label="Sample growth of ten thousand dollars">
+      {[30, 75, 120, 165].map((y) => <line key={y} x1="44" y1={y} x2="700" y2={y} />)}
+      <path className="benchmark" d="M44 165 C125 153, 155 145, 220 134 S330 111, 390 106 S510 74, 565 66 S650 48,700 39" />
+      <path className="category" d="M44 165 C112 158, 170 143, 220 140 S315 120, 385 112 S480 91, 540 85 S642 65,700 58" />
+      <path className="selected" d="M44 165 C110 150, 158 151, 220 126 S310 118, 378 94 S475 86, 535 62 S635 54,700 28" />
+      <text x="4" y="169">$10K</text><text x="4" y="34">$18K</text><text x="44" y="199">2021</text><text x="668" y="199">2026</text>
+    </svg>
+  </div>;
+}
+
+function AllocationGraphic() {
+  const items = [
+    { label: "Health care", value: 72, className: "primary" },
+    { label: "Technology", value: 12, className: "secondary" },
+    { label: "Consumer", value: 9, className: "tertiary" },
+    { label: "Cash and other", value: 7, className: "muted" },
+  ];
+  return <div className="kyp-pdf-allocation"><div className="kyp-pdf-donut"><span><strong>93%</strong><small>invested</small></span></div><div className="kyp-pdf-allocation-list">{items.map((item) => <div key={item.label}><span><i className={item.className} />{item.label}</span><strong>{item.value}%</strong></div>)}</div></div>;
+}
+
+function FundComparablesPrint({ title }: { title: string }) {
+  const peers = [
+    { name: title, code: "Selected", return5Y: "9.0%", risk: "Medium", mer: "1.32%", score: "4 / 5" },
+    { name: "Maple Health Leaders F", code: "MHL401", return5Y: "9.4%", risk: "Medium", mer: "0.96%", score: "4 / 5" },
+    { name: "North Harbour Global Health A", code: "NHG210", return5Y: "8.8%", risk: "Medium", mer: "1.74%", score: "3 / 5" },
+    { name: "Dominion Healthcare Index", code: "DHI115", return5Y: "9.1%", risk: "Medium to high", mer: "0.55%", score: "4 / 5" },
+  ];
+  return <table className="kyp-pdf-table kyp-pdf-peer-table"><thead><tr><th>Comparable product</th><th>Peer score</th><th>5-year return</th><th>Risk</th><th>MER</th></tr></thead><tbody>{peers.map((peer, index) => <tr key={peer.code} className={index === 0 ? "selected" : ""}><td><strong>{peer.name}</strong><small>{peer.code}</small></td><td>{peer.score}</td><td>{peer.return5Y}</td><td>{peer.risk}</td><td>{peer.mer}</td></tr>)}</tbody></table>;
+}
+
 function StockPages({ record, draft, identity, history }: { record: KypProductRecord; draft: Draft; identity: Identity; history: HistoryPoint[] }) {
   const f = record.facts; const m = record.morningstar; const title = record.identity.name || record.requestedName; const total = 4;
   return <>
@@ -83,15 +124,31 @@ function StockPages({ record, draft, identity, history }: { record: KypProductRe
 }
 
 function FundPages({ record, draft, identity }: { record: KypProductRecord; draft: Draft; identity: Identity }) {
-  const title = record.identity.name || record.requestedName; const f = record.facts; const total = 6;
-  const unavailableBars = ["US equity", "Canadian equity", "International equity", "Fixed income", "Cash", "Other"].map((label) => ({ label, value: null }));
+  const title = record.identity.name || record.requestedName; const total = 3;
+  const fundCode = record.identity.ticker || record.identity.performanceId || "Identifier pending";
+  const structure = draft.structure || "Actively managed global health care equity mandate focused on established issuers and durable long-term demand.";
+  const risks = draft.risk || "Sector concentration, equity-market volatility, foreign currency exposure and manager-selection risk.";
+  const recommendation = draft.rationale || "Advisor rationale has not been completed. Review the reasonable alternatives and document why this product serves the client’s interests.";
   return <>
-    <Page page={1} total={total} title={title} identity={identity}><p className="kyp-pdf-kicker">Investment fund detail report</p><h3 className="kyp-pdf-page-title">Fund profile and KYP essentials</h3><div className="kyp-pdf-grid"><Cell label="Product name" value={title} wide /><Cell label="Fund company" /><Cell label="Fund code / CUSIP" value={record.identity.ticker || record.identity.performanceId} /><Cell label="Manager / subadvisor" /><Cell label="PortfolioAid risk rating" /><Cell label="Investment objective" value={draft.structure} wide /><Cell label="Time horizon" /><Cell label="Current MER" /><Cell label="Management fee" /><Cell label="Discounts / householding" /><Cell label="Performance fees and calculation" value={draft.costs} wide /><Cell label="Unique features" value={draft.structure} wide /><Cell label="Historical performance and outlook" wide /></div></Page>
-    <Page page={2} total={total} title={title} identity={identity}><Heading>Portfolio</Heading><div className="kyp-pdf-two"><div><Heading>Asset allocation</Heading><BarChart items={unavailableBars} /></div><div><Heading>Equity style box</Heading><StyleBox style={null} /><Heading>Fixed-income style</Heading><StyleBox style={null} /></div></div><div className="kyp-pdf-two"><div><Heading>World regions</Heading><BarChart items={[{ label: "Americas", value: null }, { label: "Europe", value: null }, { label: "Asia", value: null }]} /></div><div><Heading>Stock sectors</Heading><BarChart items={[{ label: "Cyclical", value: null }, { label: "Sensitive", value: null }, { label: "Defensive", value: null }]} /></div></div><Heading>Bond statistics and sectors</Heading><div className="kyp-pdf-grid kyp-pdf-grid-4"><Cell label="Effective duration" /><Cell label="Effective maturity" /><Cell label="Weighted coupon" /><Cell label="Weighted price" /><Cell label="Government" /><Cell label="Municipal" /><Cell label="Corporate" /><Cell label="Securitized" /></div></Page>
-    <Page page={3} total={total} title={title} identity={identity}><Heading>Morningstar ratings, risk and fees</Heading><div className="kyp-pdf-grid kyp-pdf-grid-4"><Cell label="Overall rating" value={f.starRating ? `${f.starRating} / 5` : null} /><Cell label="Overall risk" /><Cell label="Overall return" /><Cell label="Morningstar category" /><Cell label="3-year rating and risk" /><Cell label="5-year rating and risk" /><Cell label="10-year rating and risk" /><Cell label="MER / expense ratio" /></div><Heading>Risk and return profile</Heading><div className="kyp-pdf-grid kyp-pdf-grid-4"><Cell label="Standard deviation" /><Cell label="Mean return" /><Cell label="Sharpe ratio" /><Cell label="Up capture" /><Cell label="Down capture" /><Cell label="Alpha" /><Cell label="Beta" /><Cell label="R-squared" /></div><Heading>Performance</Heading><LineChart points={[]} /><div className="kyp-pdf-grid kyp-pdf-grid-4"><Cell label="1-year return" /><Cell label="3-year return" /><Cell label="5-year return" /><Cell label="10-year return" /></div></Page>
-    <Page page={4} total={total} title={title} identity={identity}><Heading>Strategy and special-product features</Heading><div className="kyp-pdf-grid"><Cell label="Investment objective and strategy" value={draft.structure} wide /><Cell label="Specific risks" value={draft.risk} wide /><Cell label="Alternative fund: maximum leverage" /><Cell label="Leverage notes and use" value={draft.liquidityComplexity} /><Cell label="Shorting approach" /><Cell label="ETF: bid / ask" value={f.bid == null && f.ask == null ? null : `${formatPrice(f.bid)} / ${formatPrice(f.ask)}`} /><Cell label="ETF: trading volume and liquidity" value={f.volume == null ? null : formatVolume(f.volume)} /><Cell label="Premium / discount to NAV" /><Cell label="Tracking error" /><Cell label="LSIF tax credit features" /><Cell label="Valuation policy" wide /></div></Page>
-    <Page page={5} total={total} title={title} identity={identity}><p className="kyp-pdf-kicker">Advisor assessment</p><h3 className="kyp-pdf-page-title">Product due diligence and selection record</h3><DraftSummary draft={draft} /></Page>
-    <Page page={6} total={total} title={title} identity={identity}><Heading>Record notes and disclosures</Heading><div className="kyp-pdf-grid"><Cell label="Evidence recorded by advisor" value={draft.evidenceSources} wide /></div><Heading>Important information</Heading><p className="kyp-pdf-copy">Confirm all fund information against the current Fund Facts, prospectus, issuer materials and dealer research. Review material changes, costs, liquidity, leverage, conflicts and reasonable alternatives. Past performance does not guarantee future results. BullBrief is a workflow aid and does not replace KYP, KYC, suitability, conflicts or supervision obligations.</p></Page>
+    <Page page={1} total={total} title={title} identity={identity}>
+      <div className="kyp-pdf-cover-line"><div><p className="kyp-pdf-kicker">Investment fund KYP review</p><h3 className="kyp-pdf-page-title">Decision summary</h3><p>{title} <span>{fundCode}</span></p></div><DemoFlag>Demonstration record</DemoFlag></div>
+      <div className="kyp-pdf-decision-spine"><Metric label="Review status" value={draft.completed ? "Advisor attested" : "Assessment in progress"} note={draft.reviewContext || "New recommendation"} /><Metric label="Dealer shelf" value={draft.firmApproval || "Confirmation required"} /><Metric label="Risk level" value="Medium" note="Issuer classification" /><Metric label="Current MER" value="1.32%" note="Sample figure" /></div>
+      <div className="kyp-pdf-summary-grid"><section><Heading>Mandate and structure</Heading><p className="kyp-pdf-lead">{structure}</p><Heading>Material risks</Heading><p className="kyp-pdf-copy">{risks}</p><Heading>Advisor decision</Heading><p className="kyp-pdf-decision-copy">{recommendation}</p></section><section><Heading>Portfolio snapshot</Heading><AllocationGraphic /><div className="kyp-pdf-grid kyp-pdf-grid-4 kyp-pdf-quiet-grid"><Cell label="Fund category" value="Health Care Equity" /><Cell label="Inception" value="June 2014" /><Cell label="Fund assets" value="$1.24B" /><Cell label="Distribution" value="Quarterly" /></div></section></div>
+      <div className="kyp-pdf-source-note"><strong>Evidence status</strong><span>Sample figures are included to demonstrate the report layout. Confirm every figure against the current Fund Facts and licensed provider data before use.</span></div>
+    </Page>
+    <Page page={2} total={total} title={title} identity={identity}>
+      <div className="kyp-pdf-cover-line"><div><p className="kyp-pdf-kicker">Product evidence</p><h3 className="kyp-pdf-page-title">Performance, risk and reasonable alternatives</h3></div><DemoFlag /></div>
+      <div className="kyp-pdf-performance-row"><section><Heading>Growth of $10,000</Heading><FundGrowthChart /></section><section><Heading>Risk and return</Heading><div className="kyp-pdf-metric-stack"><Metric label="3-year return" value="10.4%" note="Category 9.9%" /><Metric label="5-year return" value="9.0%" note="Category 8.8%" /><Metric label="Standard deviation" value="14.2%" note="Sample figure" /><Metric label="Sharpe ratio" value="0.61" note="Sample figure" /></div></section></div>
+      <Heading>Comparable products reviewed</Heading><FundComparablesPrint title={title} />
+      <div className="kyp-pdf-two kyp-pdf-analysis-notes"><div><Heading>Cost observation</Heading><p className="kyp-pdf-copy">The selected fund’s sample MER is higher than two peers. Document the service, strategy or portfolio-construction benefit that supports the additional cost.</p></div><div><Heading>Risk observation</Heading><p className="kyp-pdf-copy">All peers carry meaningful sector-concentration risk. Confirm that the client’s time horizon and loss capacity remain appropriate.</p></div></div>
+    </Page>
+    <Page page={3} total={total} title={title} identity={identity}>
+      <div className="kyp-pdf-cover-line"><div><p className="kyp-pdf-kicker">Advisor record</p><h3 className="kyp-pdf-page-title">Assessment and supervision evidence</h3></div><span className={`kyp-pdf-status ${draft.completed ? "complete" : ""}`}>{draft.completed ? "Complete" : "Action required"}</span></div>
+      <div className="kyp-pdf-assessment-grid"><section><Heading>Product understanding</Heading><Cell label="Structure and potential return" value={draft.structure} wide /><Cell label="Material risks and potential loss" value={draft.risk} wide /><Cell label="Costs and their impact" value={draft.costs} wide /><Cell label="Liquidity and complexity" value={draft.liquidityComplexity} wide /></section><section><Heading>Selection record</Heading><Cell label="Alternatives reviewed" value={draft.alternatives} wide /><Cell label="Lower-cost assessment" value={draft.lowerCostRationale} wide /><Cell label="Client-first rationale" value={draft.rationale} wide /><Cell label="Client explanation" value={draft.clientExplanation} wide /></section></div>
+      <Heading>Monitoring and evidence</Heading><div className="kyp-pdf-grid kyp-pdf-monitor-grid"><Cell label="Next review date" value={draft.nextReview} /><Cell label="Monitoring plan" value={draft.changeMonitoring} /><Cell label="Evidence reviewed" value={draft.evidenceSources} wide /></div>
+      <div className="kyp-pdf-signoff"><div><span>Prepared by</span><strong>{identity.name || "Advisor name not set"}</strong></div><div><span>Advisor attestation</span><strong>{draft.completedAt ? new Date(draft.completedAt).toLocaleDateString("en-CA") : "Pending"}</strong></div><div><span>Record status</span><strong>{draft.completed ? "Complete" : "Draft"}</strong></div></div>
+      <div className="kyp-pdf-disclosure"><strong>Important information</strong><p>Confirm all fund information against the current Fund Facts, prospectus, issuer materials and dealer research. BullBrief supports the KYP workflow but does not establish suitability, approve a product or replace dealer supervision.</p></div>
+    </Page>
   </>;
 }
 

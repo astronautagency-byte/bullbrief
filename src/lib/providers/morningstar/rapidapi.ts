@@ -88,7 +88,7 @@ export interface StockDetails {
   retrievedAt: string | null;
 }
 
-const EMPTY_RESULT = (ticker: string): StockDetails => ({
+export const emptyStockDetails = (ticker: string): StockDetails => ({
   symbol: ticker, pe: null, pegRatio: null, starRating: null, starOutOf: 5, name: null,
   marketCap: null, dividendYield: null, priceToBook: null, priceToSales: null, priceToCashFlow: null,
   totalReturn1Y: null, totalReturn3Y: null, totalReturn5Y: null,
@@ -189,7 +189,7 @@ export async function getStockDetails(
   ticker: string,
   exchange?: string
 ): Promise<StockDetails> {
-  if (!KEY) return EMPTY_RESULT(ticker);
+  if (!KEY) return emptyStockDetails(ticker);
 
   const ex = normalizeExchange(exchange);
 
@@ -198,7 +198,7 @@ export async function getStockDetails(
       `${BASE}/stock/details?ticker=${encodeURIComponent(ticker)}&exchange=${ex}`,
       { headers: headers(), cache: "no-store" }
     );
-    if (!res.ok) return EMPTY_RESULT(ticker);
+    if (!res.ok) return emptyStockDetails(ticker);
     const json = await res.json();
     const comps = json.components || {};
 
@@ -337,7 +337,7 @@ export async function getStockDetails(
     };
     return result;
   } catch {
-    return EMPTY_RESULT(ticker);
+    return emptyStockDetails(ticker);
   }
 }
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { KYP_HOLDINGS, type KypHolding, type KypProductRecord } from "@/lib/kyp";
-import { autoComplete, getStockDetails } from "@/lib/providers/morningstar/rapidapi";
+import { autoComplete, getFundDetails, getStockDetails } from "@/lib/providers/morningstar";
 import { getStockPrice } from "@/lib/providers/yahoo/client";
 
 function scoreMatch(holding: KypHolding, name: string, ticker: string) {
@@ -28,7 +28,9 @@ async function buildRecord(holding: KypHolding): Promise<KypProductRecord> {
         getStockPrice(holding.symbol, true, true),
         getStockDetails(holding.symbol.replace(/\.(TO|V|NE)$/i, ""), holding.exchange),
       ])
-    : [null, null];
+    : holding.assetType === "fund" && (holding.performanceId || identity?.performanceId)
+      ? [null, await getFundDetails(holding.performanceId || identity!.performanceId, identity?.name || holding.requestedName)]
+      : [null, null];
 
   const hasResearch = Boolean(identity) || Boolean(research && [
     research.pe,

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { autoComplete } from "@/lib/providers/morningstar/rapidapi";
+import { autoComplete } from "@/lib/providers/morningstar";
 import { searchStocks } from "@/lib/providers/yahoo/client";
 import type { KypAssetType } from "@/lib/kyp";
 
