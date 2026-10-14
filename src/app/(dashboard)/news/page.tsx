@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/cn";
 import { formatRelativeTime, stripHtml, type Article } from "@/lib/types";
-import { SentimentBadge } from "@/components/ui/badge";
+import { NewsImpactGuide, SentimentBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHead } from "@/components/page-head";
 import { NewsThumbnail } from "@/components/news-thumbnail";
@@ -157,10 +157,12 @@ export default function NewsPage() {
                 : "bg-surface-container-high border-outline-variant text-on-surface-variant hover:border-primary/30"
             )}
           >
-            {s.charAt(0).toUpperCase() + s.slice(1)}
+            {s === "positive" ? "Positive impact" : s === "negative" ? "Negative impact" : "Neutral impact"}
           </button>
         ))}
       </div>
+
+      <NewsImpactGuide />
 
       <div className="space-y-3">
         {filtered.map((article) => (

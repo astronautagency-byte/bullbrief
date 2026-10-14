@@ -51,6 +51,41 @@ export interface StockDetails {
   industry: string | null;
   fairValue: number | null;
   economicMoat: string | null;
+  profileDescription: string | null;
+  styleBox: string | null;
+  employees: number | null;
+  website: string | null;
+  performanceId: string | null;
+  cusip: string | null;
+  isin: string | null;
+  analystReportTitle: string | null;
+  analystName: string | null;
+  reportPublishedAt: string | null;
+  reportUpdatedAt: string | null;
+  ratingAsOf: string | null;
+  evaluatedPrice: number | null;
+  fairValueAsOf: string | null;
+  fairValueCurrency: string | null;
+  fairValueUncertainty: string | null;
+  oneStarPrice: number | null;
+  twoStarPrice: number | null;
+  fourStarPrice: number | null;
+  fiveStarPrice: number | null;
+  forwardDividendYield: number | null;
+  totalYield: number | null;
+  dividendMonths: number[];
+  returnOnAssets: number | null;
+  returnOnEquity: number | null;
+  returnOnCapital: number | null;
+  quickRatio: number | null;
+  currentRatio: number | null;
+  interestCoverage: number | null;
+  sharesOutstanding: number | null;
+  competitors: Array<{ ticker: string; name: string; exchange: string }>;
+  availableComponents: string[];
+  lockedComponents: string[];
+  requestStatus: "live" | "unavailable";
+  retrievedAt: string | null;
 }
 
 const EMPTY_RESULT = (ticker: string): StockDetails => ({
@@ -60,11 +95,50 @@ const EMPTY_RESULT = (ticker: string): StockDetails => ({
   morningstarRating3Y: null, morningstarRating5Y: null, morningstarRating10Y: null,
   processRating: null, peopleRating: null, parentRating: null, esgRiskRating: null,
   sector: null, industry: null, fairValue: null, economicMoat: null,
+  profileDescription: null, styleBox: null, employees: null, website: null,
+  performanceId: null, cusip: null, isin: null, analystReportTitle: null, analystName: null,
+  reportPublishedAt: null, reportUpdatedAt: null, ratingAsOf: null, evaluatedPrice: null,
+  fairValueAsOf: null, fairValueCurrency: null, fairValueUncertainty: null,
+  oneStarPrice: null, twoStarPrice: null, fourStarPrice: null, fiveStarPrice: null,
+  forwardDividendYield: null, totalYield: null, dividendMonths: [],
+  returnOnAssets: null, returnOnEquity: null, returnOnCapital: null,
+  quickRatio: null, currentRatio: null, interestCoverage: null, sharesOutstanding: null,
+  competitors: [], availableComponents: [], lockedComponents: [],
+  requestStatus: "unavailable", retrievedAt: null,
 });
+
+type DataPoint = { value?: unknown; locked?: boolean; displayAs?: string; properties?: Record<string, { value?: unknown }> };
+
+function unlockedValue<T>(point: DataPoint | undefined): T | null {
+  if (!point || point.locked || point.displayAs?.includes("LOCK")) return null;
+  return point.value == null ? null : point.value as T;
+}
+
+function numberValue(point: DataPoint | undefined): number | null {
+  const value = unlockedValue<unknown>(point);
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function stringValue(point: DataPoint | undefined): string | null {
+  const value = unlockedValue<unknown>(point);
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+function containsLockedData(value: unknown, depth = 0): boolean {
+  if (!value || typeof value !== "object" || depth > 6) return false;
+  if (Array.isArray(value)) return value.some((item) => containsLockedData(item, depth + 1));
+  const record = value as Record<string, unknown>;
+  if (record.locked === true || (typeof record.displayAs === "string" && record.displayAs.includes("LOCK"))) return true;
+  return Object.values(record).some((item) => containsLockedData(item, depth + 1));
+}
 
 const EXCHANGE_MAP: Record<string, string> = {
   NASDAQ: "XNAS",
-  NYSE: "XNYSE",
+  NMS: "XNAS",
+  NGM: "XNAS",
+  NCM: "XNAS",
+  NYSE: "XNYS",
+  NYQ: "XNYS",
   TSX: "XTSE",
   TORONTO: "XTSE",
   TSXV: "XTSX",
@@ -81,13 +155,12 @@ function normalizeExchange(exchange?: string | null): string {
   return `X${upper}`;
 }
 
-const searchCache = new Map<string, AutoCompleteResult>();
-const detailsCache = new Map<string, StockDetails>();
+const searchCache = new Map<string, AutoCompleteResult[]>();
 
 export async function autoComplete(query: string): Promise<AutoCompleteResult[]> {
   if (!KEY) return [];
   const q = query.trim().toUpperCase();
-  if (searchCache.has(q)) return [searchCache.get(q)!];
+  if (searchCache.has(q)) return searchCache.get(q)!;
 
   try {
     const res = await fetch(`${BASE}/auto-complete?q=${encodeURIComponent(q)}`, {
@@ -105,7 +178,7 @@ export async function autoComplete(query: string): Promise<AutoCompleteResult[]>
         exchange: result.exchange || "",
         securityType: result.securityType || "",
       }));
-    if (results.length > 0) searchCache.set(q, results[0]);
+    if (results.length > 0) searchCache.set(q, results);
     return results;
   } catch {
     return [];
@@ -117,15 +190,13 @@ export async function getStockDetails(
   exchange?: string
 ): Promise<StockDetails> {
   if (!KEY) return EMPTY_RESULT(ticker);
-  const cacheKey = `${ticker}:${exchange || ""}`;
-  if (detailsCache.has(cacheKey)) return detailsCache.get(cacheKey)!;
 
   const ex = normalizeExchange(exchange);
 
   try {
     const res = await fetch(
       `${BASE}/stock/details?ticker=${encodeURIComponent(ticker)}&exchange=${ex}`,
-      { headers: headers(), next: { revalidate: 3600 } }
+      { headers: headers(), cache: "no-store" }
     );
     if (!res.ok) return EMPTY_RESULT(ticker);
     const json = await res.json();
@@ -147,14 +218,14 @@ export async function getStockDetails(
     const ks = comps.keyStatistics?.payload?.dataPoints;
     if (ks) {
       const peEntry = ks["priceToEarnings[normalized]"] || ks["priceToEarnings[trailing]"];
-      if (peEntry?.value != null) pe = peEntry.value;
+      pe = numberValue(peEntry) ?? pe;
 
       const psEntry = ks["priceToSales"];
-      if (psEntry?.value != null) priceToSales = psEntry.value;
+      priceToSales = numberValue(psEntry) ?? priceToSales;
 
       // Dividend yield: try trailing, then forward
       const divEntry = ks["dividendYield[trailing]"] || ks["dividendYield[forward]"];
-      if (divEntry?.value != null) dividendYield = divEntry.value;
+      dividendYield = numberValue(divEntry) ?? dividendYield;
     }
 
     // === valuationVsBenchmarks: P/E fallback, P/B, P/S fallback, P/CF ===
@@ -164,46 +235,42 @@ export async function getStockDetails(
 
       if (pe === null) {
         const peVal = vals["priceToEarnings[normalized]"] || vals["priceToEarnings[trailing]"];
-        if (peVal?.value != null) pe = peVal.value;
+        pe = numberValue(peVal) ?? pe;
       }
 
       if (priceToSales === null) {
         const psVal = vals["priceToSales"];
-        if (psVal?.value != null) priceToSales = psVal.value;
+        priceToSales = numberValue(psVal) ?? priceToSales;
       }
 
       const pbVal = vals["priceToBook"];
-      if (pbVal?.value != null) priceToBook = pbVal.value;
+      priceToBook = numberValue(pbVal);
 
       const pcfVal = vals["priceToCashFlow"];
-      if (pcfVal?.value != null) priceToCashFlow = pcfVal.value;
+      priceToCashFlow = numberValue(pcfVal);
     }
 
     // === priceToFairValueSummary: Star rating (0-100 scale, divide by 20 for 1-5) ===
-    const pfv = comps.priceToFairValueSummary?.payload?.capsule?.stockStarRating;
-    if (pfv?.value != null && typeof pfv.value === "number") {
-      starRating = Math.round(pfv.value / 20);
-      if (starRating < 1) starRating = 1;
-      if (starRating > 5) starRating = 5;
-    }
+    const capsule = comps.priceToFairValueSummary?.payload?.capsule || {};
+    const rawStarRating = numberValue(capsule.stockStarRating);
+    if (rawStarRating != null && rawStarRating >= 1 && rawStarRating <= 5) starRating = rawStarRating;
 
     // === profile: Name, Sector, Industry ===
     const profileDP = comps.profile?.payload?.dataPoints;
     if (profileDP) {
-      if (profileDP.sector?.value) sector = profileDP.sector.value;
-      if (profileDP.industry?.value) industry = profileDP.industry.value;
+      sector = stringValue(profileDP.sector);
+      industry = stringValue(profileDP.industry);
     }
     // Name comes from profile or from the top-level page data
-    name = comps.profile?.payload?.name || null;
+    const companyReport = comps.companyReport?.payload;
+    const security = companyReport?.security || {};
+    name = security.name || null;
 
     // === companyReport: Fair value, Economic moat ===
     const crDP = comps.companyReport?.payload?.dataPoints;
     if (crDP) {
-      const fvEntry = crDP.fairValue;
-      if (fvEntry?.value != null) fairValue = fvEntry.value;
-
-      const moatEntry = crDP.economicMoat;
-      if (moatEntry?.value != null) economicMoat = moatEntry.value;
+      fairValue = numberValue(crDP.fairValue) ?? numberValue(capsule.fairValue);
+      economicMoat = stringValue(crDP.economicMoat);
     }
 
     // === Fields NOT available in this API ===
@@ -214,6 +281,17 @@ export async function getStockDetails(
     const parentRating = null;   // Not in this API
     const esgRiskRating = null;  // Not in this API (no sustainability component)
 
+    const profile = comps.profile?.payload || {};
+    const profitability = comps.profitabilityVsBenchmarks?.payload?.dataPoints?.[0]?.values || {};
+    const financialStrength = comps.financialStrengthVsBenchmarks?.payload?.dataPoints?.[0]?.values || {};
+    const trading = comps.tradingInformation?.payload?.dataPoints || {};
+    const availableComponents = Object.keys(comps);
+    const lockedComponents = availableComponents.filter((key) => containsLockedData(comps[key]));
+    const dividendMonthsRaw = unlockedValue<unknown>(ks?.dividendPaymentSchedule);
+    const competitors = Array.isArray(comps.competitors?.payload?.results)
+      ? comps.competitors.payload.results.slice(0, 5).map((item: { ticker?: string; name?: string; exchange?: string }) => ({ ticker: item.ticker || "", name: item.name || item.ticker || "", exchange: item.exchange || "" })).filter((item: { ticker: string }) => item.ticker)
+      : [];
+
     const result: StockDetails = {
       symbol: ticker, pe, pegRatio, starRating, starOutOf: 5, name,
       marketCap, dividendYield, priceToBook, priceToSales, priceToCashFlow,
@@ -221,8 +299,42 @@ export async function getStockDetails(
       morningstarRating3Y: null, morningstarRating5Y: null, morningstarRating10Y: null,
       processRating, peopleRating, parentRating, esgRiskRating,
       sector, industry, fairValue, economicMoat,
+      profileDescription: typeof profile.companyProfile === "string" ? profile.companyProfile : null,
+      styleBox: stringValue(profileDP?.stockStyleBox),
+      employees: numberValue(profileDP?.totalEmployees),
+      website: stringValue(profileDP?.website),
+      performanceId: typeof security.performanceID === "string" ? security.performanceID : null,
+      cusip: typeof security.cusip === "string" ? security.cusip : null,
+      isin: typeof security.isin === "string" ? security.isin : null,
+      analystReportTitle: typeof companyReport?.title === "string" ? companyReport.title : null,
+      analystName: typeof companyReport?.authors?.[0]?.name === "string" ? companyReport.authors[0].name : null,
+      reportPublishedAt: typeof companyReport?.publishedDate === "string" ? companyReport.publishedDate : null,
+      reportUpdatedAt: typeof companyReport?.updatedDate === "string" ? companyReport.updatedDate : null,
+      ratingAsOf: typeof capsule.asOfDate?.value === "string" ? capsule.asOfDate.value : null,
+      evaluatedPrice: numberValue(capsule.evaluatedPrice),
+      fairValueAsOf: typeof capsule.fairValueDate?.value === "string" ? capsule.fairValueDate.value : null,
+      fairValueCurrency: stringValue(capsule.currency),
+      fairValueUncertainty: stringValue(capsule.fairValueUncertainty),
+      oneStarPrice: numberValue(capsule.oneStarPrice),
+      twoStarPrice: numberValue(capsule.twoStarPrice),
+      fourStarPrice: numberValue(capsule.fourStarPrice),
+      fiveStarPrice: numberValue(capsule.fiveStarPrice),
+      forwardDividendYield: numberValue(ks?.["dividendYield[forward]"]),
+      totalYield: numberValue(ks?.totalYield),
+      dividendMonths: Array.isArray(dividendMonthsRaw) ? dividendMonthsRaw.filter((month): month is number => typeof month === "number") : [],
+      returnOnAssets: numberValue(profitability["returnOnAssets[normalized]"]),
+      returnOnEquity: numberValue(profitability["returnOnEquity[normalized]"]),
+      returnOnCapital: numberValue(profitability["returnOnCapital[normalized]"]),
+      quickRatio: numberValue(financialStrength.quickRatio),
+      currentRatio: numberValue(financialStrength.currentRatio),
+      interestCoverage: numberValue(financialStrength.interestCoverage),
+      sharesOutstanding: numberValue(trading.totalSharesOutstanding),
+      competitors,
+      availableComponents,
+      lockedComponents,
+      requestStatus: "live",
+      retrievedAt: new Date().toISOString(),
     };
-    detailsCache.set(cacheKey, result);
     return result;
   } catch {
     return EMPTY_RESULT(ticker);

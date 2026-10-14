@@ -2,7 +2,7 @@
 import type { Article } from "@/lib/types";
 
 const GROQ_BASE = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL = "llama-3.3-70b-versatile";
+const MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 
 export class GroqError extends Error {
   constructor(
@@ -50,20 +50,33 @@ async function callGroq(
 
 export async function groqChat(
   message: string,
-  context?: { marketData?: any; news?: Article[]; watchlist?: string[] }
+  context?: { marketData?: any; news?: Array<Pick<Article, "title" | "description" | "sourceName" | "publishedAt" | "url">>; watchlist?: string[]; generatedAt?: string }
 ): Promise<string> {
-  const systemPrompt = `You are BullBrief AI, a helpful financial market assistant. You provide concise, actionable market insights. You are knowledgeable about stocks, ETFs, indices, and market trends. Always remind users that your analysis is informational only and not financial advice. Keep responses concise and focused.`;
+  const systemPrompt = `You are BullBrief AI, a factual research assistant for Canadian financial advisors.
+
+Accuracy rules:
+1. Treat the supplied context as the only source for current prices, market moves, portfolio holdings and news. Never invent, estimate or recall current financial facts from model memory.
+2. If the context does not contain enough evidence to answer a question, say exactly what information is unavailable. Do not fill gaps with assumptions.
+3. A zero is a valid value only when it is explicitly present in the context. Missing data is unavailable, not zero.
+4. Identify price facts with the security or index symbol. Identify news facts with the supplied source name. Preserve the distinction between a reported fact and your interpretation.
+5. Do not claim to know client objectives, KYC, suitability, tax circumstances, dealer shelf status, cost basis, position size or portfolio allocation unless that information appears in the context.
+6. Do not give a personalized recommendation or instruction to buy, sell or hold. Provide research considerations and verification steps.
+7. Use Canadian compliance terminology precisely. KYC concerns the client's identity, circumstances, finances, investment knowledge, objectives, time horizon, risk tolerance and risk capacity. KYP concerns the security's structure, features, risks, costs, liquidity, initial approval and material changes. Never describe client risk tolerance or client objectives as KYP.
+8. Verified facts may contain only values or claims directly present in the supplied records. Put causal explanations, implications and phrases such as "reflecting" or "driven by" under Interpretation unless the supplied news record explicitly attributes them.
+
+Lead with the direct answer. Then use the plain-text headings "Verified facts" and, only when useful, "Interpretation". Never place an inference under Verified facts. Provide no more than five prioritized facts or considerations. Keep the response under 220 words. Use plain text only. Do not use markdown, asterisks, tables, em dashes or en dashes. End with one short informational-only disclaimer.`;
 
   let userPrompt = `User question: ${message}`;
 
   if (context?.watchlist?.length) {
-    userPrompt += `\n\nUser's watchlist: ${context.watchlist.join(", ")}`;
+    userPrompt += `\n\nPortfolio symbols supplied by the application: ${context.watchlist.join(", ")}`;
   }
+  if (context?.generatedAt) userPrompt += `\nContext assembled at: ${context.generatedAt}`;
   if (context?.marketData) {
     userPrompt += `\n\nCurrent market data:\n${JSON.stringify(context.marketData, null, 2).slice(0, 1500)}`;
   }
   if (context?.news?.length) {
-    userPrompt += `\n\nRecent headlines:\n${context.news.slice(0, 5).map((a: Article) => `- ${a.title}`).join("\n")}`;
+    userPrompt += `\n\nRecent news records:\n${JSON.stringify(context.news.slice(0, 8), null, 2).slice(0, 6000)}`;
   }
 
   return callGroq(
@@ -71,7 +84,7 @@ export async function groqChat(
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
-    { temperature: 0.7, maxTokens: 2048 }
+    { temperature: 0.1, maxTokens: 1024 }
   );
 }
 

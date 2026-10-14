@@ -156,7 +156,7 @@ export function getTrendDirection(change: number | null): TrendDirection {
 }
 
 export function formatPrice(price: number | null): string {
-  if (price === null) return "—";
+  if (price === null) return "-";
   return price.toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -164,19 +164,20 @@ export function formatPrice(price: number | null): string {
 }
 
 export function formatPercent(percent: number | null): string {
-  if (percent === null) return "—";
+  if (percent === null) return "-";
   const sign = percent > 0 ? "+" : "";
   return `${sign}${percent.toFixed(2)}%`;
 }
 
 export function formatChange(change: number | null): string {
-  if (change === null) return "—";
+  if (change === null) return "-";
   const sign = change > 0 ? "+" : "";
   return `${sign}${change.toFixed(2)}`;
 }
 
 export function formatVolume(volume: number | null): string {
-  if (volume === null) return "—";
+  if (volume === null) return "-";
+  if (volume >= 1_000_000_000_000) return `${(volume / 1_000_000_000_000).toFixed(2)}T`;
   if (volume >= 1_000_000_000) return `${(volume / 1_000_000_000).toFixed(1)}B`;
   if (volume >= 1_000_000) return `${(volume / 1_000_000).toFixed(1)}M`;
   if (volume >= 1_000) return `${(volume / 1_000).toFixed(1)}K`;
@@ -184,7 +185,7 @@ export function formatVolume(volume: number | null): string {
 }
 
 export function formatDuration(seconds: number | null): string {
-  if (seconds === null) return "—";
+  if (seconds === null) return "-";
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;

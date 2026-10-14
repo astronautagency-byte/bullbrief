@@ -31,6 +31,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "news",
     "podcasts",
     "watchlist",
+    "kyp",
   ].map((page) => ({
     url: `${BASE_URL}/${page}`,
     lastModified: now,

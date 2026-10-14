@@ -34,7 +34,7 @@ const OG_IMAGE = `${SITE_URL}/BullBrief_App_Icon.png`;
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "BullBrief — Your Daily Market Brief is Here",
+    default: "BullBrief - Your Daily Market Brief is Here",
     template: "%s | BullBrief",
   },
   description:
@@ -60,7 +60,7 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: SITE_URL,
     siteName: "BullBrief",
-    title: "BullBrief — Your Daily Market Brief is Here",
+    title: "BullBrief - Your Daily Market Brief is Here",
     description:
       "Follow the stocks that matter to you and get daily market updates, relevant headlines and podcast episodes in one focused briefing.",
     images: [
@@ -68,14 +68,14 @@ export const metadata: Metadata = {
         url: OG_IMAGE,
         width: 512,
         height: 512,
-        alt: "BullBrief — Daily Market Briefing",
+        alt: "BullBrief - Daily Market Briefing",
         type: "image/png",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "BullBrief — Your Daily Market Brief is Here",
+    title: "BullBrief - Your Daily Market Brief is Here",
     description:
       "Follow the stocks that matter to you and get daily market updates, relevant headlines and podcast episodes in one focused briefing.",
     images: [OG_IMAGE],
@@ -132,7 +132,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="BullBrief" />
         <link rel="apple-touch-icon" href="/BullBrief_App_Icon.png" />
-        <meta name="application-name" content="BullBrief — Your Daily Market Brief is Here" />
+        <meta name="application-name" content="BullBrief - Your Daily Market Brief is Here" />
         <meta name="theme-color" content="#1f211d" />
       </head>
       <body className="min-h-full bg-background text-foreground font-body">

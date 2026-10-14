@@ -12,18 +12,21 @@ import {
   Settings,
   Target,
   X,
+  ClipboardCheck,
 } from "lucide-react";
-import { BrandLogo } from "@/components/ui/brand-logo";
+import { useWorkspaceModules, type WorkspaceModuleId } from "@/lib/workspace-modules";
+import { BrandLockup } from "@/components/layout/brand-lockup";
 
 const navItems = [
-  { href: "/brief", label: "Brief", icon: LayoutDashboard },
-  { href: "/watchlist", label: "Watchlist", icon: ListFilter },
-  { href: "/markets", label: "Markets", icon: TrendingUp },
-  { href: "/picks", label: "Bull Picks", icon: Target },
-  { href: "/news", label: "News", icon: Newspaper },
-  { href: "/podcasts", label: "Podcasts", icon: Podcast },
-  { href: "/saved", label: "Saved", icon: Bookmark },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/brief", label: "Advisor Desktop", icon: LayoutDashboard, moduleId: null },
+  { href: "/watchlist", label: "Client Portfolios", icon: ListFilter, moduleId: "watchlist" },
+  { href: "/kyp", label: "KYP Reviews", icon: ClipboardCheck, moduleId: "kyp" },
+  { href: "/picks", label: "Security Research", icon: Target, moduleId: "picks" },
+  { href: "/markets", label: "Markets", icon: TrendingUp, moduleId: "markets" },
+  { href: "/news", label: "Client Briefings", icon: Newspaper, moduleId: "news" },
+  { href: "/podcasts", label: "Market Audio", icon: Podcast, moduleId: "podcasts" },
+  { href: "/saved", label: "Saved Research", icon: Bookmark, moduleId: "saved" },
+  { href: "/settings", label: "Settings", icon: Settings, moduleId: null },
 ];
 
 interface MobileNavProps {
@@ -32,6 +35,7 @@ interface MobileNavProps {
 }
 
 export function MobileNav({ open, onClose }: MobileNavProps) {
+  const workspaceModules = useWorkspaceModules();
   if (!open) return null;
 
   return (
@@ -48,9 +52,7 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
         )}
       >
         <div className="flex items-center justify-between mb-6">
-          <Link href="/brief" className="flex items-center gap-2" onClick={onClose}>
-            <BrandLogo variant="horizontal" size="sm" />
-          </Link>
+          <BrandLockup compact onClick={onClose} />
           <button
             onClick={onClose}
             className="p-2 text-on-surface-variant hover:text-primary"
@@ -61,7 +63,7 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
         </div>
 
         <div className="space-y-1">
-          {navItems.map((item) => (
+          {navItems.filter((item) => item.moduleId === null || workspaceModules.includes(item.moduleId as WorkspaceModuleId)).map((item) => (
             <Link
               key={item.href}
               href={item.href}

@@ -5,16 +5,17 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { cn } from "@/lib/cn";
 import { formatRelativeTime, type Article } from "@/lib/types";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Badge, NewsImpactGuide, SentimentBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LiveChart } from "@/components/ui/live-chart";
 import { PageHead } from "@/components/page-head";
+import { AdvisorMarketControls } from "@/components/markets/advisor-market-controls";
+import { AdvisorActionBrief } from "@/components/markets/advisor-action-brief";
 import {
   TrendingUp,
   TrendingDown,
   Loader2,
   RefreshCw,
-  Radio,
 } from "lucide-react";
 
 type MarketRegion = "us" | "ca";
@@ -29,9 +30,6 @@ interface IndexData {
   currency: string;
 }
 
-const US_SYMBOLS = ["^GSPC", "^IXIC", "^DJI", "^VIX"];
-const CA_SYMBOLS = ["^GSPTSE", "^GSPTSE60", "CADUSD=X", "BTC-CAD"];
-
 export default function MarketsPage() {
   const [region, setRegion] = useState<MarketRegion>("us");
   const [chartRange, setChartRange] = useState("1M");
@@ -40,7 +38,6 @@ export default function MarketsPage() {
   const [loadingIndexes, setLoadingIndexes] = useState(true);
   const [news, setNews] = useState<Article[]>([]);
   const [loadingNews, setLoadingNews] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const primaryIndex = indexes[selectedIndex] ?? null;
@@ -51,7 +48,6 @@ export default function MarketsPage() {
       const json = await res.json();
       if (json.data) {
         setIndexes(json.data);
-        setLastUpdated(new Date());
       }
     } catch {
       console.error("Failed to fetch indexes");
@@ -91,8 +87,6 @@ export default function MarketsPage() {
     };
   }, [fetchIndexes]);
 
-  const isPositive = (primaryIndex?.change ?? 0) >= 0;
-
   const now = new Date();
   const timeStr = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
   const tzStr = now.toLocaleTimeString("en-US", { timeZoneName: "short" }).split(" ").pop();
@@ -100,17 +94,18 @@ export default function MarketsPage() {
   return (
     <div className="space-y-6">
       <PageHead
-        title="Market Overview"
-        description="Real-time market data for S&P 500, NASDAQ, DOW, VIX, TSX, and more. Live index prices, charts, and financial news."
+        title="Markets and Daily Controls"
+        description="Advisor market monitoring, portfolio exceptions and daily compliance workflow."
         canonical="https://bullbrief.vercel.app/markets"
       />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="font-display font-bold text-2xl md:text-3xl text-on-surface italic">
-            Market Overview
+          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-primary">Advisor workflow</p>
+          <h1 className="mt-1 font-display font-semibold text-2xl md:text-3xl text-on-surface">
+            Markets and daily controls
           </h1>
           <p className="text-on-surface-variant text-xs md:text-sm mt-1">
-            Live updates &middot; Last refreshed {timeStr} {tzStr}
+            Market intelligence and review controls alongside your existing book systems. Refreshed {timeStr} {tzStr}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -191,6 +186,10 @@ export default function MarketsPage() {
         )}
       </div>
 
+      <AdvisorMarketControls indexes={indexes} />
+
+      <AdvisorActionBrief />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         <div className="lg:col-span-2 space-y-4">
           <Card className="p-3 md:p-4 overflow-hidden">
@@ -241,22 +240,18 @@ export default function MarketsPage() {
         <div className="space-y-4">
           <div>
             <h2 className="font-display font-bold text-base md:text-lg text-on-surface italic mb-3">
-              Top Stories
+              Market developments
             </h2>
 
-            <div className="space-y-2 md:space-y-3">
+            <NewsImpactGuide compact />
+
+            <div className="mt-3 space-y-2 md:space-y-3">
               {loadingNews ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-5 h-5 text-primary animate-spin" />
                 </div>
               ) : news.length > 0 ? (
                 news.map((article) => {
-                  const sentimentColor =
-                    article.sentimentLabel === "positive"
-                      ? "bg-primary/20 text-primary"
-                      : article.sentimentLabel === "negative"
-                        ? "bg-error/20 text-error"
-                        : "bg-surface-container-high text-on-surface-variant";
                   return (
                     <a
                       key={article.providerId}
@@ -266,9 +261,7 @@ export default function MarketsPage() {
                       className="block p-3 rounded-xl bg-surface-container-low border border-outline-variant hover:border-primary/30 transition-all"
                     >
                       <div className="flex items-center gap-2 mb-1.5">
-                        <span className={cn("px-1.5 md:px-2 py-0.5 rounded text-[9px] md:text-[10px] font-mono font-bold uppercase", sentimentColor)}>
-                          {article.sentimentLabel === "positive" ? "BULLISH" : article.sentimentLabel === "negative" ? "BEARISH" : "MARKET"}
-                        </span>
+                        <SentimentBadge sentiment={article.sentimentLabel ?? "neutral"} className="text-[9px] md:text-[10px]" />
                         <span className="text-[9px] md:text-[10px] text-on-surface-variant font-mono">
                           {formatRelativeTime(article.publishedAt)}
                         </span>

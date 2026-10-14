@@ -69,6 +69,9 @@ model UserPreference {
   podcastInterests  String[]
   theme             String   @default("dark")
   countryFocus      String   @default("us")
+  workspaceModules  String[] @default(["watchlist", "markets", "picks", "kyp", "news", "podcasts", "saved"])
+  companyName       String   @default("")
+  brandColor        String   @default("#4be277")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

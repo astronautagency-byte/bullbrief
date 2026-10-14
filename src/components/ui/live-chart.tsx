@@ -64,7 +64,7 @@ export function LiveChart({ symbol, range = "1M", interval = 60_000, height = 28
   const change = current - first;
   const changePercent = first ? (change / first) * 100 : 0;
   const positive = change >= 0;
-  const color = positive ? "#4be277" : "#ff7a73";
+  const color = positive ? "var(--brand-primary, #4be277)" : "#ff7a73";
   const values = useMemo(() => data.map((point) => point.value), [data]);
   const minimum = values.length ? Math.min(...values) : 0;
   const maximum = values.length ? Math.max(...values) : 1;

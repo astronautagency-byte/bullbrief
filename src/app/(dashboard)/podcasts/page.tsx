@@ -236,7 +236,7 @@ export default function PodcastsPage() {
       {activeEpisode && (
         <AudioPlayer
           audioUrl={activeEpisode.audioUrl}
-          title={`${activeEpisode.podcastTitle} — ${activeEpisode.title}`}
+          title={`${activeEpisode.podcastTitle} - ${activeEpisode.title}`}
           duration={activeEpisode.durationSeconds}
         />
       )}

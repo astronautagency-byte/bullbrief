@@ -31,7 +31,7 @@ function PriceTooltip({ active, payload, label, currency }: {
 
 export function StockPerformanceChart({ data, labels, previousClose, positive, currency }: StockPerformanceChartProps) {
   const points = useMemo(() => data.map((value, index) => ({ label: labels[index], value })), [data, labels]);
-  const color = positive ? "#4be277" : "#ff7a73";
+  const color = positive ? "var(--brand-primary, #4be277)" : "#ff7a73";
   const minimum = Math.min(...data, previousClose ?? Number.POSITIVE_INFINITY);
   const maximum = Math.max(...data, previousClose ?? Number.NEGATIVE_INFINITY);
   const padding = Math.max((maximum - minimum) * 0.12, maximum * 0.004);

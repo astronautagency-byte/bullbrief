@@ -288,7 +288,7 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
   };
 
   const formatMarketCap = (val: number | null): string => {
-    if (val === null) return "—";
+    if (val === null) return "-";
     if (val >= 1e12) return `$${(val / 1e12).toFixed(2)}T`;
     if (val >= 1e9) return `$${(val / 1e9).toFixed(2)}B`;
     if (val >= 1e6) return `$${(val / 1e6).toFixed(2)}M`;
@@ -296,12 +296,12 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
   };
 
   const formatRatio = (val: number | null): string => {
-    if (val === null) return "—";
+    if (val === null) return "-";
     return val.toFixed(2);
   };
 
   const getMoatBadge = (moat: string | null) => {
-    if (!moat) return <span className="text-on-surface-variant/30 text-xs">—</span>;
+    if (!moat) return <span className="text-on-surface-variant/30 text-xs">-</span>;
     const normalized = moat.toLowerCase();
     const variantMap: Record<string, "positive" | "default" | "warning"> = {
       wide: "positive",
@@ -484,7 +484,7 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
                     <span className="font-mono text-on-surface font-medium text-sm">
                       {stock.price !== null
                         ? `$${stock.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                        : "—"}
+                        : "-"}
                     </span>
                   </td>
                 ))}
@@ -510,7 +510,7 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
                           {stock.change.toFixed(2)} ({stock.changePercent?.toFixed(2)}%)
                         </span>
                       ) : (
-                        <span className="text-on-surface-variant/30 text-xs">—</span>
+                        <span className="text-on-surface-variant/30 text-xs">-</span>
                       )}
                     </td>
                   );
@@ -559,7 +559,7 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
                       {stock.starRating ? (
                         <StarRating rating={stock.starRating} size="sm" />
                       ) : (
-                        <span className="text-on-surface-variant/30 text-xs">—</span>
+                        <span className="text-on-surface-variant/30 text-xs">-</span>
                       )}
                     </td>
                   ))}
@@ -595,7 +595,7 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
                         {stock.sector ? (
                           <Badge variant="outline" className="text-[10px]">{stock.sector}</Badge>
                         ) : (
-                          <span className="text-on-surface-variant/30 text-xs">—</span>
+                          <span className="text-on-surface-variant/30 text-xs">-</span>
                         )}
                       </td>
                     ))}
@@ -609,7 +609,7 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
                         {stock.industry ? (
                           <span className="text-xs text-on-surface">{stock.industry}</span>
                         ) : (
-                          <span className="text-on-surface-variant/30 text-xs">—</span>
+                          <span className="text-on-surface-variant/30 text-xs">-</span>
                         )}
                       </td>
                     ))}
@@ -704,7 +704,7 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
                         <span className="font-mono text-xs text-on-surface">
                           {stock.dividendYield !== null
                             ? `${stock.dividendYield.toFixed(2)}%`
-                            : "—"}
+                            : "-"}
                         </span>
                       </td>
                     ))}
@@ -727,7 +727,7 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
                             ${stock.fairValue.toFixed(2)}
                           </span>
                         ) : (
-                          <span className="text-on-surface-variant/30 text-xs">—</span>
+                          <span className="text-on-surface-variant/30 text-xs">-</span>
                         )}
                       </td>
                     ))}
@@ -741,7 +741,7 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
 
       <footer className="comparison-print-footer hidden">
         <span>Sources: Yahoo Finance market data; available research fields through BullBrief’s configured Morningstar API integration.</span>
-        <span>Data may be delayed or unavailable. For research only—not investment advice.</span>
+        <span>Data may be delayed or unavailable. For research only-not investment advice.</span>
         <span className="comparison-print-page">BullBrief · bullbrief.vercel.app</span>
       </footer>
     </div>

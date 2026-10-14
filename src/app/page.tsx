@@ -19,7 +19,7 @@ import { BrandLogo } from "@/components/ui/brand-logo";
 import { HeroReveal, MotionLink, ProductFloat, ScrollReveal } from "@/components/landing/landing-motion";
 
 export const metadata: Metadata = {
-  title: "BullBrief — A clearer market day for Canadian investors",
+  title: "BullBrief - A clearer market day for Canadian investors",
   description:
     "A daily market briefing for self-directed Canadian investors following TSX and U.S. stocks.",
 };
@@ -154,7 +154,7 @@ function StockMockup() {
             <line x1="0" y1="18" x2="500" y2="18" stroke="#4be277" strokeDasharray="4 5" opacity=".6" />
           </svg>
         </div>
-        <div className="mt-4 grid grid-cols-3 gap-2">{[['Previous close','63.34'],['Day range','63.18 – 64.29'],['Volume','5.8M']].map(([k,v]) => <div key={k} className="border-t border-white/8 pt-3"><p className="text-[8px] text-white/35">{k}</p><p className="mt-1 font-mono text-[9px]">{v}</p></div>)}</div>
+        <div className="mt-4 grid grid-cols-3 gap-2">{[['Previous close','63.34'],['Day range','63.18 - 64.29'],['Volume','5.8M']].map(([k,v]) => <div key={k} className="border-t border-white/8 pt-3"><p className="text-[8px] text-white/35">{k}</p><p className="mt-1 font-mono text-[9px]">{v}</p></div>)}</div>
       </div>
     </WindowFrame>
   );
@@ -195,7 +195,7 @@ export default function LandingPage() {
             <Image src="/BullBrief_Logo_Mark_Transparent.png" width={208} height={208} alt="" aria-hidden="true" className="pointer-events-none absolute -right-16 -top-24 hidden w-52 rotate-12 opacity-[0.055] lg:block" />
             <HeroReveal><p className="mb-6 font-mono text-[10px] uppercase tracking-[0.24em] text-[#79eb96]">For self-directed Canadian investors</p></HeroReveal>
             <HeroReveal delay={0.08}><h1 className="font-display text-[clamp(3.2rem,7.6vw,7.6rem)] font-medium leading-[0.88] tracking-[-0.062em]">Your stocks. Your news.<br /><span className="italic text-[#b8b9b0]">One morning read.</span></h1></HeroReveal>
-            <HeroReveal delay={0.16}><p className="mx-auto mt-8 max-w-2xl text-base leading-relaxed text-white/62 sm:text-lg">BullBrief is a daily market briefing for Canadians who follow TSX and U.S. stocks—and would rather understand their watchlist than watch the market all day.</p></HeroReveal>
+            <HeroReveal delay={0.16}><p className="mx-auto mt-8 max-w-2xl text-base leading-relaxed text-white/62 sm:text-lg">BullBrief is a daily market briefing for Canadians who follow TSX and U.S. stocks-and would rather understand their watchlist than watch the market all day.</p></HeroReveal>
             <HeroReveal delay={0.24}><div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row"><MotionLink className="w-full sm:w-auto"><Link href="/signup" className="group flex w-full items-center justify-center gap-2 rounded-full bg-[#4be277] px-7 py-4 text-sm font-bold text-[#0b3519]">Build my free brief <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></Link></MotionLink><Link href="#product" className="flex w-full items-center justify-center rounded-full border border-white/18 px-7 py-4 text-sm font-semibold transition-colors hover:bg-white/7 sm:w-auto">See how it works</Link></div><p className="mt-4 text-[11px] text-white/35">Free to start. No payment details required.</p></HeroReveal>
           </div>
           <ProductFloat className="relative mx-auto mt-16 max-w-6xl"><div id="product" className="scroll-mt-28"><div className="absolute -inset-16 -z-10 bg-[#4be277]/8 blur-[100px]" /><BriefMockup /></div></ProductFloat>
@@ -213,7 +213,7 @@ export default function LandingPage() {
 
       <section id="features" className="scroll-mt-20 px-5 py-24 sm:px-8 lg:px-12 lg:py-36">
         <div className="mx-auto max-w-[1280px]">
-          <div className="grid gap-12 lg:grid-cols-[1.1fr_.9fr] lg:items-center"><ScrollReveal><StockMockup /></ScrollReveal><ScrollReveal delay={0.08} className="max-w-lg lg:pl-10"><p className="font-mono text-[10px] uppercase tracking-[.22em] text-[#79eb96]">From movement to context</p><h2 className="mt-5 font-display text-5xl leading-[.95] tracking-[-.05em] sm:text-6xl">Know what moved—and what might explain it.</h2><p className="mt-6 text-base leading-relaxed text-white/55">See price, volume and company context together. Then compare the stock, save it or ask Bull AI for a plain-language explanation.</p><Link href="/signup" className="group mt-8 inline-flex items-center gap-2 border-b border-white/25 pb-1 text-sm font-semibold">Explore the product <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></Link></ScrollReveal></div>
+          <div className="grid gap-12 lg:grid-cols-[1.1fr_.9fr] lg:items-center"><ScrollReveal><StockMockup /></ScrollReveal><ScrollReveal delay={0.08} className="max-w-lg lg:pl-10"><p className="font-mono text-[10px] uppercase tracking-[.22em] text-[#79eb96]">From movement to context</p><h2 className="mt-5 font-display text-5xl leading-[.95] tracking-[-.05em] sm:text-6xl">Know what moved-and what might explain it.</h2><p className="mt-6 text-base leading-relaxed text-white/55">See price, volume and company context together. Then compare the stock, save it or ask Bull AI for a plain-language explanation.</p><Link href="/signup" className="group mt-8 inline-flex items-center gap-2 border-b border-white/25 pb-1 text-sm font-semibold">Explore the product <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></Link></ScrollReveal></div>
           <div className="mt-28 grid gap-px overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/10 lg:grid-cols-3">{features.map(([title,copy], index) => <ScrollReveal key={title} delay={index * 0.07} className="h-full"><article className="group h-full bg-[#1f211d] p-7 transition-colors duration-300 hover:bg-[#252922] sm:p-9"><div className="flex items-center justify-between"><ChevronRight className="h-5 w-5 text-[#4be277] transition-transform duration-300 group-hover:translate-x-1" /><span className="font-mono text-[9px] text-white/25">0{index + 1}</span></div><h3 className="mt-14 font-display text-2xl">{title}</h3><p className="mt-4 text-sm leading-relaxed text-white/48">{copy}</p></article></ScrollReveal>)}</div>
         </div>
       </section>

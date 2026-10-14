@@ -36,7 +36,7 @@ async function isDbAvailable(): Promise<boolean> {
     dbAvailable = true;
   } catch {
     dbAvailable = false;
-    console.log("[auth] Database unavailable — using demo mode (in-memory users)");
+    console.log("[auth] Database unavailable - using demo mode (in-memory users)");
   }
   return dbAvailable;
 }

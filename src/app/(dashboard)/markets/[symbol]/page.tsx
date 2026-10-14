@@ -39,7 +39,18 @@ export default function StockDetailPage() {
 }
 
 function StockDetailClient({ symbol }: { symbol: string }) {
+  type Fundamentals = {
+    sector: string | null;
+    industry: string | null;
+    dividendYield: number | null;
+    priceToBook: number | null;
+    priceToSales: number | null;
+    priceToCashFlow: number | null;
+    fairValue: number | null;
+    economicMoat: string | null;
+  };
   const [quote, setQuote] = useState<Quote | null>(null);
+  const [fundamentals, setFundamentals] = useState<Fundamentals | null>(null);
   const [chartData, setChartData] = useState<number[]>([]);
   const [chartLabels, setChartLabels] = useState<string[]>([]);
   const [chartRange, setChartRange] = useState("1D");
@@ -54,6 +65,7 @@ function StockDetailClient({ symbol }: { symbol: string }) {
       );
       const json = await response.json();
       if (json.quote) setQuote(json.quote);
+      if (json.fundamentals) setFundamentals(json.fundamentals);
       if (json.history?.length) {
         setChartData(json.history.map((point: { value: number }) => point.value));
         setChartLabels(
@@ -87,23 +99,26 @@ function StockDetailClient({ symbol }: { symbol: string }) {
   const isPositive = periodChange >= 0;
   const currency = quote?.currency ?? "USD";
 
-  const stats = useMemo(
-    () => [
-      ["Previous close", formatPrice(quote?.previousClose ?? null)],
-      ["Open", formatPrice(quote?.open ?? null)],
-      ["Day range", quote?.low != null && quote.high != null ? `${formatPrice(quote.low)} – ${formatPrice(quote.high)}` : "—"],
-      ["52-week range", quote?.fiftyTwoWeekLow != null && quote.fiftyTwoWeekHigh != null ? `${formatPrice(quote.fiftyTwoWeekLow)} – ${formatPrice(quote.fiftyTwoWeekHigh)}` : "—"],
-      ["Volume", formatVolume(quote?.volume ?? null)],
-      ["Avg. volume", formatVolume(quote?.averageVolume ?? null)],
-      ["Market cap", formatVolume(quote?.marketCap ?? null)],
-      ["P/E ratio", quote?.pe != null ? quote.pe.toFixed(2) : "—"],
-      ["Bid", formatPrice(quote?.bid ?? null)],
-      ["Ask", formatPrice(quote?.ask ?? null)],
-      ["Currency", currency],
-      ["Exchange", quote?.exchangeCode || "—"],
-    ],
-    [currency, quote]
-  );
+  const stats = useMemo(() => {
+    const available = [
+      ["Previous close", quote?.previousClose != null ? formatPrice(quote.previousClose) : null],
+      ["Open", quote?.open != null ? formatPrice(quote.open) : null],
+      ["Day range", quote?.low != null && quote.high != null ? `${formatPrice(quote.low)} - ${formatPrice(quote.high)}` : null],
+      ["52-week range", quote?.fiftyTwoWeekLow != null && quote.fiftyTwoWeekHigh != null ? `${formatPrice(quote.fiftyTwoWeekLow)} - ${formatPrice(quote.fiftyTwoWeekHigh)}` : null],
+      ["Volume", quote?.volume != null ? formatVolume(quote.volume) : null],
+      ["Avg. volume", quote?.averageVolume != null ? formatVolume(quote.averageVolume) : null],
+      ["Market cap", quote?.marketCap != null ? formatVolume(quote.marketCap) : null],
+      ["P/E ratio", quote?.pe != null ? quote.pe.toFixed(2) : null],
+      ["Dividend yield", fundamentals?.dividendYield != null ? `${fundamentals.dividendYield.toFixed(2)}%` : null],
+      ["Price / book", fundamentals?.priceToBook != null ? fundamentals.priceToBook.toFixed(2) : null],
+      ["Price / sales", fundamentals?.priceToSales != null ? fundamentals.priceToSales.toFixed(2) : null],
+      ["Sector", fundamentals?.sector ?? null],
+      ["Industry", fundamentals?.industry ?? null],
+      ["Currency", quote?.currency ?? null],
+      ["Exchange", quote?.exchangeCode ?? null],
+    ];
+    return available.filter((entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].length > 0);
+  }, [fundamentals, quote]);
 
   if (loading) {
     return (

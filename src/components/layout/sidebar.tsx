@@ -12,16 +12,20 @@ import {
   ListFilter,
   TrendingUp,
   Podcast,
+  ClipboardCheck,
 } from "lucide-react";
+import { useWorkspaceModules, type WorkspaceModuleId } from "@/lib/workspace-modules";
+import { BrandLockup } from "@/components/layout/brand-lockup";
 
 const navItems = [
-  { href: "/brief", label: "Brief", icon: LayoutDashboard },
-  { href: "/watchlist", label: "Watchlist", icon: ListFilter },
-  { href: "/markets", label: "Markets", icon: TrendingUp },
-  { href: "/picks", label: "Bull Picks", icon: Target },
-  { href: "/news", label: "News", icon: Newspaper },
-  { href: "/podcasts", label: "Podcasts", icon: Podcast },
-  { href: "/saved", label: "Saved", icon: Bookmark },
+  { href: "/brief", label: "Advisor Desktop", icon: LayoutDashboard, moduleId: null },
+  { href: "/watchlist", label: "Client Portfolios", icon: ListFilter, moduleId: "watchlist" },
+  { href: "/kyp", label: "KYP Reviews", icon: ClipboardCheck, moduleId: "kyp" },
+  { href: "/picks", label: "Security Research", icon: Target, moduleId: "picks" },
+  { href: "/markets", label: "Markets", icon: TrendingUp, moduleId: "markets" },
+  { href: "/news", label: "Client Briefings", icon: Newspaper, moduleId: "news" },
+  { href: "/podcasts", label: "Market Audio", icon: Podcast, moduleId: "podcasts" },
+  { href: "/saved", label: "Saved Research", icon: Bookmark, moduleId: "saved" },
 ];
 
 const bottomItems = [
@@ -34,6 +38,8 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname();
+  const workspaceModules = useWorkspaceModules();
+  const visibleItems = navItems.filter((item) => item.moduleId === null || workspaceModules.includes(item.moduleId as WorkspaceModuleId));
 
   return (
     <aside
@@ -44,17 +50,10 @@ export function Sidebar({ className }: SidebarProps) {
         className
       )}
     >
-      <Link href="/brief" className="flex items-center gap-2 px-6 mb-10">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/BullBrief_Wordmark_Transparent.png"
-          alt="BullBrief"
-          className="h-7 w-auto dark:brightness-0 dark:invert"
-        />
-      </Link>
+      <BrandLockup className="mx-6 mb-8" />
 
       <nav className="flex-1 px-4 space-y-1.5">
-        {navItems.map((item) => {
+        {visibleItems.map((item) => {
           const isActive =
             pathname === item.href || pathname.startsWith(item.href + "/");
           return (

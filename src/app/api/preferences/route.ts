@@ -41,6 +41,9 @@ export async function PATCH(request: Request) {
       podcastInterests: body.podcastInterests ?? [],
       theme: body.theme ?? "dark",
       countryFocus: body.countryFocus ?? "us",
+      workspaceModules: body.workspaceModules ?? ["watchlist", "markets", "picks", "kyp", "news", "podcasts", "saved"],
+      companyName: typeof body.companyName === "string" ? body.companyName.trim().slice(0, 80) : "",
+      brandColor: typeof body.brandColor === "string" && /^#[0-9a-f]{6}$/i.test(body.brandColor) ? body.brandColor.toLowerCase() : "#4be277",
     },
     update: {
       ...(body.timezone !== undefined && { timezone: body.timezone }),
@@ -57,6 +60,11 @@ export async function PATCH(request: Request) {
       ...(body.countryFocus !== undefined && {
         countryFocus: body.countryFocus,
       }),
+      ...(body.workspaceModules !== undefined && {
+        workspaceModules: body.workspaceModules,
+      }),
+      ...(typeof body.companyName === "string" && { companyName: body.companyName.trim().slice(0, 80) }),
+      ...(typeof body.brandColor === "string" && /^#[0-9a-f]{6}$/i.test(body.brandColor) && { brandColor: body.brandColor.toLowerCase() }),
     },
   });
 

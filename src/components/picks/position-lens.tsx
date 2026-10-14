@@ -15,7 +15,7 @@ type PositionData = {
 type SearchResult = { symbol: string; name: string; exchange: string };
 
 const fmt = (value: number | null, suffix = "") =>
-  value == null ? "—" : `${value.toFixed(2)}${suffix}`;
+  value == null ? "-" : `${value.toFixed(2)}${suffix}`;
 
 export function PositionLens() {
   const [query, setQuery] = useState("");
@@ -107,7 +107,7 @@ export function PositionLens() {
 
   return (
     <section className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest">
-      <div className="border-b border-outline-variant bg-[linear-gradient(110deg,rgba(75,226,119,0.10),transparent_55%)] p-5 md:p-7">
+      <div className="border-b border-outline-variant p-5 md:p-7" style={{ backgroundImage: "linear-gradient(110deg, rgb(var(--brand-primary-rgb, 75 226 119) / 0.10), transparent 55%)" }}>
         <div className="mb-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-primary">
           <ShieldCheck className="h-4 w-4" /> Product review
         </div>

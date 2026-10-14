@@ -1,14 +1,24 @@
 @import "tailwindcss";
 
+/* The source wordmark uses white lettering for dark surfaces. A solid dark
+   treatment preserves the mark's legibility on light workspace surfaces. */
+.bullbrief-wordmark {
+  filter: brightness(0);
+}
+
+html.dark .bullbrief-wordmark {
+  filter: none;
+}
+
 @theme inline {
   --color-background: var(--app-bg);
   --color-foreground: var(--app-fg);
 
-  --color-primary: #4be277;
-  --color-primary-fixed: #6bff8f;
-  --color-primary-fixed-dim: #4ae176;
-  --color-primary-container: #22c55e;
-  --color-on-primary: var(--app-on-primary);
+  --color-primary: var(--brand-primary, #4be277);
+  --color-primary-fixed: var(--brand-primary-fixed, #6bff8f);
+  --color-primary-fixed-dim: var(--brand-primary, #4ae176);
+  --color-primary-container: var(--brand-primary-container, #22c55e);
+  --color-on-primary: var(--brand-on-primary, var(--app-on-primary));
   --color-on-primary-container: #004b1e;
   --color-inverse-primary: #006e2f;
 
@@ -21,7 +31,7 @@
   --color-surface-container-high: var(--app-surface-high);
   --color-surface-container-highest: var(--app-surface-highest);
   --color-surface-variant: var(--app-surface-highest);
-  --color-surface-tint: #4ae176;
+  --color-surface-tint: var(--brand-primary, #4ae176);
 
   --color-on-surface: var(--app-fg);
   --color-on-surface-variant: var(--app-fg-muted);
@@ -54,6 +64,434 @@
   --font-display: var(--font-editorial);
   --font-body: var(--font-geist);
   --font-mono: var(--font-jetbrains-mono);
+}
+
+@media print {
+  body:has(.kyp-pdf-report) .kyp-pdf-header {
+    display: grid !important;
+  }
+
+  .kyp-pdf-page {
+    position: relative !important;
+    display: block !important;
+    height: 10.8in !important;
+  }
+
+  .kyp-pdf-header {
+    display: grid !important;
+    position: absolute;
+    top: 0.38in;
+    right: 0.46in;
+    left: 0.46in;
+    height: 0.64in;
+    box-sizing: border-box;
+  }
+
+  .kyp-pdf-body {
+    position: absolute;
+    top: 1.16in;
+    right: 0.46in;
+    bottom: 0.56in;
+    left: 0.46in;
+    display: block !important;
+    padding-top: 0 !important;
+    overflow: visible !important;
+  }
+
+  .kyp-pdf-footer {
+    position: absolute;
+    right: 0.46in;
+    bottom: 0.28in;
+    left: 0.46in;
+    height: 0.22in;
+  }
+
+  .kyp-pdf-last {
+    height: 10in !important;
+    break-after: auto !important;
+    page-break-after: auto !important;
+  }
+}
+
+/* Dedicated KYP report. The application view remains hidden on screen and the
+   report becomes the only printable surface. */
+@page kyp-report-page {
+  size: letter portrait;
+  margin: 0;
+}
+
+@media print {
+  body:has(.kyp-pdf-report) {
+    zoom: 1;
+  }
+
+  body:has(.kyp-pdf-report) .print-document-identity,
+  body:has(.kyp-pdf-report) .print-document-footer,
+  body:has(.kyp-pdf-report) .kyp-print-document {
+    display: none !important;
+  }
+
+  .kyp-pdf-report {
+    display: block !important;
+    width: 8.5in !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: #172133;
+    background: #ffffff;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  .kyp-pdf-page {
+    page: kyp-report-page;
+    position: relative;
+    display: grid !important;
+    grid-template-rows: 0.78in 1fr 0.34in;
+    width: 8.5in;
+    height: 11in;
+    margin: 0;
+    padding: 0.38in 0.46in 0.28in;
+    overflow: hidden;
+    color: #172133;
+    background: #ffffff;
+    box-sizing: border-box;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .kyp-pdf-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  .kyp-pdf-header {
+    display: grid !important;
+    grid-template-columns: 1.25in 1fr 1.55in;
+    align-items: center;
+    gap: 0.18in;
+    padding-bottom: 0.13in;
+    border-bottom: 3px solid var(--brand-print-primary, #168a46);
+  }
+
+  .kyp-pdf-institution {
+    display: flex;
+    width: 1.2in;
+    height: 0.48in;
+    align-items: center;
+    color: #687386;
+    font-size: 6.5pt;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .kyp-pdf-institution img {
+    max-width: 1.2in !important;
+    max-height: 0.48in !important;
+    object-fit: contain;
+  }
+
+  .kyp-pdf-header p,
+  .kyp-pdf-header h1 {
+    margin: 0;
+  }
+
+  .kyp-pdf-header p {
+    color: var(--brand-print-primary, #168a46);
+    font-size: 6.5pt;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .kyp-pdf-header h1 {
+    margin-top: 3px;
+    overflow: hidden;
+    color: #172133;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 14pt;
+    line-height: 1.08;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .kyp-pdf-prepared {
+    display: grid;
+    gap: 2px;
+    text-align: right;
+  }
+
+  .kyp-pdf-prepared span,
+  .kyp-pdf-prepared small {
+    color: #687386;
+    font-size: 6pt;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .kyp-pdf-prepared strong {
+    color: #172133;
+    font-size: 8pt;
+  }
+
+  .kyp-pdf-body {
+    min-height: 0;
+    padding-top: 0.2in;
+    overflow: hidden;
+  }
+
+  .kyp-pdf-title-row {
+    display: grid;
+    grid-template-columns: 1fr 1.7in;
+    gap: 0.25in;
+    padding-bottom: 0.14in;
+  }
+
+  .kyp-pdf-title-row h3,
+  .kyp-pdf-page-title {
+    margin: 4px 0 5px;
+    color: #172133;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 18pt;
+    line-height: 1.08;
+  }
+
+  .kyp-pdf-title-row h3 span {
+    color: var(--brand-print-primary, #168a46);
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 8pt;
+  }
+
+  .kyp-pdf-title-row p,
+  .kyp-pdf-copy {
+    margin: 0;
+    color: #4b5563;
+    font-size: 7.4pt;
+    line-height: 1.45;
+  }
+
+  .kyp-pdf-kicker {
+    margin: 0;
+    color: var(--brand-print-primary, #168a46) !important;
+    font-size: 6.5pt !important;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .kyp-pdf-price {
+    display: grid;
+    align-content: center;
+    padding: 0.12in;
+    border: 1px solid #b8c1cc;
+    background: #f4f7f5;
+  }
+
+  .kyp-pdf-price span,
+  .kyp-pdf-price small {
+    color: #687386;
+    font-size: 6pt;
+    text-transform: uppercase;
+  }
+
+  .kyp-pdf-price strong {
+    margin: 3px 0;
+    color: #172133;
+    font-size: 12pt;
+  }
+
+  .kyp-pdf-heading {
+    margin: 0.16in 0 0.08in;
+    padding-bottom: 0.05in;
+    border-bottom: 1.5px solid #172133;
+    color: #172133 !important;
+    font-size: 7pt !important;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
+  .kyp-pdf-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border-top: 1px solid #cbd2da;
+    border-left: 1px solid #cbd2da;
+  }
+
+  .kyp-pdf-grid-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .kyp-pdf-cell {
+    display: grid;
+    align-content: start;
+    min-height: 0.48in;
+    padding: 0.07in 0.08in;
+    border-right: 1px solid #cbd2da;
+    border-bottom: 1px solid #cbd2da;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  .kyp-pdf-wide {
+    grid-column: 1 / -1;
+    min-height: 0.55in;
+  }
+
+  .kyp-pdf-cell span {
+    color: #687386 !important;
+    font-size: 5.7pt !important;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .kyp-pdf-cell strong {
+    margin-top: 3px;
+    color: #172133;
+    font-size: 7.2pt;
+    font-weight: 600;
+    line-height: 1.28;
+    overflow-wrap: anywhere;
+  }
+
+  .kyp-pdf-two {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.18in;
+  }
+
+  .kyp-pdf-chart,
+  .kyp-pdf-chart-empty {
+    height: 1.8in;
+    padding: 0.08in;
+    border: 1px solid #cbd2da;
+    background: #fbfcfb;
+    box-sizing: border-box;
+  }
+
+  .kyp-pdf-chart svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .kyp-pdf-chart svg line {
+    stroke: #b8c1cc;
+    stroke-width: 1;
+  }
+
+  .kyp-pdf-chart svg text {
+    fill: #687386;
+    font-size: 10px;
+  }
+
+  .kyp-pdf-chart-empty {
+    display: grid;
+    place-items: center;
+    color: #687386;
+    font-size: 7pt;
+  }
+
+  .kyp-pdf-bars {
+    display: grid;
+    gap: 0.07in;
+    padding: 0.1in;
+    border: 1px solid #cbd2da;
+  }
+
+  .kyp-pdf-bars > div {
+    display: grid;
+    grid-template-columns: 1.05in 1fr 0.42in;
+    align-items: center;
+    gap: 0.08in;
+    font-size: 6.4pt;
+  }
+
+  .kyp-pdf-bars i,
+  .kyp-pdf-range i {
+    position: relative;
+    display: block;
+    height: 0.08in;
+    background: #e5e9ed;
+  }
+
+  .kyp-pdf-bars b {
+    display: block;
+    height: 100%;
+    background: var(--brand-print-primary, #168a46);
+  }
+
+  .kyp-style-box {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid #8f9aa8;
+    border-left: 1px solid #8f9aa8;
+  }
+
+  .kyp-style-box div {
+    display: grid;
+    min-height: 0.34in;
+    place-items: center;
+    border-right: 1px solid #8f9aa8;
+    border-bottom: 1px solid #8f9aa8;
+    color: #687386;
+    font-size: 5.5pt;
+    text-align: center;
+  }
+
+  .kyp-style-box .active {
+    color: #ffffff;
+    font-weight: 700;
+    background: var(--brand-print-primary, #168a46);
+  }
+
+  .kyp-pdf-range {
+    display: grid;
+    gap: 0.07in;
+    margin-top: 0.16in;
+    color: #687386;
+    font-size: 6.2pt;
+  }
+
+  .kyp-pdf-range i b {
+    position: absolute;
+    top: -3px;
+    width: 7px;
+    height: 11px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    background: var(--brand-print-primary, #168a46);
+    box-shadow: 0 0 0 1px var(--brand-print-primary, #168a46);
+  }
+
+  .kyp-pdf-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  .kyp-pdf-table th,
+  .kyp-pdf-table td {
+    padding: 0.07in;
+    border: 1px solid #cbd2da;
+    color: #172133;
+    font-size: 6.4pt;
+    text-align: left;
+  }
+
+  .kyp-pdf-table th {
+    background: #edf3ef;
+  }
+
+  .kyp-pdf-footer {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    border-top: 1px solid #cbd2da;
+    color: #687386;
+    font-size: 6pt;
+  }
 }
 
 /* Dark theme (default) */
@@ -253,10 +691,190 @@ html.light {
     margin: 0.62in 0.55in 0.7in;
   }
 
+  html,
+  html.dark,
+  html.light {
+    --app-bg: #ffffff;
+    --app-fg: #172133;
+    --app-fg-muted: #4b5563;
+    --app-surface-lowest: #ffffff;
+    --app-surface-low: #f7f8fa;
+    --app-surface: #f1f3f5;
+    --app-surface-high: #e8ecf0;
+    --app-surface-highest: #d9dee7;
+    --app-outline: #687386;
+    --app-outline-variant: #c8d0da;
+  }
+
   body {
     background: white !important;
-    color: #1a1a1a !important;
+    color: #172133 !important;
+    font-size: 9.5pt;
+    zoom: 0.9;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  main > div {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .print-document-identity {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--brand-print-primary, #168a46);
+    color: #172133;
+    break-after: avoid;
+  }
+
+  .print-institution-brand {
+    display: flex;
+    min-width: 130px;
+    min-height: 42px;
+    align-items: center;
+  }
+
+  .print-institution-brand img {
+    width: auto !important;
+    height: auto !important;
+    max-width: 180px !important;
+    max-height: 54px !important;
+    object-fit: contain;
+  }
+
+  .print-institution-placeholder {
+    color: #778193;
+    font-size: 8pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .print-prepared-by {
+    display: grid;
+    gap: 1px;
+    text-align: right;
+  }
+
+  .print-prepared-by span,
+  .print-prepared-by small {
+    color: #687386;
+    font-size: 7pt;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .print-prepared-by strong {
+    color: #172133;
     font-size: 10pt;
+  }
+
+  .print-document-footer {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    margin-top: 12px;
+    padding-top: 6px;
+    border-top: 1px solid #d9dee7;
+    color: #596579;
+    font-size: 6.8pt;
+    letter-spacing: 0.02em;
+  }
+
+  .print-document-footer img {
+    width: 15px !important;
+    height: 15px !important;
+    object-fit: contain;
+  }
+
+  .kyp-print-document {
+    display: block !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+  }
+
+  .kyp-print-document > aside {
+    display: none !important;
+  }
+
+  .kyp-report {
+    display: block !important;
+    width: 100% !important;
+    padding: 0 !important;
+    color: #172133 !important;
+    background: #ffffff !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .kyp-report section {
+    padding-top: 14px !important;
+    padding-bottom: 14px !important;
+  }
+
+  .kyp-report h2,
+  .kyp-report h3,
+  .kyp-report h4,
+  .kyp-report p,
+  .kyp-report span,
+  .kyp-report label {
+    color: #172133 !important;
+    opacity: 1 !important;
+  }
+
+  .kyp-report h2 {
+    font-size: 18pt !important;
+  }
+
+  .kyp-report h3 {
+    font-size: 8pt !important;
+  }
+
+  .kyp-report textarea,
+  .kyp-report input,
+  .kyp-report select {
+    min-height: 30px !important;
+    padding: 7px 9px !important;
+    border: 1px solid #9da8b6 !important;
+    background: #ffffff !important;
+    color: #172133 !important;
+    font-size: 8pt !important;
+    line-height: 1.3 !important;
+    box-shadow: none !important;
+    resize: none !important;
+  }
+
+  .kyp-report textarea {
+    height: 48px !important;
+  }
+
+  .kyp-report .assessment-section-title {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .kyp-report label,
+  .kyp-report .rounded-xl {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   /* Hide everything except the comparison table */
@@ -283,7 +901,7 @@ html.light {
     gap: 24px;
     margin-bottom: 18px;
     padding-bottom: 14px;
-    border-bottom: 3px solid #168a46;
+    border-bottom: 3px solid var(--brand-print-primary, #168a46);
     break-after: avoid;
   }
 
@@ -303,7 +921,7 @@ html.light {
 
   #comparison-table .comparison-print-kicker {
     margin: 0 0 2px;
-    color: #168a46;
+    color: var(--brand-print-primary, #168a46);
     font-size: 7.5pt;
     font-weight: 700;
     letter-spacing: 0.14em;
@@ -354,7 +972,7 @@ html.light {
 
   #comparison-table thead th {
     background: #e7eee9 !important;
-    border-top: 2px solid #168a46 !important;
+    border-top: 2px solid var(--brand-print-primary, #168a46) !important;
     break-inside: avoid;
   }
 
@@ -385,7 +1003,7 @@ html.light {
   #comparison-table .comparison-print-page {
     text-align: right;
     font-weight: 700;
-    color: #168a46;
+    color: var(--brand-print-primary, #168a46);
   }
 
   /* Remove shadows and borders that don't print well */
@@ -430,5 +1048,11 @@ html.light {
   #comparison-table svg[class*="fill-outline"] {
     fill: #d1d5db !important;
     color: #d1d5db !important;
+  }
+}
+
+@media print {
+  body:has(.kyp-pdf-report) .kyp-pdf-header {
+    display: grid !important;
   }
 }

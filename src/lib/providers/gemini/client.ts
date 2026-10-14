@@ -1,8 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- External provider payloads are validated after receipt. */
 import { Article } from "@/lib/types";
 import { GeminiArticleAnalysis, GeminiArticleAnalysisSchema } from "./types";
-import { z } from "zod";
-import { logger } from "@/lib/logger";
 
 export class GeminiError extends Error {
   constructor(
@@ -20,7 +18,7 @@ export class GeminiProvider {
 
   async chat(
     message: string,
-    context?: { marketData?: any; news?: Article[]; watchlist?: string[] }
+    context?: { marketData?: any; news?: Array<Pick<Article, "title" | "description" | "sourceName" | "publishedAt" | "url">>; watchlist?: string[]; generatedAt?: string }
   ): Promise<string> {
     const prompt = this.buildChatPrompt(message, context);
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${this.apiKey}`;
@@ -32,11 +30,11 @@ export class GeminiProvider {
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         systemInstruction: {
           parts: [{
-            text: "You are BullBrief AI, a helpful financial market assistant. You provide concise, actionable market insights. You are knowledgeable about stocks, ETFs, indices, and market trends. Always remind users that your analysis is informational only and not financial advice. Keep responses concise and focused."
+            text: "You are BullBrief AI, a factual research assistant for Canadian financial advisors. Use supplied context as the only source for current prices, market moves, holdings and news. Never invent or estimate missing facts. Missing data is unavailable, not zero. Name symbols for price facts and source names for news facts. Use the plain-text headings Verified facts and, only when useful, Interpretation. Verified facts may contain only values or claims directly present in supplied records. Put causal explanations and implications under Interpretation. KYC concerns the client, including circumstances, finances, objectives, time horizon, risk tolerance and risk capacity. KYP concerns the security, including structure, features, risks, costs, liquidity, approval and material changes. Never describe client risk tolerance or objectives as KYP. Never assume suitability, tax, dealer shelf, cost basis, position size or allocation data. Do not give personalized buy, sell or hold recommendations. If evidence is insufficient, state exactly what is unavailable. Keep the answer under 220 words with no more than five points. Use plain text only with no markdown, asterisks, tables, em dashes or en dashes. End with one short informational-only disclaimer."
           }]
         },
         generationConfig: {
-          temperature: 0.7,
+          temperature: 0.1,
           topK: 40,
           topP: 0.95,
           maxOutputTokens: 2048,
@@ -153,18 +151,19 @@ ${context?.symbols?.length ? `Watchlist symbols: ${context.symbols.join(", ")}` 
     };
   }
 
-  private buildChatPrompt(message: string, context?: { marketData?: any; news?: Article[]; watchlist?: string[] }): string {
+  private buildChatPrompt(message: string, context?: { marketData?: any; news?: Array<Pick<Article, "title" | "description" | "sourceName" | "publishedAt" | "url">>; watchlist?: string[]; generatedAt?: string }): string {
     let prompt = `User question: ${message}`;
 
     if (context?.watchlist?.length) {
-      prompt += `\n\nUser's watchlist: ${context.watchlist.join(", ")}`;
+      prompt += `\n\nPortfolio symbols supplied by the application: ${context.watchlist.join(", ")}`;
     }
+    if (context?.generatedAt) prompt += `\nContext assembled at: ${context.generatedAt}`;
     if (context?.marketData) {
       const idx = context.marketData;
       prompt += `\n\nCurrent market data:\n${JSON.stringify(idx, null, 2).slice(0, 1500)}`;
     }
     if (context?.news?.length) {
-      prompt += `\n\nRecent headlines:\n${context.news.slice(0, 5).map((a: Article) => `- ${a.title}`).join("\n")}`;
+      prompt += `\n\nRecent news records:\n${JSON.stringify(context.news.slice(0, 8), null, 2).slice(0, 6000)}`;
     }
 
     return prompt;

@@ -279,7 +279,7 @@ export function StockScreener() {
                 </div>
                 <div className="col-span-4 md:col-span-2 text-right">
                   <span className="font-mono text-sm text-on-surface">
-                    {stock.price > 0 ? `$${stock.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
+                    {stock.price > 0 ? `$${stock.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "-"}
                   </span>
                 </div>
                 <div className="col-span-4 md:col-span-2 text-right">
@@ -291,7 +291,7 @@ export function StockScreener() {
                       {positive ? "+" : ""}{stock.changePercent.toFixed(2)}%
                     </span>
                   ) : (
-                    <span className="text-on-surface-variant/30 text-xs">—</span>
+                    <span className="text-on-surface-variant/30 text-xs">-</span>
                   )}
                 </div>
                 <div className="col-span-4 md:col-span-2">

@@ -111,14 +111,14 @@ export interface ChartData {
 
 export async function getStockPrice(
   symbol: string,
-  exactSymbol = false
+  exactSymbol = false,
+  fresh = false
 ): Promise<Quote | null> {
   const yahooSymbol = exactSymbol ? symbol.toUpperCase() : toYahooSymbol(symbol);
   try {
-    const res = await fetch(
-      `${YAHOO_BASE}/${encodeURIComponent(yahooSymbol)}?interval=1d&range=1d`,
-      { headers: HEADERS, next: { revalidate: 300 } }
-    );
+    const res = await fetch(`${YAHOO_BASE}/${encodeURIComponent(yahooSymbol)}?interval=1d&range=1d`, fresh
+      ? { headers: HEADERS, cache: "no-store" }
+      : { headers: HEADERS, next: { revalidate: 300 } });
 
     if (!res.ok) return null;
 
@@ -127,6 +127,12 @@ export async function getStockPrice(
     if (!result) return null;
 
     const meta = result.meta;
+    const dailyQuote = result.indicators?.quote?.[0];
+    const latestIndex = Array.isArray(dailyQuote?.close) ? dailyQuote.close.length - 1 : -1;
+    const candleValue = (field: "open" | "high" | "low" | "volume") => {
+      const value = latestIndex >= 0 ? dailyQuote?.[field]?.[latestIndex] : null;
+      return typeof value === "number" && Number.isFinite(value) ? value : null;
+    };
     const price = meta.regularMarketPrice ?? 0;
     const previousClose = meta.previousClose ?? meta.chartPreviousClose ?? price;
     const change = price - previousClose;
@@ -138,13 +144,13 @@ export async function getStockPrice(
       exchangeCode: meta.exchangeName ?? "",
       currency: meta.currency ?? "CAD",
       price,
-      open: meta.regularMarketOpen ?? null,
-      high: meta.regularMarketDayHigh ?? null,
-      low: meta.regularMarketDayLow ?? null,
+      open: meta.regularMarketOpen ?? candleValue("open"),
+      high: meta.regularMarketDayHigh ?? candleValue("high"),
+      low: meta.regularMarketDayLow ?? candleValue("low"),
       previousClose,
       change,
       changePercent,
-      volume: meta.regularMarketVolume ?? null,
+      volume: meta.regularMarketVolume ?? candleValue("volume"),
       averageVolume: meta.averageDailyVolume3Month ?? null,
       pe: meta.trailingPE ?? null,
       marketCap: meta.marketCap ?? null,

@@ -320,7 +320,7 @@ export function StockComparison() {
                     ) : morningstarLoading ? (
                       <Loader2 className="w-3 h-3 text-on-surface-variant/30 animate-spin" />
                     ) : (
-                      <span className="text-on-surface-variant/30 text-xs">—</span>
+                      <span className="text-on-surface-variant/30 text-xs">-</span>
                     )}
                   </div>
 
@@ -331,7 +331,7 @@ export function StockComparison() {
                     ) : morningstarLoading ? (
                       <Loader2 className="w-3 h-3 text-on-surface-variant/30 animate-spin" />
                     ) : (
-                      <span className="text-on-surface-variant/30 text-xs">—</span>
+                      <span className="text-on-surface-variant/30 text-xs">-</span>
                     )}
                   </div>
                 </div>

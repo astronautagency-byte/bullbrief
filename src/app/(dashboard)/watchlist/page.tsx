@@ -657,7 +657,7 @@ export default function WatchlistPage() {
           <div className="bg-surface-container rounded-xl border border-outline-variant w-full max-w-sm shadow-2xl">
             <div className="flex items-center justify-between p-4 border-b border-outline-variant">
               <h2 className="font-display font-bold text-lg text-on-surface">
-                Set Alert — {showAlertModal.symbol}
+                Set Alert - {showAlertModal.symbol}
               </h2>
               <button
                 onClick={() => { setShowAlertModal(null); setAlertPrice(""); }}
@@ -792,16 +792,16 @@ export default function WatchlistPage() {
                 <div className="md:col-span-2 md:text-right">
                   <span className="text-xs text-on-surface-variant md:hidden mr-2">Price:</span>
                   <span className="font-mono text-on-surface">
-                    {stock.price > 0 ? formatPrice(stock.price) : "—"}
+                    {stock.price > 0 ? formatPrice(stock.price) : "-"}
                   </span>
                 </div>
                 <div className={cn("md:col-span-2 md:text-right font-mono text-sm", trendColor)}>
                   <span className="text-xs text-on-surface-variant md:hidden mr-2">Change:</span>
-                  {stock.price > 0 ? formatChange(stock.change) : "—"}
+                  {stock.price > 0 ? formatChange(stock.change) : "-"}
                 </div>
                 <div className={cn("md:col-span-2 md:text-right font-mono text-sm", trendColor)}>
                   <span className="text-xs text-on-surface-variant md:hidden mr-2">%</span>
-                  {stock.price > 0 ? formatPercent(stock.changePercent) : "—"}
+                  {stock.price > 0 ? formatPercent(stock.changePercent) : "-"}
                 </div>
                 <div className="hidden md:flex md:col-span-2 justify-end">
                   {stock.price > 0 && (
@@ -862,11 +862,11 @@ export default function WatchlistPage() {
                 <div className="flex items-end justify-between gap-4 border-t border-outline-variant pt-4">
                   <div>
                     <p className="text-xs text-on-surface-variant">Latest available</p>
-                    <p className="mt-1 font-mono text-2xl font-semibold text-on-surface">{stock.price > 0 ? formatPrice(stock.price) : "—"}</p>
+                    <p className="mt-1 font-mono text-2xl font-semibold text-on-surface">{stock.price > 0 ? formatPrice(stock.price) : "-"}</p>
                   </div>
                   <div className={cn("text-right font-mono", trendColor)}>
-                    <p className="text-sm">{stock.price > 0 ? formatChange(stock.change) : "—"}</p>
-                    <p className="mt-1 text-sm">{stock.price > 0 ? formatPercent(stock.changePercent) : "—"}</p>
+                    <p className="text-sm">{stock.price > 0 ? formatChange(stock.change) : "-"}</p>
+                    <p className="mt-1 text-sm">{stock.price > 0 ? formatPercent(stock.changePercent) : "-"}</p>
                   </div>
                 </div>
               </article>
@@ -880,7 +880,7 @@ export default function WatchlistPage() {
           <p className="text-on-surface-variant">
             {searchQuery
               ? "No stocks match your search"
-              : "Your watchlist is empty — click Add Stock to get started"}
+              : "Your watchlist is empty - click Add Stock to get started"}
           </p>
         </div>
       )}

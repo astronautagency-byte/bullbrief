@@ -1,0 +1,3 @@
+ALTER TABLE "UserPreference"
+ADD COLUMN "companyName" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "brandColor" TEXT NOT NULL DEFAULT '#4be277';

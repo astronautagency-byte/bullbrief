@@ -1,5 +1,5 @@
 // In-memory store for demo mode (no PostgreSQL)
-// All data is ephemeral — lost on server restart
+// All data is ephemeral - lost on server restart
 
 export interface DemoWatchlist {
   id: string;

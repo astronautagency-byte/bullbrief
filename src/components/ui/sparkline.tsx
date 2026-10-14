@@ -32,7 +32,7 @@ export function Sparkline({
     })
     .join(" ");
 
-  const strokeColor = positive ? "#22c55e" : "#ef4444";
+  const strokeColor = positive ? "var(--brand-primary, #22c55e)" : "#ef4444";
   const gradientId = `sparkline-${positive ? "pos" : "neg"}-${Math.random().toString(36).slice(2, 8)}`;
 
   return (

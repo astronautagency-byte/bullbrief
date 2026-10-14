@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Line, LineChart, ResponsiveContainer } from "recharts";
+import { Line, LineChart, ResponsiveContainer, YAxis } from "recharts";
 import { cn } from "@/lib/cn";
 
 interface MiniChartProps {
@@ -47,14 +47,22 @@ export function MiniChart({ symbol, positive = true, className }: MiniChartProps
     return <div className={cn("h-10 w-full rounded bg-surface-container-high/40", className)} />;
   }
 
+  const values = data.map((point) => point.value).filter(Number.isFinite);
+  const minimum = Math.min(...values);
+  const maximum = Math.max(...values);
+  const movement = maximum - minimum;
+  const padding = movement > 0 ? movement * 0.12 : Math.max(Math.abs(maximum) * 0.002, 0.01);
+  const domain: [number, number] = [minimum - padding, maximum + padding];
+
   return (
     <div className={cn("h-11 w-full min-w-20 overflow-hidden", className)} aria-label={`${symbol} intraday price trend`}>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 5, right: 3, bottom: 5, left: 3 }}>
+          <YAxis hide domain={domain} />
           <Line
             type="linear"
             dataKey="value"
-            stroke={positive ? "#4BE277" : "#FF7A73"}
+            stroke={positive ? "var(--brand-primary, #4BE277)" : "#FF7A73"}
             strokeWidth={1.75}
             dot={false}
             activeDot={false}
