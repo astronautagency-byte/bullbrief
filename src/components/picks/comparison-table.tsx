@@ -6,7 +6,7 @@ import { StarRating } from "./star-rating";
 import { MiniChart } from "@/components/ui/mini-chart";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BrandLogo } from "@/components/ui/brand-logo";
+import { AdvisorPulseMark } from "@/components/advisor-pulse-mark";
 import {
   Search,
   Plus,
@@ -319,11 +319,11 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
     <div className="space-y-4" id="comparison-table">
       <header className="comparison-print-header hidden">
         <div className="comparison-print-brand">
-          <BrandLogo variant="horizontal" size="lg" />
+          <AdvisorPulseMark />
           <div>
-            <p className="comparison-print-kicker">Bull Picks Research</p>
+            <p className="comparison-print-kicker">Security research</p>
             <h1>Investment Comparison Report</h1>
-            <p>Market updates. Stay ahead.</p>
+            <p>Advisor-ready product comparison</p>
           </div>
         </div>
         <div className="comparison-print-meta">
@@ -742,7 +742,7 @@ export function ComparisonTable({ assetType, onAssetTypeChange }: ComparisonTabl
       <footer className="comparison-print-footer hidden">
         <span>Sources: Yahoo Finance market data; available research fields through BullBrief’s configured Morningstar API integration.</span>
         <span>Data may be delayed or unavailable. For research only-not investment advice.</span>
-        <span className="comparison-print-page">BullBrief · bullbrief.vercel.app</span>
+        <span className="comparison-print-page">AdvisorPulse by BullBrief · bullbrief.vercel.app</span>
       </footer>
     </div>
   );

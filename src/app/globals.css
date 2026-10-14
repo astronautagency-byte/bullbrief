@@ -66,6 +66,52 @@ html.dark .bullbrief-wordmark {
   --font-mono: var(--font-jetbrains-mono);
 }
 
+.advisor-pulse-mark {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: max-content;
+  line-height: 1;
+}
+
+.advisor-pulse-name {
+  color: currentColor;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.045em;
+}
+
+.advisor-pulse-name > span {
+  color: var(--brand-print-primary, var(--color-primary, #168a46));
+  font-style: italic;
+}
+
+.advisor-pulse-by {
+  margin-top: 4px;
+  color: #687386;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.advisor-pulse-mark-compact {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.advisor-pulse-mark-compact .advisor-pulse-name {
+  font-size: 12px;
+}
+
+.advisor-pulse-mark-compact .advisor-pulse-by {
+  margin-top: 0;
+  font-size: 5.5px;
+}
+
 @media print {
   body:has(.kyp-pdf-report) .kyp-pdf-header {
     display: grid !important;
@@ -201,6 +247,11 @@ html.dark .bullbrief-wordmark {
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
+  }
+
+  .kyp-pdf-report-brand .advisor-pulse-mark {
+    margin-bottom: 3px;
+    color: #172133;
   }
 
   .kyp-pdf-header h1 {
@@ -730,9 +781,9 @@ html.light {
   }
 
   .print-document-identity {
-    display: flex !important;
+    display: grid !important;
+    grid-template-columns: minmax(150px, 1fr) auto minmax(150px, 1fr);
     align-items: center;
-    justify-content: space-between;
     gap: 24px;
     margin-bottom: 20px;
     padding-bottom: 12px;
@@ -768,6 +819,21 @@ html.light {
     display: grid;
     gap: 1px;
     text-align: right;
+  }
+
+  .print-report-brand {
+    display: grid;
+    justify-items: center;
+    gap: 5px;
+    color: #172133;
+  }
+
+  .print-report-brand > span {
+    color: #687386;
+    font-size: 6pt;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
   }
 
   .print-prepared-by span,
@@ -917,6 +983,11 @@ html.light {
     max-width: 150px !important;
     max-height: none !important;
     object-fit: contain;
+  }
+
+  #comparison-table .comparison-print-brand > .advisor-pulse-mark {
+    min-width: 1.35in;
+    color: #172133;
   }
 
   #comparison-table .comparison-print-kicker {

@@ -1,5 +1,6 @@
 import type { KypProductRecord } from "@/lib/kyp";
 import { formatPrice, formatVolume } from "@/lib/types";
+import { AdvisorPulseMark } from "@/components/advisor-pulse-mark";
 
 type Draft = {
   reviewContext: string; firmApproval: string; structure: string; risk: string; costs: string;
@@ -19,9 +20,9 @@ function Cell({ label, value, wide = false }: { label: string; value?: string | 
 
 function Page({ children, page, total, title, identity }: { children: React.ReactNode; page: number; total: number; title: string; identity: Identity }) {
   return <div className={`kyp-pdf-page${page === total ? " kyp-pdf-last" : ""}`}>
-    <div className="kyp-pdf-header"><div className="kyp-pdf-institution">{identity.institutionLogo ? <InstitutionLogo src={identity.institutionLogo} /> : <span>Institution logo</span>}</div><div><p>Know Your Product report</p><h1>{title}</h1></div><div className="kyp-pdf-prepared"><span>Prepared by</span><strong>{identity.name || "Advisor name not set"}</strong><small>{new Date().toLocaleDateString("en-CA", { year: "numeric", month: "long", day: "numeric" })}</small></div></div>
+    <div className="kyp-pdf-header"><div className="kyp-pdf-institution">{identity.institutionLogo ? <InstitutionLogo src={identity.institutionLogo} /> : <span>Institution logo</span>}</div><div className="kyp-pdf-report-brand"><AdvisorPulseMark compact /><p>Know Your Product report</p><h1>{title}</h1></div><div className="kyp-pdf-prepared"><span>Prepared by</span><strong>{identity.name || "Advisor name not set"}</strong><small>{new Date().toLocaleDateString("en-CA", { year: "numeric", month: "long", day: "numeric" })}</small></div></div>
     <div className="kyp-pdf-body">{children}</div>
-    <footer className="kyp-pdf-footer"><span>Created using BullBrief - Your Daily Market Brief is Here</span><span>{page} / {total}</span></footer>
+    <footer className="kyp-pdf-footer"><span>AdvisorPulse by BullBrief | Advisor intelligence and reporting</span><span>{page} / {total}</span></footer>
   </div>;
 }
 

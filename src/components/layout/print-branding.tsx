@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AdvisorPulseMark } from "@/components/advisor-pulse-mark";
 
 const REPORT_IDENTITY_KEY = "bullbrief:report-identity:v1";
 
@@ -49,6 +50,10 @@ export function PrintBranding({ position }: { position: "header" | "footer" }) {
             <span className="print-institution-placeholder">Institution logo</span>
           )}
         </div>
+        <div className="print-report-brand">
+          <AdvisorPulseMark compact />
+          <span>Advisor reporting suite</span>
+        </div>
         <div className="print-prepared-by">
           <span>Prepared by</span>
           <strong>{identity.name || "User name not set"}</strong>
@@ -62,7 +67,7 @@ export function PrintBranding({ position }: { position: "header" | "footer" }) {
       <div className="print-document-footer hidden" aria-hidden="true">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/BullBrief_Logo_Mark_Transparent.png" alt="" />
-        <span>Created using BullBrief - Your Daily Market Brief is Here</span>
+        <span>AdvisorPulse by BullBrief | Advisor intelligence and reporting</span>
       </div>
   );
 }
