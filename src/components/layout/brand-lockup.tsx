@@ -21,12 +21,12 @@ export function BrandLockup({ compact = false, className, onClick }: BrandLockup
       {(institutionLogo || companyName) && (
         <div className={cn("mt-2 border-t border-outline-variant pt-2", compact ? "max-w-44" : "max-w-full")}>
           {institutionLogo && (
-            <div className={cn("institution-logo-frame flex w-fit items-center justify-center overflow-hidden rounded-md border border-slate-300 bg-white", compact ? "min-h-7 max-w-28 px-1.5 py-1" : "min-h-8 max-w-32 px-2 py-1")}>
+            <div className={cn("institution-logo-frame flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-300 bg-white", compact ? "h-8 w-28 px-2 py-1" : "h-9 w-32 px-2.5 py-1.5")}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={institutionLogo}
                 alt={`${institutionLabel} logo`}
-                className={cn("w-auto max-w-full object-contain", compact ? "max-h-5" : "max-h-6")}
+                className="block h-full w-full object-contain"
               />
             </div>
           )}
