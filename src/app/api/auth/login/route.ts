@@ -5,7 +5,8 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
-    const { email, password } = await request.json();
+    const { email: rawEmail, password } = await request.json();
+    const email = typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : "";
 
     if (!email || !password) {
       return NextResponse.json(
@@ -20,15 +21,37 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, user: localSession.user });
     }
 
-    const supabase = await createClient();
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    let data;
+    let error;
+    try {
+      const supabase = await createClient();
+      const response = await supabase.auth.signInWithPassword({ email, password });
+      data = response.data;
+      error = response.error;
+    } catch (providerError) {
+      console.warn(
+        "External sign-in provider unavailable:",
+        providerError instanceof Error ? providerError.message : "unknown provider error"
+      );
+      return NextResponse.json(
+        {
+          error: "This account is not available in BullBrief yet. Create an account with this email, then sign in.",
+          code: "AUTH_PROVIDER_UNAVAILABLE",
+        },
+        { status: 503 }
+      );
+    }
 
     if (error) {
       return NextResponse.json(
         { error: error.message || "Invalid email or password" },
+        { status: 401 }
+      );
+    }
+
+    if (!data.user) {
+      return NextResponse.json(
+        { error: "Invalid email or password" },
         { status: 401 }
       );
     }

@@ -89,10 +89,11 @@ export async function signIn(
   email: string,
   password: string
 ): Promise<{ user: AuthUser; token: string } | null> {
+  const normalizedEmail = email.trim().toLowerCase();
   if (await isDbAvailable()) {
     const { prisma } = await import("@/lib/prisma");
     if (!prisma) return null;
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (!user || !user.hashedPassword) return null;
 
     const isValid = await bcrypt.compare(password, user.hashedPassword);
@@ -109,7 +110,7 @@ export async function signIn(
   }
 
   // Demo mode: in-memory users
-  const demoUser = demoUsers.get(email);
+  const demoUser = demoUsers.get(normalizedEmail);
   if (!demoUser) return null;
 
   const isValid = await bcrypt.compare(password, demoUser.hashedPassword);
@@ -130,11 +131,12 @@ export async function register(
   email: string,
   password: string
 ): Promise<{ success: boolean; error?: string }> {
+  const normalizedEmail = email.trim().toLowerCase();
   if (await isDbAvailable()) {
     const { prisma } = await import("@/lib/prisma");
     if (!prisma) return { success: false, error: "Database not available" };
 
-    const existing = await prisma.user.findUnique({ where: { email } });
+    const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existing) {
       return { success: false, error: "An account with this email already exists" };
     }
@@ -142,7 +144,7 @@ export async function register(
     const hashedPassword = await bcrypt.hash(password, 12);
 
     const user = await prisma.user.create({
-      data: { name, email, hashedPassword },
+      data: { name, email: normalizedEmail, hashedPassword },
     });
 
     await prisma.userPreference.create({ data: { userId: user.id } });
@@ -154,14 +156,14 @@ export async function register(
   }
 
   // Demo mode: in-memory registration
-  if (demoUsers.has(email)) {
+  if (demoUsers.has(normalizedEmail)) {
     return { success: false, error: "An account with this email already exists" };
   }
 
   const hashedPassword = await bcrypt.hash(password, 12);
   const id = `demo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-  demoUsers.set(email, { id, email, name, hashedPassword });
+  demoUsers.set(normalizedEmail, { id, email: normalizedEmail, name, hashedPassword });
 
   return { success: true };
 }

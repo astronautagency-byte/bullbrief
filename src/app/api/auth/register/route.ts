@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { register } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
-    const { name, email, password } = await request.json();
+    const { name, email: rawEmail, password } = await request.json();
+    const email = typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : "";
 
     if (!email || !password) {
       return NextResponse.json(
@@ -19,28 +20,18 @@ export async function POST(request: Request) {
       );
     }
 
-    const supabase = await createClient();
-    const { data, error } = await supabase.auth.signUp({
+    const result = await register(
+      typeof name === "string" && name.trim() ? name.trim() : email.split("@")[0],
       email,
-      password,
-      options: {
-        data: { name: name || email.split("@")[0] },
-      },
-    });
+      password
+    );
 
-    if (error) {
-      const status = error.message.includes("already exists") ? 409 : 500;
+    if (!result.success) {
+      const status = result.error?.includes("already exists") ? 409 : 500;
       return NextResponse.json(
-        { error: error.message },
+        { error: result.error || "Failed to create account" },
         { status }
       );
-    }
-
-    if (data.user && !data.session) {
-      return NextResponse.json({
-        success: true,
-        message: "Check your email to confirm your account",
-      });
     }
 
     return NextResponse.json({ success: true }, { status: 201 });
