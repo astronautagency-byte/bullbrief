@@ -401,14 +401,26 @@ export function KypWorkspace() {
     setFactsheetCreateMode(createMode);
     setFactsheetUploading(true); setFactsheetError("");
     const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 35000);
+    const timeout = window.setTimeout(() => controller.abort(), 55000);
     try {
       const form = new FormData(); form.append("file", file);
       const response = await fetch("/api/kyp/upload-factsheet", { method: "POST", body: form, signal: controller.signal });
-      const payload = await response.json();
+      const responseText = await response.text();
+      let payload: { error?: string; data?: ExtractedFundFactsheet; products?: ExtractedFundFactsheet[]; source?: { fileName: string; pageCount: number; extractedCount: number } };
+      try {
+        payload = JSON.parse(responseText);
+      } catch {
+        const statusMessage = response.status === 413
+          ? "The PDF is too large to analyze. Use the original product PDF under 12 MB."
+          : response.status >= 500
+            ? "The PDF analysis service encountered an error. Try the original downloaded PDF again."
+            : "The upload service returned an unreadable response. Refresh BullBrief and try the PDF again.";
+        throw new Error(statusMessage);
+      }
       if (!response.ok) throw new Error(payload.error || "The factsheet could not be analyzed.");
+      if (!payload.data || !payload.source) throw new Error("The factsheet analysis did not return product data. Try the original downloaded PDF.");
       setPendingSourcePdf(file);
-      setPendingFactsheet(payload);
+      setPendingFactsheet({ data: payload.data, products: payload.products, source: payload.source });
     } catch (error) {
       setFactsheetError(error instanceof DOMException && error.name === "AbortError" ? "The analysis timed out. Try again with the original text-based PDF." : error instanceof Error ? error.message : "The factsheet could not be analyzed.");
     } finally { window.clearTimeout(timeout); setFactsheetUploading(false); }
