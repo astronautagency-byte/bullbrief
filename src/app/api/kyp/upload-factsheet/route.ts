@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { PDFParse } from "pdf-parse";
+import { DOMMatrix, ImageData, Path2D } from "@napi-rs/canvas";
 import { groqExtractFundFactsheet, groqExtractFundFactsheetImages } from "@/lib/providers/groq/client";
 import { normalizeExtractedProducts, type ExtractedFundFactsheet } from "@/lib/kyp";
 
@@ -126,6 +126,8 @@ export async function POST(request: Request) {
 
     const bytes = new Uint8Array(await file.arrayBuffer());
     if (new TextDecoder().decode(bytes.slice(0, 5)) !== "%PDF-") return NextResponse.json({ error: "This file does not appear to be a valid PDF." }, { status: 400 });
+    Object.assign(globalThis, { DOMMatrix, ImageData, Path2D });
+    const { PDFParse } = await import("pdf-parse");
     const parser = new PDFParse({ data: bytes });
     let textResult: Awaited<ReturnType<typeof parser.getText>>;
     let extracted: ExtractedFundFactsheet;
