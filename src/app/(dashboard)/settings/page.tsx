@@ -18,6 +18,7 @@ import {
   X,
   LayoutGrid,
   Check,
+  Plus,
 } from "lucide-react";
 import {
   DEFAULT_WORKSPACE_MODULES,
@@ -26,7 +27,7 @@ import {
   WORKSPACE_MODULES_KEY,
   type WorkspaceModuleId,
 } from "@/lib/workspace-modules";
-import { DEFAULT_BRAND_COLOR, INSTITUTION_BRAND_EVENT, INSTITUTION_BRAND_KEY, normalizeBrandColor, REPORT_IDENTITY_EVENT, REPORT_IDENTITY_KEY, type InstitutionBrand } from "@/lib/institution-brand";
+import { ADVISOR_ROSTER_EVENT, ADVISOR_ROSTER_KEY, DEFAULT_BRAND_COLOR, INSTITUTION_BRAND_EVENT, INSTITUTION_BRAND_KEY, normalizeBrandColor, REPORT_IDENTITY_EVENT, REPORT_IDENTITY_KEY, type InstitutionBrand } from "@/lib/institution-brand";
 
 async function resizeLogo(file: File): Promise<string> {
   if (!file.type.match(/^image\/(png|jpeg|webp|svg\+xml)$/)) throw new Error("Use a PNG, JPG, WebP or SVG logo.");
@@ -65,6 +66,8 @@ export default function SettingsPage() {
   const [companyName, setCompanyName] = useState("");
   const [brandColor, setBrandColor] = useState(DEFAULT_BRAND_COLOR);
   const [profileMessage, setProfileMessage] = useState("");
+  const [advisorRoster, setAdvisorRoster] = useState<string[]>([]);
+  const [newAdvisor, setNewAdvisor] = useState("");
   const [workspaceModules, setWorkspaceModules] = useState<WorkspaceModuleId[]>(DEFAULT_WORKSPACE_MODULES);
   const fileRef = useRef<HTMLInputElement>(null);
   const [timezone, setTimezone] = useState("America/New_York");
@@ -77,6 +80,10 @@ export default function SettingsPage() {
         const local = JSON.parse(localStorage.getItem(REPORT_IDENTITY_KEY) || "{}");
         setName(local.name || "");
         setInstitutionLogo(local.institutionLogo || "");
+      } catch {}
+      try {
+        const storedRoster = JSON.parse(localStorage.getItem(ADVISOR_ROSTER_KEY) || "[]");
+        if (Array.isArray(storedRoster)) setAdvisorRoster(storedRoster.filter((item): item is string => typeof item === "string" && Boolean(item.trim())));
       } catch {}
       try {
         const localBrand = JSON.parse(localStorage.getItem(INSTITUTION_BRAND_KEY) || "{}");
@@ -111,9 +118,12 @@ export default function SettingsPage() {
     const identity = { name: name.trim(), institutionLogo };
     const institutionBrand: InstitutionBrand = { companyName: companyName.trim().slice(0, 80), brandColor: normalizeBrandColor(brandColor), institutionLogo };
     localStorage.setItem(REPORT_IDENTITY_KEY, JSON.stringify(identity));
+    const roster = Array.from(new Set([name.trim(), ...advisorRoster].filter(Boolean)));
+    localStorage.setItem(ADVISOR_ROSTER_KEY, JSON.stringify(roster));
     localStorage.setItem(INSTITUTION_BRAND_KEY, JSON.stringify(institutionBrand));
     saveWorkspaceModules(workspaceModules);
     window.dispatchEvent(new CustomEvent(REPORT_IDENTITY_EVENT, { detail: identity }));
+    window.dispatchEvent(new CustomEvent(ADVISOR_ROSTER_EVENT, { detail: roster }));
     window.dispatchEvent(new CustomEvent(INSTITUTION_BRAND_EVENT, { detail: institutionBrand }));
     try {
       const response = await fetch("/api/profile", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(identity) });
@@ -147,6 +157,13 @@ export default function SettingsPage() {
     const normalized = normalizeBrandColor(nextColor);
     setBrandColor(normalized);
     window.dispatchEvent(new CustomEvent(INSTITUTION_BRAND_EVENT, { detail: { companyName, brandColor: normalized } }));
+  };
+
+  const addAdvisor = () => {
+    const advisor = newAdvisor.trim();
+    if (!advisor) return;
+    setAdvisorRoster((current) => Array.from(new Set([...current, advisor])));
+    setNewAdvisor("");
   };
 
   return (
@@ -188,6 +205,14 @@ export default function SettingsPage() {
               icon={<User className="w-4 h-4" />}
               placeholder="Advisor or agent name"
             />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-mono uppercase tracking-wider text-on-surface-variant">Advisor roster for KYP reports</label>
+            <div className="flex gap-2"><Input value={newAdvisor} onChange={(event) => setNewAdvisor(event.target.value)} icon={<User className="h-4 w-4" />} placeholder="Add advisor name" /><Button variant="ghost" onClick={addAdvisor} disabled={!newAdvisor.trim()}><Plus className="h-4 w-4" /> Add</Button></div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {Array.from(new Set([name.trim(), ...advisorRoster].filter(Boolean))).map((advisor) => <span key={advisor} className="inline-flex items-center gap-2 rounded-full border border-outline-variant bg-surface-container-low px-3 py-1.5 text-xs font-semibold text-on-surface">{advisor}{advisor !== name.trim() && <button type="button" onClick={() => setAdvisorRoster((current) => current.filter((item) => item !== advisor))} aria-label={`Remove ${advisor}`}><X className="h-3 w-3" /></button>}</span>)}
+              {!name.trim() && !advisorRoster.length && <span className="text-xs text-on-surface-variant">Add the advisors who can prepare KYP records.</span>}
+            </div>
           </div>
           <div>
             <label className="block text-on-surface-variant text-xs font-mono uppercase tracking-wider mb-1.5">

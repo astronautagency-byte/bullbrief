@@ -2,6 +2,8 @@ export const INSTITUTION_BRAND_KEY = "bullbrief:institution-brand:v1";
 export const INSTITUTION_BRAND_EVENT = "bullbrief:institution-brand";
 export const REPORT_IDENTITY_KEY = "bullbrief:report-identity:v1";
 export const REPORT_IDENTITY_EVENT = "bullbrief:report-identity";
+export const ADVISOR_ROSTER_KEY = "bullbrief:advisor-roster:v1";
+export const ADVISOR_ROSTER_EVENT = "bullbrief:advisor-roster";
 export const DEFAULT_BRAND_COLOR = "#4be277";
 
 export type InstitutionBrand = {

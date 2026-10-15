@@ -1,6 +1,11 @@
-import type { KypProductRecord } from "@/lib/kyp";
+"use client";
+
+import { uploadedDocumentTitle, type ExtractedFundFactsheet, type KypProductRecord } from "@/lib/kyp";
+import { getKypSourcePdf } from "@/lib/kyp-source-pdf";
 import { formatPercent, formatPrice, formatVolume } from "@/lib/types";
 import { Check, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 const EMPTY = "Not available";
 
@@ -25,6 +30,172 @@ function ReportSection({ number, title, children }: { number: string; title: str
       {children}
     </section>
   );
+}
+
+function SourceTable({ headers, rows }: { headers: string[]; rows: Array<Array<string | number | null | undefined>> }) {
+  if (!rows.length) return null;
+  return <div className="overflow-x-auto rounded-xl border border-outline-variant">
+    <table className="min-w-[720px] w-full border-collapse text-left text-[10px]">
+      <thead className="bg-surface-container-low"><tr>{headers.map((header) => <th key={header} className="border-b border-outline-variant px-3 py-2.5 font-bold text-on-surface-variant">{header}</th>)}</tr></thead>
+      <tbody>{rows.map((row, rowIndex) => <tr key={rowIndex} className="border-b border-outline-variant/60 last:border-0">{row.map((value, cellIndex) => <td key={cellIndex} className="whitespace-nowrap px-3 py-2.5 font-mono text-on-surface">{value == null ? "N/A" : value}</td>)}</tr>)}</tbody>
+    </table>
+  </div>;
+}
+
+const SERIES_COLORS = ["#4be277", "#76a9ff", "#f3b94f", "#d28cff"];
+
+function UploadedPdfReview({ record }: { record: KypProductRecord }) {
+  const uploaded = record.uploadedFactsheet!;
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [previewError, setPreviewError] = useState(false);
+  useEffect(() => {
+    let objectUrl = "";
+    let active = true;
+    void getKypSourcePdf(record.id).then((file) => {
+      if (!active || !file) { if (active) setPreviewError(true); return; }
+      objectUrl = URL.createObjectURL(file);
+      setPreviewUrl(objectUrl);
+    }).catch(() => { if (active) setPreviewError(true); });
+    return () => { active = false; if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [record.id]);
+  const title = uploadedDocumentTitle(uploaded.fileName);
+  return <div className="research-report mt-5">
+    <section className="overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-low">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant px-4 py-3"><div><p className="font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-primary">Uploaded source PDF</p><h3 className="mt-1 text-sm font-semibold text-on-surface">{title}</h3></div><span className="rounded-full border border-outline-variant px-2.5 py-1 text-[9px] font-semibold text-on-surface-variant">{uploaded.pageCount} pages</span></div>
+      {previewUrl ? <iframe title={`${title} PDF preview`} src={`${previewUrl}#toolbar=1&navpanes=0&view=FitH`} className="h-[720px] w-full bg-white" /> : <div className="grid h-72 place-items-center px-6 text-center"><div><p className="text-sm font-semibold text-on-surface">{previewError ? "Source PDF preview unavailable" : "Loading PDF preview"}</p><p className="mt-1 text-[11px] text-on-surface-variant">{previewError ? "Re-upload the original PDF to restore the preview." : "Preparing the original uploaded document."}</p></div></div>}
+    </section>
+  </div>;
+}
+
+function parsePercentBreakdown(value?: string | null) {
+  if (!value) return [];
+  const matches = [...value.matchAll(/([A-Za-z][A-Za-z0-9 &/()+.-]{1,55}?)\s*[:|-]?\s*(-?\d+(?:\.\d+)?)\s*%/g)];
+  return matches.map((match) => ({ name: match[1].trim().replace(/^[,;]+|[,;]+$/g, ""), value: Number(match[2]) })).filter((item) => item.name && Number.isFinite(item.value));
+}
+
+function UploadedFundReport({ record }: { record: KypProductRecord }) {
+  const u = record.uploadedFactsheet!;
+  const returns = [
+    { period: "1Y", value: u.return1Y },
+    { period: "3Y", value: u.return3Y },
+    { period: "5Y", value: u.return5Y },
+    { period: "10Y", value: u.return10Y },
+  ].filter((point): point is { period: string; value: number } => point.value != null);
+  const allocation = parsePercentBreakdown(u.assetAllocation);
+  const geography = parsePercentBreakdown(u.geographicAllocation);
+  const sectors = parsePercentBreakdown(u.sectorAllocation);
+  const holdings = parsePercentBreakdown(u.topHoldings).slice(0, 10);
+  const portfolioBreakdown = allocation.length ? allocation : sectors.length ? sectors : geography;
+  const availableFacts: Array<[string, string]> = ([
+    ["Fund code", u.fundCode], ["Category", u.category], ["Currency", u.currency], ["CUSIP", u.cusip], ["ISIN", u.isin],
+    ["Inception", u.inceptionDate], ["Manager", u.manager], ["Risk level", u.riskLevel], ["Distribution", u.distributionFrequency], ["Source date", u.asOfDate],
+  ] as Array<[string, string | null]>).filter((row): row is [string, string] => Boolean(row[1]));
+  return <div className="research-report">
+    <div className="mt-5 rounded-2xl border border-primary/25 bg-primary/[0.06] p-4">
+      <p className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-primary">Uploaded fund research</p>
+      <h3 className="mt-1 text-lg font-semibold text-on-surface">Source-driven fund overview</h3>
+      <p className="mt-1 text-[11px] text-on-surface-variant">Extracted from {u.fileName}. Charts are reconstructed only where the source contains numeric values.</p>
+    </div>
+
+    {(returns.length > 0 || portfolioBreakdown.length > 0) && <ReportSection number="01" title="Performance and portfolio profile">
+      <div className="grid gap-4 lg:grid-cols-2">
+        {returns.length > 0 && <div className="rounded-2xl border border-outline-variant bg-surface-container-low p-4"><h4 className="text-xs font-bold text-on-surface">Annualized trailing returns</h4><p className="mt-1 text-[10px] text-on-surface-variant">Periods stated in the uploaded document</p><div className="mt-3 h-64"><ResponsiveContainer width="100%" height="100%"><BarChart data={returns} margin={{ top: 10, right: 8, left: -16, bottom: 0 }}><CartesianGrid stroke="rgba(128,128,128,.18)" vertical={false} /><XAxis dataKey="period" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} unit="%" /><Tooltip contentStyle={{ background: "#171b18", border: "1px solid #485049", borderRadius: 12, fontSize: 11 }} formatter={(value) => [`${value}%`, "Return"]} /><Bar dataKey="value" fill={SERIES_COLORS[0]} radius={[6, 6, 0, 0]} /></BarChart></ResponsiveContainer></div></div>}
+        {portfolioBreakdown.length > 0 && <div className="rounded-2xl border border-outline-variant bg-surface-container-low p-4"><h4 className="text-xs font-bold text-on-surface">{allocation.length ? "Asset allocation" : sectors.length ? "Sector allocation" : "Geographic allocation"}</h4><p className="mt-1 text-[10px] text-on-surface-variant">Allocation percentages extracted from the source</p><div className="mt-3 h-64"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={portfolioBreakdown} dataKey="value" nameKey="name" innerRadius="48%" outerRadius="76%" paddingAngle={2}>{portfolioBreakdown.map((item, index) => <Cell key={item.name} fill={SERIES_COLORS[index % SERIES_COLORS.length]} />)}</Pie><Tooltip contentStyle={{ background: "#171b18", border: "1px solid #485049", borderRadius: 12, fontSize: 11 }} formatter={(value) => [`${value}%`, "Allocation"]} /><Legend wrapperStyle={{ fontSize: 10 }} /></PieChart></ResponsiveContainer></div></div>}
+      </div>
+    </ReportSection>}
+
+    <ReportSection number="02" title="Product, fees and risk">
+      <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+        <div className="grid gap-x-5 gap-y-4 sm:grid-cols-2">
+          {availableFacts.map(([label, value]) => <ValueCell key={label} label={label} value={value} />)}
+          {u.morningstarRating != null && <ValueCell label="Morningstar rating" value={`${u.morningstarRating} / 5`} />}
+          {u.mer != null && <ValueCell label="MER" value={`${u.mer}%`} />}
+          {u.managementFee != null && <ValueCell label="Management fee" value={`${u.managementFee}%`} />}
+          {u.standardDeviation != null && <ValueCell label="Standard deviation" value={`${u.standardDeviation}%`} />}
+          {u.sharpeRatio != null && <ValueCell label="Sharpe ratio" value={u.sharpeRatio} />}
+        </div>
+        {(u.mer != null || u.managementFee != null || u.riskLevel) && <div className="rounded-2xl border border-outline-variant bg-surface-container-low p-4"><h4 className="text-xs font-bold text-on-surface">Advisor review signals</h4><div className="mt-4 space-y-4">{u.mer != null && <div><div className="flex justify-between text-[10px]"><span>MER</span><span className="font-mono">{u.mer}%</span></div><div className="mt-1.5 h-2 rounded-full bg-outline-variant/40"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, u.mer * 25)}%` }} /></div></div>}{u.managementFee != null && <div><div className="flex justify-between text-[10px]"><span>Management fee</span><span className="font-mono">{u.managementFee}%</span></div><div className="mt-1.5 h-2 rounded-full bg-outline-variant/40"><div className="h-full rounded-full bg-warning" style={{ width: `${Math.min(100, u.managementFee * 25)}%` }} /></div></div>}{u.riskLevel && <div className="border-t border-outline-variant pt-3"><p className="text-[9px] font-bold uppercase tracking-[0.12em] text-on-surface-variant">Stated risk classification</p><p className="mt-1 text-sm font-semibold text-on-surface">{u.riskLevel}</p></div>}</div></div>}
+      </div>
+    </ReportSection>
+
+    {holdings.length > 0 && <ReportSection number="03" title="Top holdings"><div className="h-72 rounded-2xl border border-outline-variant bg-surface-container-low p-4"><ResponsiveContainer width="100%" height="100%"><BarChart data={holdings} layout="vertical" margin={{ top: 4, right: 18, left: 24, bottom: 0 }}><CartesianGrid stroke="rgba(128,128,128,.18)" horizontal={false} /><XAxis type="number" tick={{ fontSize: 10 }} unit="%" /><YAxis type="category" dataKey="name" width={115} tick={{ fontSize: 9 }} /><Tooltip contentStyle={{ background: "#171b18", border: "1px solid #485049", borderRadius: 12, fontSize: 11 }} formatter={(value) => [`${value}%`, "Weight"]} /><Bar dataKey="value" fill={SERIES_COLORS[1]} radius={[0, 6, 6, 0]} /></BarChart></ResponsiveContainer></div></ReportSection>}
+
+    <ReportSection number={holdings.length ? "04" : "03"} title="Mandate and source evidence">
+      <div className="grid gap-4 md:grid-cols-2">
+        {([["Investment objective", u.investmentObjective], ["Investment strategy", u.investmentStrategy], ["Specific risks", u.specificRisks], ["Liquidity", u.liquidity], ["Historical performance", u.historicalPerformance], ["Portfolio allocation", [u.assetAllocation, u.geographicAllocation, u.sectorAllocation].filter(Boolean).join(" | ")]] as Array<[string, string | null]>).filter((row): row is [string, string] => Boolean(row[1])).map(([label, value]) => <div key={label} className="rounded-xl border border-outline-variant bg-surface-container-low p-4"><p className="text-[9px] font-bold uppercase tracking-[0.12em] text-primary">{label}</p><p className="mt-2 text-[11px] leading-5 text-on-surface">{value}</p></div>)}
+      </div>
+    </ReportSection>
+    <p className="mt-3 text-[10px] leading-4 text-on-surface-variant">Source-backed values only. Missing fields are omitted and must be confirmed against current issuer disclosure before use.</p>
+  </div>;
+}
+
+function StockComparisonReport({ record }: { record: KypProductRecord }) {
+  const products = record.uploadedFactsheet?.comparisonProducts || [];
+  const [view, setView] = useState<"performance" | "history" | "valuation" | "profitability">("performance");
+  const performance = [
+    { period: "1Y", ...Object.fromEntries(products.map((item) => [item.ticker || item.productName || "Security", item.return1Y])) },
+    { period: "3Y", ...Object.fromEntries(products.map((item) => [item.ticker || item.productName || "Security", item.return3Y])) },
+    { period: "5Y", ...Object.fromEntries(products.map((item) => [item.ticker || item.productName || "Security", item.return5Y])) },
+    { period: "10Y", ...Object.fromEntries(products.map((item) => [item.ticker || item.productName || "Security", item.return10Y])) },
+  ];
+  const comparisonRows = products.map((item) => ({ name: item.productName, ticker: item.ticker, pe: item.peRatio, yield: item.dividendYield, price: item.currentPrice, fairValue: item.fairValue, roe: item.returnOnEquity, roa: item.returnOnAssets, margin: item.netMargin }));
+  const chartRows = view === "valuation" ? comparisonRows : comparisonRows;
+  const historyYears = Array.from(new Set(products.flatMap((item) => item.annualPerformance?.map((point) => point.year) || [])));
+  const annualHistory = historyYears.map((year) => ({ year, ...Object.fromEntries(products.map((item) => [item.ticker || item.productName || "Security", item.annualPerformance?.find((point) => point.year === year)?.totalReturn ?? null])) }));
+  return <div className="research-report">
+    <div className="mt-5 rounded-2xl border border-primary/25 bg-primary/[0.06] p-4">
+      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center"><div><p className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-primary">Morningstar source comparison</p><h3 className="mt-1 text-lg font-semibold text-on-surface">{products.length} securities, one KYP evidence package</h3><p className="mt-1 text-[11px] text-on-surface-variant">Values below were extracted from {record.uploadedFactsheet?.fileName}. Switch views without changing the source record.</p></div><div className="flex flex-wrap rounded-xl border border-outline-variant bg-surface-container-low p-1">{(["performance", "history", "valuation", "profitability"] as const).map((item) => <button key={item} onClick={() => setView(item)} className={`rounded-lg px-3 py-2 text-[10px] font-bold capitalize transition ${view === item ? "bg-primary text-on-primary" : "text-on-surface-variant hover:text-on-surface"}`}>{item}</button>)}</div></div>
+    </div>
+
+    <ReportSection number="01" title={view === "performance" ? "Annualized stock total return" : view === "history" ? "Calendar-year total return" : view === "valuation" ? "Valuation and income" : "Profitability profile"}>
+      <div className="h-[300px] rounded-2xl border border-outline-variant bg-surface-container-low p-3 sm:p-5">
+        <ResponsiveContainer width="100%" height="100%">
+          {view === "performance" ? <LineChart data={performance} margin={{ top: 10, right: 12, left: -12, bottom: 0 }}><CartesianGrid stroke="rgba(128,128,128,.18)" vertical={false} /><XAxis dataKey="period" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} unit="%" /><Tooltip contentStyle={{ background: "#171b18", border: "1px solid #485049", borderRadius: 12, fontSize: 11 }} formatter={(value) => [`${value}%`, ""]} /><Legend wrapperStyle={{ fontSize: 10 }} />{products.map((item, index) => <Line key={item.ticker || item.productName} type="monotone" dataKey={item.ticker || item.productName || "Security"} stroke={SERIES_COLORS[index % SERIES_COLORS.length]} strokeWidth={2.5} dot={{ r: 3 }} connectNulls />)}</LineChart>
+          : view === "history" ? <LineChart data={annualHistory} margin={{ top: 10, right: 12, left: -12, bottom: 0 }}><CartesianGrid stroke="rgba(128,128,128,.18)" vertical={false} /><XAxis dataKey="year" tick={{ fontSize: 9 }} /><YAxis tick={{ fontSize: 10 }} unit="%" /><Tooltip contentStyle={{ background: "#171b18", border: "1px solid #485049", borderRadius: 12, fontSize: 11 }} formatter={(value) => [`${value}%`, ""]} /><Legend wrapperStyle={{ fontSize: 10 }} />{products.map((item, index) => <Line key={item.ticker || item.productName} type="monotone" dataKey={item.ticker || item.productName || "Security"} stroke={SERIES_COLORS[index % SERIES_COLORS.length]} strokeWidth={2.2} dot={false} connectNulls />)}</LineChart>
+          : view === "valuation" ? <BarChart data={chartRows} margin={{ top: 10, right: 12, left: -12, bottom: 0 }}><CartesianGrid stroke="rgba(128,128,128,.18)" vertical={false} /><XAxis dataKey="ticker" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} /><Tooltip contentStyle={{ background: "#171b18", border: "1px solid #485049", borderRadius: 12, fontSize: 11 }} /><Legend wrapperStyle={{ fontSize: 10 }} /><Bar dataKey="pe" name="P/E" fill={SERIES_COLORS[0]} radius={[5, 5, 0, 0]} /><Bar dataKey="yield" name="Dividend yield %" fill={SERIES_COLORS[2]} radius={[5, 5, 0, 0]} /></BarChart>
+          : <BarChart data={chartRows} margin={{ top: 10, right: 12, left: -12, bottom: 0 }}><CartesianGrid stroke="rgba(128,128,128,.18)" vertical={false} /><XAxis dataKey="ticker" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} unit="%" /><Tooltip contentStyle={{ background: "#171b18", border: "1px solid #485049", borderRadius: 12, fontSize: 11 }} /><Legend wrapperStyle={{ fontSize: 10 }} /><Bar dataKey="roe" name="ROE" fill={SERIES_COLORS[0]} radius={[5, 5, 0, 0]} /><Bar dataKey="roa" name="ROA" fill={SERIES_COLORS[1]} radius={[5, 5, 0, 0]} /><Bar dataKey="margin" name="Net margin" fill={SERIES_COLORS[2]} radius={[5, 5, 0, 0]} /></BarChart>}
+        </ResponsiveContainer>
+      </div>
+    </ReportSection>
+
+    <ReportSection number="02" title="Price range and Morningstar fair value">
+      <div className="space-y-5 rounded-2xl border border-outline-variant bg-surface-container-low p-4">
+        {products.map((item, index) => {
+          const low = item.fiftyTwoWeekLow; const high = item.fiftyTwoWeekHigh; const current = item.currentPrice;
+          const position = low != null && high != null && current != null && high > low ? Math.max(0, Math.min(100, ((current - low) / (high - low)) * 100)) : null;
+          return <div key={item.ticker || item.productName}><div className="mb-2 flex items-end justify-between gap-4"><div><p className="text-xs font-bold text-on-surface">{item.ticker} <span className="font-normal text-on-surface-variant">{item.productName}</span></p><p className="mt-0.5 text-[10px] text-on-surface-variant">52-week range</p></div><div className="text-right"><p className="font-mono text-xs font-semibold text-on-surface">{item.currency} {current?.toFixed(2) || "N/A"}</p><p className="text-[9px] text-on-surface-variant">Fair value {item.fairValue == null ? "not stated" : `${item.currency} ${item.fairValue.toFixed(2)}`}</p></div></div><div className="relative h-2 rounded-full bg-outline-variant/50"><div className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${position ?? 0}%`, backgroundColor: SERIES_COLORS[index % SERIES_COLORS.length] }} />{position != null && <span className="absolute top-1/2 h-4 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-on-surface" style={{ left: `${position}%` }} />}</div><div className="mt-1 flex justify-between font-mono text-[9px] text-on-surface-variant"><span>{low?.toFixed(2) || "N/A"}</span><span>{high?.toFixed(2) || "N/A"}</span></div></div>;
+        })}
+      </div>
+    </ReportSection>
+
+    <ReportSection number="03" title="Source comparison table">
+      <div className="overflow-x-auto rounded-2xl border border-outline-variant"><table className="min-w-[760px] w-full border-collapse text-left text-[11px]"><thead className="bg-surface-container-low"><tr>{["Security", "Price", "Fair value", "P/E", "Yield", "ROE", "ROA", "Net margin", "1Y", "3Y", "5Y", "10Y"].map((label) => <th key={label} className="border-b border-outline-variant px-3 py-3 font-bold text-on-surface-variant">{label}</th>)}</tr></thead><tbody>{products.map((item) => <tr key={item.ticker || item.productName} className="border-b border-outline-variant/60 last:border-0"><td className="px-3 py-3"><span className="font-bold text-on-surface">{item.ticker}</span><span className="ml-2 text-on-surface-variant">{item.productName}</span></td>{[item.currentPrice, item.fairValue, item.peRatio, item.dividendYield, item.returnOnEquity, item.returnOnAssets, item.netMargin, item.return1Y, item.return3Y, item.return5Y, item.return10Y].map((value, index) => <td key={index} className="px-3 py-3 font-mono text-on-surface">{value == null ? "N/A" : `${value}${index >= 3 ? "%" : ""}`}</td>)}</tr>)}</tbody></table></div>
+      <p className="mt-3 text-[10px] leading-4 text-on-surface-variant">Source-backed values only. Morningstar ratings, charts and trademarks are not recreated unless included and licensed in the uploaded document.</p>
+    </ReportSection>
+
+    <ReportSection number="04" title="Historical source data">
+      <div className="space-y-3">
+        {products.map((item, productIndex) => {
+          const annualPerformanceRows = item.annualPerformance?.map((point) => [point.year, point.totalReturn == null ? null : `${point.totalReturn}%`, point.dividendYield == null ? null : `${point.dividendYield}%`, point.marketCap]) || [];
+          const financialRows = item.annualFinancials?.map((point) => [point.year, point.revenue, point.netIncome, point.eps, point.dividend, point.bookValue, point.operatingCashFlow, point.freeCashFlow]) || [];
+          const profitabilityRows = item.annualProfitability?.map((point) => {
+            const valuation = item.annualValuation?.find((entry) => entry.year === point.year);
+            return [point.year, point.returnOnAssets == null ? null : `${point.returnOnAssets}%`, point.returnOnEquity == null ? null : `${point.returnOnEquity}%`, point.netMargin == null ? null : `${point.netMargin}%`, valuation?.pe, valuation?.priceToSales, valuation?.priceToBook, valuation?.priceToCashFlow];
+          }) || [];
+          const quarterlyRows = item.quarterlyResults?.map((point) => [point.period, point.revenue, point.revenuePrior, point.revenueGrowth == null ? null : `${point.revenueGrowth}%`, point.eps, point.epsPrior]) || [];
+          return <details key={item.ticker || item.productName} open={productIndex === 0} className="rounded-2xl border border-outline-variant bg-surface-container-low p-4">
+            <summary className="cursor-pointer list-none text-xs font-bold text-on-surface"><span className="mr-2 font-mono text-primary">{item.ticker}</span>{item.productName}</summary>
+            <div className="mt-4 space-y-5">
+              {annualPerformanceRows.length > 0 && <div><h4 className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-on-surface-variant">Performance</h4><SourceTable headers={["Year", "Total return", "Dividend yield", "Market cap CAD M"]} rows={annualPerformanceRows} /></div>}
+              {financialRows.length > 0 && <div><h4 className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-on-surface-variant">Financials</h4><SourceTable headers={["Year", "Revenue CAD M", "Net income CAD M", "EPS", "Dividend", "Book value", "Operating cash flow CAD M", "Free cash flow CAD M"]} rows={financialRows} /></div>}
+              {profitabilityRows.length > 0 && <div><h4 className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-on-surface-variant">Profitability and valuation</h4><SourceTable headers={["Year", "ROA", "ROE", "Net margin", "P/E", "P/S", "P/B", "P/CF"]} rows={profitabilityRows} /></div>}
+              {quarterlyRows.length > 0 && <div><h4 className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-on-surface-variant">Quarterly results</h4><SourceTable headers={["Period", "Revenue", "Prior revenue", "Revenue growth", "EPS", "Prior EPS"]} rows={quarterlyRows} /></div>}
+            </div>
+          </details>;
+        })}
+      </div>
+    </ReportSection>
+  </div>;
 }
 
 function StockReport({ record }: { record: KypProductRecord }) {
@@ -186,13 +357,15 @@ function FundComparables({ record, recordedAlternatives, onRecordAlternative }: 
 
 function FundReport({ record, recordedAlternatives, onRecordAlternative }: { record: KypProductRecord; recordedAlternatives?: string; onRecordAlternative?: (name: string) => void }) {
   const f = record.facts;
+  const u = record.uploadedFactsheet;
   return (
     <div className="research-report">
+      {u && <div className="mx-0 mt-5 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-3"><div><p className="text-xs font-semibold text-on-surface">Properties extracted from uploaded factsheet</p><p className="mt-0.5 text-[10px] text-on-surface-variant">{u.fileName} · {u.pageCount} pages · Source date {u.asOfDate || "not stated"}</p></div><span className="rounded-full bg-primary px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-wide text-on-primary">Advisor confirmed</span></div>}
       <ReportSection number="01" title="Portfolio and asset allocation">
         <div className="grid gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
-          <ValueCell label="Asset allocation" note="Equity, fixed income, cash and other exposure." />
-          <ValueCell label="Investment style" note="Equity and fixed-income style positioning." />
-          <ValueCell label="Portfolio profile" note="Regional and sector exposure." />
+          <ValueCell label="Asset allocation" value={u?.assetAllocation} note="Equity, fixed income, cash and other exposure." />
+          <ValueCell label="Investment style" value={u?.category} note="Fund category or investment style." />
+          <ValueCell label="Portfolio profile" value={[u?.geographicAllocation, u?.sectorAllocation].filter(Boolean).join(" · ") || null} note="Regional and sector exposure." />
           <ValueCell label="Fund identifier" value={record.identity.ticker || record.identity.performanceId} />
         </div>
       </ReportSection>
@@ -200,25 +373,25 @@ function FundReport({ record, recordedAlternatives, onRecordAlternative }: { rec
       <ReportSection number="02" title="Morningstar ratings, risk and fees">
         <div className="grid gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
           <ValueCell label="Overall rating" value={f.starRating ? `${f.starRating} / 5` : null} />
-          <ValueCell label="3, 5 and 10-year risk" note="Morningstar category-relative risk and return." />
-          <ValueCell label="Management" note="Manager, tenure and subadvisor details." />
-          <ValueCell label="MER and management fee" note="Current fees and their impact on returns." />
+          <ValueCell label="Risk level" value={u?.riskLevel} note="Issuer or provider classification." />
+          <ValueCell label="Management" value={u?.manager} note="Manager and subadvisor details." />
+          <ValueCell label="MER and management fee" value={[u?.mer != null ? `MER ${u.mer}%` : "", u?.managementFee != null ? `Management ${u.managementFee}%` : ""].filter(Boolean).join(" · ") || null} note="Current fees and their impact on returns." />
         </div>
       </ReportSection>
 
       <ReportSection number="03" title="Risk statistics and performance">
         <div className="grid gap-x-5 gap-y-4 sm:grid-cols-3">
-          <ValueCell label="Risk statistics" note="Standard deviation, Sharpe ratio, beta and capture ratios." />
-          <ValueCell label="Trailing returns" note="1, 3, 5 and 10-year results against category and benchmark." />
-          <ValueCell label="Growth of investment" note="Historical growth and calendar-year performance." />
+          <ValueCell label="Risk statistics" value={[u?.standardDeviation != null ? `Std. dev. ${u.standardDeviation}%` : "", u?.sharpeRatio != null ? `Sharpe ${u.sharpeRatio}` : ""].filter(Boolean).join(" · ") || null} note="Risk measures stated in the factsheet." />
+          <ValueCell label="Trailing returns" value={u ? [u.return1Y != null ? `1Y ${u.return1Y}%` : "", u.return3Y != null ? `3Y ${u.return3Y}%` : "", u.return5Y != null ? `5Y ${u.return5Y}%` : "", u.return10Y != null ? `10Y ${u.return10Y}%` : ""].filter(Boolean).join(" · ") || null : null} note="Annualized results where stated." />
+          <ValueCell label="Top holdings" value={u?.topHoldings} note="Largest positions stated in the factsheet." />
         </div>
       </ReportSection>
 
       <ReportSection number="04" title="Objective, strategy and specific risks">
         <div className="grid gap-x-5 gap-y-4 sm:grid-cols-3">
-          <ValueCell label="Investment objective" note="Mandate and intended investor outcome." />
-          <ValueCell label="Investment strategy" note="Portfolio construction and security selection approach." />
-          <ValueCell label="Specific risks" note="Material fund, market, liquidity, leverage and concentration risks." />
+          <ValueCell label="Investment objective" value={u?.investmentObjective} note="Mandate and intended investor outcome." />
+          <ValueCell label="Investment strategy" value={u?.investmentStrategy} note="Portfolio construction and security selection approach." />
+          <ValueCell label="Specific risks" value={u?.specificRisks} note="Material fund, market, liquidity, leverage and concentration risks." />
         </div>
       </ReportSection>
       <FundComparables record={record} recordedAlternatives={recordedAlternatives} onRecordAlternative={onRecordAlternative} />
@@ -227,5 +400,6 @@ function FundReport({ record, recordedAlternatives, onRecordAlternative }: { rec
 }
 
 export function KypResearchReport({ record, recordedAlternatives, onRecordAlternative }: { record: KypProductRecord; recordedAlternatives?: string; onRecordAlternative?: (name: string) => void }) {
+  if (record.uploadedFactsheet) return <UploadedPdfReview record={record} />;
   return record.assetType === "stock" ? <StockReport record={record} /> : <FundReport record={record} recordedAlternatives={recordedAlternatives} onRecordAlternative={onRecordAlternative} />;
 }
