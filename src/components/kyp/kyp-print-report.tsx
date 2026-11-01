@@ -1,3 +1,4 @@
+import { KypPortfolioContext } from "./kyp-portfolio-context";
 import type { KypProductRecord } from "@/lib/kyp";
 import { formatPrice, formatVolume } from "@/lib/types";
 import { AdvisorPulseMark } from "@/components/advisor-pulse-mark";
@@ -154,5 +155,10 @@ function FundPages({ record, draft, identity }: { record: KypProductRecord; draf
 }
 
 export function KypPrintReport({ record, draft, identity, history }: { record: KypProductRecord; draft: Draft; identity: Identity; history: HistoryPoint[] }) {
+  if (record.portfolioHolding) return <div className="kyp-pdf-report hidden"><Page page={1} total={1} title={record.requestedName} identity={identity}>
+    <Heading>Advisor portfolio holding</Heading><KypPortfolioContext record={record} />
+    <Heading>Review record</Heading><p>Review status: {draft.completed ? "Complete" : "Needs review"}. {record.uploadedFactsheet ? `Product evidence: ${record.uploadedFactsheet.fileName}` : "Product research pending; confirm the exact instrument before approval."}</p>
+    <div className="kyp-pdf-grid kyp-pdf-grid-4"><Cell label="Structure" value={draft.structure} /><Cell label="Risks" value={draft.risk} /><Cell label="Costs" value={draft.costs} /><Cell label="Liquidity" value={draft.liquidityComplexity} /><Cell label="Alternatives" value={draft.alternatives} /><Cell label="Rationale" value={draft.rationale} /><Cell label="Evidence" value={draft.evidenceSources} /><Cell label="Next review" value={draft.nextReview} /></div>
+  </Page></div>;
   return <div className="kyp-pdf-report hidden">{record.assetType === "stock" ? <StockPages record={record} draft={draft} identity={identity} history={history} /> : <FundPages record={record} draft={draft} identity={identity} />}</div>;
 }

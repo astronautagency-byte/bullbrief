@@ -50,6 +50,7 @@ export async function updateSession(request: NextRequest) {
   ];
 
   const isPublic =
+    (process.env.NODE_ENV === "development" && ["/factsheet-preview.html", "/factsheet-studio.js", "/factsheet-reference.js", "/factsheet-reference-data.json", "/factsheet-ai.js"].includes(pathname)) ||
     publicPaths.includes(pathname) ||
     pathname.startsWith("/api/") ||
     pathname.startsWith("/_next/") ||
@@ -76,7 +77,7 @@ export async function updateSession(request: NextRequest) {
   if (!user && !appUser && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("callbackUrl", pathname);
+    url.searchParams.set("callbackUrl", `${pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(url);
   }
 

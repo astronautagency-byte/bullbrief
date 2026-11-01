@@ -21,13 +21,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <input
             ref={ref}
             className={cn(
-              "w-full bg-surface-container-low border border-outline-variant rounded-lg",
+              "form-control w-full bg-surface-container-low border border-outline-variant rounded-lg",
               "px-4 py-3 text-on-surface font-body",
               "placeholder:text-on-surface-variant/50",
               "focus:border-primary focus:ring-1 focus:ring-primary input-glow",
               "focus:outline-none",
               "transition-colors",
-              icon && "pl-10",
+              icon && "form-control-with-icon pl-10",
               error && "border-error focus:border-error focus:ring-error",
               className
             )}

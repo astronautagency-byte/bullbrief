@@ -5,7 +5,7 @@ import { GeminiArticleAnalysis, GeminiArticleAnalysisSchema } from "./types";
 export class GeminiError extends Error {
   constructor(
     message: string,
-    public code: "API_KEY_MISSING" | "API_CALL_FAILED" | "INVALID_RESPONSE" | "RATE_LIMITED",
+    public code: "POLICY_DISABLED" | "API_KEY_MISSING" | "API_CALL_FAILED" | "INVALID_RESPONSE" | "RATE_LIMITED",
     public status?: number
   ) {
     super(message);
@@ -23,6 +23,7 @@ export class GeminiProvider {
     const prompt = this.buildChatPrompt(message, context);
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${this.apiKey}`;
 
+    if (process.env.BULLBRIEF_EXTERNAL_AI_ENABLED !== "true") throw new GeminiError("External AI is disabled pending vendor review.", "POLICY_DISABLED", 503);
     const response = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -73,6 +74,7 @@ Respond with valid JSON only (no markdown, no code blocks):
 }`;
 
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${this.apiKey}`;
+    if (process.env.BULLBRIEF_EXTERNAL_AI_ENABLED !== "true") throw new GeminiError("External AI is disabled pending vendor review.", "POLICY_DISABLED", 503);
     const response = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -122,6 +124,7 @@ Content: ${article.description || "N/A"}
 ${context?.symbols?.length ? `Watchlist symbols: ${context.symbols.join(", ")}` : ""}`;
 
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${this.apiKey}`;
+    if (process.env.BULLBRIEF_EXTERNAL_AI_ENABLED !== "true") throw new GeminiError("External AI is disabled pending vendor review.", "POLICY_DISABLED", 503);
     const response = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

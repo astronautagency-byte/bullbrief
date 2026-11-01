@@ -400,6 +400,7 @@ function FundReport({ record, recordedAlternatives, onRecordAlternative }: { rec
 }
 
 export function KypResearchReport({ record, recordedAlternatives, onRecordAlternative }: { record: KypProductRecord; recordedAlternatives?: string; onRecordAlternative?: (name: string) => void }) {
+  if (record.portfolioHolding && !record.uploadedFactsheet) return <div><p className="text-sm text-on-surface-variant">Research pending. Upload the factsheet for this exact instrument to add sourced product evidence.</p></div>;
   if (record.uploadedFactsheet) return <UploadedPdfReview record={record} />;
   return record.assetType === "stock" ? <StockReport record={record} /> : <FundReport record={record} recordedAlternatives={recordedAlternatives} onRecordAlternative={onRecordAlternative} />;
 }

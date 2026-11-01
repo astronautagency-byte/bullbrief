@@ -1,0 +1,34 @@
+begin;
+create function pg_temp.schedule_assert(ok boolean,label text) returns void language plpgsql as $$ begin if not coalesce(ok,false) then raise exception 'Calendar QA failed: %',label;end if;end $$;
+do $$
+declare u uuid=gen_random_uuid(); outsider uuid=gen_random_uuid(); f uuid; h uuid; a uuid; b uuid; note uuid; request_id uuid=gen_random_uuid(); p jsonb; result jsonb; blocked boolean;
+begin
+ insert into auth.users(id,email) values(u,'calendar-qa@example.invalid'),(outsider,'calendar-outside@example.invalid');
+ f=(public.crm_dispatch(u,null,'firm.create','{"name":"QA calendar rollback","is_demo":false}',gen_random_uuid())->>'id')::uuid;
+ h=(public.crm_dispatch(u,f,'household.create',jsonb_build_object('name','QA calendar household','stage','active','service_tier','Core','lead_advisor_id',u),gen_random_uuid())->>'id')::uuid;
+ p=jsonb_build_object('household_id',h,'owner_id',u,'title','QA scheduled session','meeting_type','annual_review','starts_at','2026-11-01T15:00:00Z','ends_at','2026-11-01T15:45:00Z','location','Fictional office','join_url','','agenda','Fictional agenda');
+ result=public.crm_schedule_dispatch(u,f,'appointment.create',p,request_id);a=(result->>'id')::uuid;
+ perform pg_temp.schedule_assert(public.crm_schedule_dispatch(u,f,'appointment.create',p,request_id)=result,'retry idempotency');
+ blocked=false;begin perform public.crm_schedule_dispatch(u,f,'appointment.create',p,gen_random_uuid());exception when others then blocked=true;end;perform pg_temp.schedule_assert(blocked,'overlapping meetings blocked');
+ b=(public.crm_schedule_dispatch(u,f,'appointment.create',p||jsonb_build_object('starts_at','2026-11-01T15:45:00Z','ends_at','2026-11-01T16:15:00Z'),gen_random_uuid())->>'id')::uuid;
+ blocked=false;begin perform public.crm_schedule_dispatch(u,f,'appointment.update',p||jsonb_build_object('id',b,'version',1,'starts_at','2026-11-01T15:30:00Z','ends_at','2026-11-01T16:00:00Z'),gen_random_uuid());exception when others then blocked=true;end;perform pg_temp.schedule_assert(blocked,'rescheduling cannot overlap another session');
+ perform public.crm_schedule_dispatch(u,f,'appointment.update',p||jsonb_build_object('id',b,'version',1,'starts_at','2026-11-01T16:30:00Z','ends_at','2026-11-01T17:00:00Z'),gen_random_uuid());
+ perform pg_temp.schedule_assert((select version=2 and starts_at='2026-11-01T16:30:00Z' from public.crm_appointments where id=b),'rescheduled time saved with version');
+ blocked=false;begin perform public.crm_schedule_dispatch(outsider,f,'appointment.scratchpad',jsonb_build_object('id',a,'version',1,'scratchpad','Unauthorized'),gen_random_uuid());exception when others then blocked=true;end;perform pg_temp.schedule_assert(blocked,'other actor cannot access scratchpad');
+ perform public.crm_schedule_dispatch(u,f,'appointment.scratchpad',jsonb_build_object('id',a,'version',1,'scratchpad','Fictional QA discussion only.'),gen_random_uuid());
+ blocked=false;begin perform public.crm_schedule_dispatch(u,f,'appointment.scratchpad',jsonb_build_object('id',a,'version',1,'scratchpad','Stale edit'),gen_random_uuid());exception when others then blocked=true;end;perform pg_temp.schedule_assert(blocked,'scratchpad stale edit rejected');
+ p=jsonb_build_object('id',a,'version',2,'attendees','QA synthetic participants','discussion','Fictional discussion. No real client instruction.','decisions','No investment decision.','confirmed',true,'followups',jsonb_build_array(jsonb_build_object('title','QA follow-up','details','Fictional only','assigned_to',u,'due_on','2026-11-05','priority','normal')));
+ blocked=false;begin perform public.crm_schedule_dispatch(u,f,'appointment.record',p||jsonb_build_object('followups',jsonb_build_array(jsonb_build_object('title','Bad assignee','details','','assigned_to',outsider,'due_on','','priority','normal'))),gen_random_uuid());exception when others then blocked=true;end;
+ perform pg_temp.schedule_assert(blocked and not exists(select 1 from public.crm_meetings where household_id=h),'invalid follow-up rolls back draft creation');
+ request_id=gen_random_uuid();result=public.crm_schedule_dispatch(u,f,'appointment.record',p,request_id);
+ perform pg_temp.schedule_assert(public.crm_schedule_dispatch(u,f,'appointment.record',p,request_id)=result,'record retry does not duplicate');
+ select meeting_id into note from public.crm_appointments where id=a;
+ perform pg_temp.schedule_assert((select status='draft' from public.crm_meetings where id=note),'meeting record stays draft');
+ perform pg_temp.schedule_assert((select count(*)=1 from public.crm_tasks where meeting_id=note),'assigned follow-up created atomically');
+ blocked=false;begin perform public.crm_schedule_dispatch(u,f,'appointment.scratchpad',jsonb_build_object('id',a,'version',3,'scratchpad','Closed edit'),gen_random_uuid());exception when others then blocked=true;end;perform pg_temp.schedule_assert(blocked,'linked record closes scratchpad');
+ perform pg_temp.schedule_assert(not has_function_privilege('authenticated','public.crm_schedule_dispatch(uuid,uuid,text,jsonb,uuid)','execute'),'no direct client actor impersonation');
+ perform set_config('request.jwt.claim.sub',outsider::text,true);set local role authenticated;
+ perform pg_temp.schedule_assert((select count(*)=0 from public.crm_appointments where firm_id=f),'calendar RLS hides other firm');reset role;
+end $$;
+select 'passed' as status;
+rollback;

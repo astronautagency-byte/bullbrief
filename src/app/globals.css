@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./workspace.css";
 
 /* The source wordmark uses white lettering for dark surfaces. A solid dark
    treatment preserves the mark's legibility on light workspace surfaces. */

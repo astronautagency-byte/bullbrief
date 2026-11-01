@@ -93,7 +93,7 @@ export default function NewsPage() {
         description="Latest financial news, market updates, and investment insights. Stay informed with real-time headlines from CNBC, MarketWatch, and more."
         canonical="https://bullbrief.vercel.app/news"
       />
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="workspace-page-header flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <h1 className="font-display font-bold text-2xl text-on-surface italic">
             News

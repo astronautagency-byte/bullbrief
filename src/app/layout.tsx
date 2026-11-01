@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Anybody, Geist, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
+import { Anybody, Geist, Inter, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { NotificationProvider } from "@/components/notification-provider";
 import "./globals.css";
+
+const institutional = Inter({ variable: "--font-institutional", subsets: ["latin"], display: "swap" });
 
 const anybody = Anybody({
   variable: "--font-anybody",
@@ -123,7 +125,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`dark ${anybody.variable} ${geist.variable} ${jetbrainsMono.variable} ${sourceSerif.variable} h-full antialiased`}
+      className={`dark ${anybody.variable} ${geist.variable} ${jetbrainsMono.variable} ${sourceSerif.variable} ${institutional.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>

@@ -1,0 +1,44 @@
+const fs = require('node:fs'); const path = require('node:path'); const assert = require('node:assert/strict'); const ts = require('typescript');
+function load(file, mocks = {}) {
+ file = path.resolve(file); const module = { exports: {} };
+ const code = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true } }).outputText;
+ const req = name => name in mocks ? mocks[name] : name === 'server-only' ? {} : name.startsWith('@/') ? load('src/' + name.slice(2) + '.ts', mocks) : name.startsWith('.') ? load(path.resolve(path.dirname(file), name + '.ts'), mocks) : require(name);
+ new Function('require', 'module', 'exports', code)(req, module, module.exports); return module.exports;
+}
+(async () => {
+ const model = load('src/lib/crm/model.ts'); const { safeCallback } = load('src/lib/safe-callback.ts');
+ for (const bad of ['//evil.test', 'https://evil.test', '/\\evil.test', '/\n/evil.test', 'javascript:alert(1)']) assert.equal(safeCallback(bad), '/brief');
+ assert.equal(safeCallback('/crm?invite=abc'), '/crm?invite=abc');
+ const uid = '11111111-1111-4111-8111-111111111111', firmId = '22222222-2222-4222-8222-222222222222', requestId = '33333333-3333-4333-8333-333333333333';
+ const household = { name: 'QA household', stage: 'active', service_tier: 'Core', lead_advisor_id: uid, member_ids: [], review_due: '2026-11-06', summary: 'QA fixture only' };
+ assert.ok(model.actionEnvelopeSchema.safeParse({ action: 'household.create', firmId, requestId, data: household }).success);
+ assert.equal(model.actionEnvelopeSchema.safeParse({ action: 'household.create', requestId, data: household }).success, false);
+ assert.equal(model.actionEnvelopeSchema.safeParse({ action: 'household.create', firmId, requestId, data: { ...household, review_due: '2026-02-31' } }).success, false);
+ assert.equal(model.actionEnvelopeSchema.safeParse({ action: 'meeting.finalize', firmId, requestId, data: { id: uid, version: 1, confirmed: false } }).success, false);
+ assert.equal(model.actionEnvelopeSchema.safeParse({ action: 'kyp.attach', firmId, requestId, data: { household_id: uid, source_kind: 'simulation', source_id: uid, assigned_to: uid, confirmed_sharing: true } }).success, false);
+ assert.equal(model.canManageFirm('staff'), false); assert.equal(model.canReviewKyp('advisor'), false); assert.equal(model.canReviewKyp('supervisor'), true);
+ assert.equal(model.torontoToday(new Date('2026-10-31T03:59:00Z')), '2026-10-30');
+ let calls = [];
+ const server = load('src/lib/crm/server.ts', { '@/lib/kyp-review/store': { reviewSession: async () => ({ user: { id: uid, email: 'qa@example.invalid' }, client: {} }) }, '@/lib/kyp-simulation/store': { simulationWriter: () => ({ rpc: async (name, args) => { calls.push({ name, args }); return { data: { id: uid, firm_id: firmId }, error: null }; } }) } });
+ const route = load('src/app/api/crm/action/route.ts', { '@/lib/crm/server': server });
+ const req = (body, origin = 'http://localhost:3000') => new Request('http://localhost:3000/api/crm/action', { method: 'POST', headers: { 'content-type': 'application/json', origin }, body: JSON.stringify(body) });
+ const body = { action: 'household.create', firmId, requestId, p_actor: 'attacker', data: household };
+ assert.equal((await route.POST(req(body, 'https://evil.test'))).status, 403); assert.equal(calls.length, 0);
+ assert.equal((await route.POST(req(body))).status, 200); assert.equal(calls.length, 1);
+ assert.equal(calls[0].name, 'crm_dispatch'); assert.equal(calls[0].args.p_actor, uid); assert.equal(calls[0].args.p_firm, firmId); assert.equal(calls[0].args.p_request, requestId);
+ assert.equal((await route.POST(req({ ...body, action: 'arbitrary.sql' }))).status, 400); assert.equal(calls.length, 1);
+ const old = process.env.SUPABASE_SERVICE_ROLE_KEY; process.env.SUPABASE_SERVICE_ROLE_KEY = 'QA-ONLY-SECRET-NOT-A-LIVE-CREDENTIAL';
+ const inviteBody = { action: 'invite.create', firmId, requestId, data: { email: 'qa-invitee@example.invalid', role: 'staff' } };
+ const first = await (await route.POST(req(inviteBody))).json(); const second = await (await route.POST(req(inviteBody))).json();
+ assert.equal(first.inviteUrl, second.inviteUrl, 'Retries recover the same email-bound link');
+ assert.equal(first.delivery, 'copy_link_only_no_email_sent');
+ const rawToken = new URL(first.inviteUrl).searchParams.get('invite');
+ assert.match(rawToken, /^[a-f0-9]{64}$/);
+ assert.notEqual(calls.at(-1).args.p.token_hash, rawToken);
+ assert.equal(calls.at(-1).args.p.token_hash, require('node:crypto').createHash('sha256').update(rawToken).digest('hex'));
+ if (old === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY; else process.env.SUPABASE_SERVICE_ROLE_KEY = old;
+ const unauthorized = load('src/app/api/crm/action/route.ts', { '@/lib/crm/server': { ...server, crmSession: async () => { throw Error('AUTH_REQUIRED'); } } });
+ assert.equal((await unauthorized.POST(req(body))).status, 401);
+ const conflict = server.crmError(Error('CRM_CONFLICT')); assert.equal(conflict.status, 409);
+ console.log('CRM API checks passed: validated actions and dates, role capabilities, secure callbacks, authenticated actor binding, origin checks, idempotency handoff, invite-token hashing and no automatic emails.');
+})().catch(e => { console.error(e); process.exit(1); });

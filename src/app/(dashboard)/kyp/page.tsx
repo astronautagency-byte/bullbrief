@@ -1,11 +1,11 @@
 import { PageHead } from "@/components/page-head";
-import { KypWorkspace } from "@/components/kyp/kyp-workspace";
+import { KypHome } from "@/components/kyp/kyp-home";
 
 export default function KypPage() {
   return (
     <>
-      <PageHead title="Know Your Product" description="A simplified Morningstar-backed KYP review workspace for financial advisors." canonical="https://bullbrief.vercel.app/kyp" />
-      <KypWorkspace />
+      <PageHead title="Know Your Product" description="Evidence-backed product research, alternatives review and archived advisor rationale." canonical="https://bullbrief.vercel.app/kyp" />
+      <KypHome />
     </>
   );
 }

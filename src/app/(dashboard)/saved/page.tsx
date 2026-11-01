@@ -22,9 +22,9 @@ export default function SavedPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-display font-bold text-2xl text-on-surface italic">
+      <header className="workspace-page-header"><div><h1 className="font-display font-bold text-2xl text-on-surface italic">
         Saved
-      </h1>
+      </h1><p className="workspace-page-description">Return to the research and conversations you want to keep close.</p></div></header>
 
       <div className="flex gap-2">
         <button

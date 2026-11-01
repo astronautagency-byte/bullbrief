@@ -23,7 +23,7 @@ export default function PicksPage() {
         canonical="https://bullbrief.vercel.app/picks"
       />
 
-      <div className="print:hidden">
+      <div className="workspace-page-header workspace-page-header-stacked print:hidden">
         <h1 className="font-display font-bold text-2xl md:text-3xl text-on-surface italic">
           Bull Picks
         </h1>

@@ -1,0 +1,41 @@
+const fs = require('node:fs'); const path = require('node:path'); const assert = require('node:assert/strict'); const ts = require('typescript');
+function load(file, mocks = {}) {
+ file = path.resolve(file); const module = { exports: {} };
+ const code = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true } }).outputText;
+ const req = name => name in mocks ? mocks[name] : name === 'server-only' ? {} : name.startsWith('@/') ? load('src/' + name.slice(2) + '.ts', mocks) : name.startsWith('.') ? load(path.resolve(path.dirname(file), name + '.ts'), mocks) : require(name);
+ new Function('require', 'module', 'exports', code)(req, module, module.exports); return module.exports;
+}
+(async()=>{
+ const uid='11111111-1111-4111-8111-111111111111',firm='22222222-2222-4222-8222-222222222222',generation='33333333-3333-4333-8333-333333333333';
+ const {NextRequest}=require('next/server');
+ Object.assign(process.env,{MICROSOFT_CLIENT_ID:uid,MICROSOFT_TENANT_ID:firm,MICROSOFT_CLIENT_SECRET:'SYNTHETIC-QA-ONLY',MICROSOFT_REDIRECT_URI:'http://localhost:3000/api/crm/microsoft/callback',MICROSOFT_TOKEN_ENCRYPTION_KEY:'ab'.repeat(32)});
+ const security=load('src/lib/microsoft/security.ts');const graph=load('src/lib/microsoft/graph.ts',{'./security':security});
+ const encrypted=security.seal('QA private token','user-A:firm-A');assert.equal(security.unseal(encrypted,'user-A:firm-A'),'QA private token');assert(!encrypted.includes('QA private token'));assert.throws(()=>security.unseal(encrypted,'user-B:firm-A'));assert.throws(()=>security.unseal(encrypted.slice(0,-3)+'aaa','user-A:firm-A'));
+ const originalRedirect=process.env.MICROSOFT_REDIRECT_URI;process.env.MICROSOFT_REDIRECT_URI='https://example.test/api/crm/microsoft/callback?unsafe=1';assert.equal(security.configured(),false);process.env.MICROSOFT_REDIRECT_URI=originalRedirect;
+ assert.throws(()=>graph.validatedGraphUrl('https://evil.example/v1.0/me/messages','/v1.0/me/messages'));assert.throws(()=>graph.validatedGraphUrl('https://graph.microsoft.com/v1.0/users/other/messages','/v1.0/me/messages'));
+ const mail=graph.normalizeMail({id:'fixture-1',subject:'<script>fictional</script>',from:{emailAddress:{address:'fixture@example.invalid'}},receivedDateTime:'2026-10-31T12:00:00Z',body:{content:'MUST NOT BE STORED'},bodyPreview:'MUST NOT BE STORED',webLink:'javascript:alert(1)'});assert.equal(mail.metadata.web_url,'');assert(!JSON.stringify(mail).includes('MUST NOT BE STORED'));
+ const event=graph.normalizeEvent({id:'evt-1',subject:'Fixture event',start:{dateTime:'2026-10-31T12:00:00.0000000',timeZone:'UTC'},end:{dateTime:'2026-10-31T13:00:00.0000000',timeZone:'UTC'},location:{displayName:'Fictional room'}});assert.equal(event.occurred_at,'2026-10-31T12:00:00.000Z');assert.throws(()=>graph.normalizeEvent({id:'bad',start:{dateTime:'2026-10-31T12:00:00',timeZone:'Pacific Standard Time'}}));
+ const originalFetch=global.fetch;let graphRequests=[];
+ global.fetch=async(url,opts)=>{graphRequests.push({url,opts});const isMail=new URL(url).pathname.includes('messages');return new Response(JSON.stringify({value:isMail?[{id:'m1',receivedDateTime:'2026-10-31T12:00:00Z'}]:[{id:'e1',start:{dateTime:'2026-10-31T12:00:00Z'},end:{dateTime:'2026-10-31T13:00:00Z'}}]}),{status:200});};
+ assert.equal((await graph.readSnapshot('QA-ACCESS-TOKEN')).length,2);assert(graphRequests.every(r=>r.opts.redirect==='error'));assert(graphRequests.every(r=>!r.url.includes('QA-ACCESS-TOKEN')));assert(!graphRequests[0].url.includes('bodyPreview'));
+ global.fetch=async()=>new Response('',{status:429});await assert.rejects(()=>graph.readSnapshot('QA'),e=>e.code==='throttled');global.fetch=originalFetch;
+ let calls=[],authorize,redeemed;let begin;
+ const context=security.cacheContext(uid,firm,generation);
+ const client={getAuthCodeUrl:async p=>{authorize=p;return 'https://login.microsoftonline.com/fixture/authorize';},acquireTokenByCode:async p=>{redeemed=p;return{account:{tenantId:firm,homeAccountId:'fixture-home',username:'fixture@example.invalid'},scopes:authorize.scopes.filter(s=>s!=="offline_access"),accessToken:'QA-ONLY-ACCESS'};},getTokenCache:()=>({serialize:()=>'{"fixtureRefreshToken":"QA-ONLY-REFRESH"}'})};
+ const store={membership:async()=>{},command:async(user,f,action,p)=>{calls.push({user,f,action,p});if(action==='oauth.begin'){begin=p;return{id:uid,generation};}if(action==='oauth.consume')return{firm_id:firm,generation,verifier_ciphertext:begin.verifier_ciphertext};return{id:uid};}};
+ const crm={crmSession:async()=>({user:{id:uid}}),sameOrigin:r=>{const o=r.headers.get('origin');if(o&&o!==new URL(r.url).origin)throw Error('CRM_FORBIDDEN');}};
+ const mocks={'@/lib/crm/server':crm,'@/lib/microsoft/security':security,'@/lib/microsoft/store':store,'@/lib/microsoft/client':{microsoftClient:()=>client,validateScopes:()=>true},'@/lib/microsoft/graph':{graphGet:async()=>({mail:'fixture@example.invalid'})}};
+ const start=load('src/app/api/crm/microsoft/start/route.ts',mocks);
+ const req=(body,origin='http://localhost:3000')=>new Request('http://localhost:3000/api/crm/microsoft/start',{method:'POST',headers:{origin},body:JSON.stringify(body)});
+ assert.equal((await start.POST(req({firmId:firm,confirmed:true},'https://evil.test'))).status,403);assert.equal(calls.length,0);
+ assert.equal((await start.POST(req({firmId:firm,confirmed:false}))).status,400);
+ const response=await start.POST(req({firmId:firm,confirmed:true,p_actor:'attacker'}));assert.equal(response.status,200);assert.equal(calls[0].user,uid);assert(authorize.scopes.includes('Mail.ReadBasic'));assert(!authorize.scopes.some(s=>s.includes('Write')||s.includes('Send')));assert.equal(authorize.codeChallengeMethod,'S256');
+ const cookie=response.headers.get('set-cookie');assert(cookie.includes('HttpOnly'));assert(cookie.includes('SameSite=lax'));const nonce=/bb_ms_oauth=([^;]+)/.exec(cookie)[1];
+ const callback=load('src/app/api/crm/microsoft/callback/route.ts',mocks);
+ const returned=await callback.GET(new NextRequest(`http://localhost:3000/api/crm/microsoft/callback?state=${authorize.state}&code=QA-AUTH-CODE`,{headers:{cookie:`bb_ms_oauth=${nonce}`}}));
+ assert(returned.headers.get('location').includes('status=connected'));assert(!returned.headers.get('location').includes('QA-AUTH-CODE'));const complete=calls.find(c=>c.action==='oauth.complete');assert(complete);assert(!complete.p.cache_ciphertext.includes('QA-ONLY-REFRESH'));assert(security.unseal(complete.p.cache_ciphertext,context).includes('QA-ONLY-REFRESH'));assert(redeemed.codeVerifier.length>=43);
+ const before=calls.length;await callback.GET(new NextRequest('http://localhost:3000/api/crm/microsoft/callback?code=QA-CODE&state=bad'));assert.equal(calls.length,before);
+ const failed=await callback.GET(new NextRequest(`http://localhost:3000/api/crm/microsoft/callback?state=${authorize.state}&error=access_denied`,{headers:{cookie:`bb_ms_oauth=${nonce}`}}));assert(failed.headers.get('location').includes('connection_failed'));assert(!failed.headers.get('location').includes('access_denied'));
+ const writeStart=await start.POST(req({firmId:firm,confirmed:true,scheduling:true}));assert(authorize.scopes.includes('Calendars.ReadWrite'));const writeNonce=/bb_ms_oauth=([^;]+)/.exec(writeStart.headers.get('set-cookie'))[1];const writeCallback=await callback.GET(new NextRequest(`http://localhost:3000/api/crm/microsoft/callback?state=${authorize.state}&code=QA-WRITE-CODE`,{headers:{cookie:`bb_ms_oauth=${writeNonce}`}}));assert(writeCallback.headers.get('location').includes('status=connected'));assert(redeemed.scopes.includes('Calendars.ReadWrite'));assert(redeemed.codeVerifier.length>=43);
+ console.log('Microsoft checks passed: authenticated encryption and context binding, minimal scopes, PKCE, secure cookies, callback sanitization, actor/origin binding, metadata-only normalization, safe Graph URLs and throttling. No Microsoft account was contacted.');
+})().catch(e=>{console.error(e);process.exit(1)});

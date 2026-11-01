@@ -1,7 +1,9 @@
 "use client";
 
+import { safeCallback } from "@/lib/safe-callback";
 import { useState } from "react";
 import Link from "next/link";
+import { BrandLogo } from "@/components/ui/brand-logo";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,6 +17,7 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +32,11 @@ export default function SignupPage() {
       });
 
       if (res.ok) {
-        router.push("/login");
+        const result = await res.json();
+        if (result.message) { setNotice(result.message); return; }
+        const requested = new URLSearchParams(window.location.search).get("callbackUrl") || "/brief";
+        const callback = safeCallback(requested);
+        router.push(`/login?callbackUrl=${encodeURIComponent(callback)}`);
       } else {
         const data = await res.json();
         setError(data.error || "Failed to create account");
@@ -50,12 +57,7 @@ export default function SignupPage() {
       <div className="relative w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-block mb-6">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/BullBrief_Combo_Horizontal_Transparent.png"
-              alt="BullBrief"
-              className="h-16 w-auto mx-auto"
-            />
+            <BrandLogo variant="horizontal" size="lg"/>
           </Link>
           <h1 className="font-display font-bold text-2xl text-on-surface">
             Create your account
@@ -67,6 +69,7 @@ export default function SignupPage() {
 
         <div className="bg-surface-container/60 backdrop-blur-xl border border-outline-variant rounded-xl p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
+            {notice && <p role="status" className="rounded-lg border border-primary/30 bg-primary/10 p-3 text-sm text-on-surface">{notice} After confirmation, return to sign in or reopen your firm invitation.</p>}
             {error && (
               <div className="bg-error/10 border border-error/30 rounded-lg p-3 text-error text-sm">
                 {error}

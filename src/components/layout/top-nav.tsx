@@ -1,101 +1,14 @@
 "use client";
-
+import { clearTransientDrafts } from "@/lib/privacy/transient-drafts";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { cn } from "@/lib/cn";
-import { Menu, X, LogOut } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Menu, X, LogOut, Search, FilePenLine, ChevronDown, ShieldCheck } from "lucide-react";
 import { NotificationPanel } from "@/components/notification-panel";
-import { TickerStrip } from "@/components/ui/ticker-strip";
 import Link from "next/link";
-
-interface TopNavProps {
-  onMobileMenuToggle?: () => void;
-  mobileMenuOpen?: boolean;
-}
-
-export function TopNav({ onMobileMenuToggle, mobileMenuOpen }: TopNavProps) {
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const router = useRouter();
-
-  const handleLogout = async () => {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-    } catch {}
-    router.push("/login");
-  };
-
-  return (
-    <header
-      className={cn(
-        "fixed top-0 right-0 z-[80]",
-        "md:ml-60 md:w-[calc(100%-15rem)]",
-        "w-full"
-      )}
-    >
-      <div className="relative z-20 bg-background/90 backdrop-blur-xl border-b border-outline-variant">
-        <div className="h-16 flex items-center justify-between px-4 md:px-10">
-          <div className="flex items-center gap-2">
-            <Link href="/brief" className="md:hidden flex items-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/BullBrief_Logo_Mark_Transparent.png"
-                alt="BullBrief"
-                className="h-8 w-8 dark:brightness-0 dark:invert"
-              />
-            </Link>
-            <button
-              onClick={onMobileMenuToggle}
-              className="md:hidden p-2 text-on-surface-variant hover:text-primary transition-colors"
-              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <NotificationPanel />
-            <div className="relative">
-              <button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-              className="w-9 h-9 rounded-full border border-outline-variant bg-surface-container-low overflow-hidden hover:bg-surface-container transition-colors"
-              >
-                <div className="w-full h-full flex items-center justify-center text-on-surface-variant text-sm font-medium">
-                  U
-                </div>
-              </button>
-              {showUserMenu && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowUserMenu(false)}
-                  />
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-surface-container-low rounded-3xl border border-outline-variant z-50 overflow-hidden p-1.5">
-                    <Link
-                      href="/settings"
-                      onClick={() => setShowUserMenu(false)}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm text-on-surface hover:bg-surface-container transition-colors"
-                    >
-                      Settings
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 rounded-full text-sm text-error hover:bg-surface-container transition-colors"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Log out
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Ticker Strip */}
-      <div className="relative z-10">
-        <TickerStrip />
-      </div>
-    </header>
-  );
+interface TopNavProps { onMobileMenuToggle?: () => void; mobileMenuOpen?: boolean }
+const pageNames:Record<string,string>={connections:"Email & Calendar",cockpit:"Today",brief:"Daily Market Brief",schedule:"Meetings",crm:"Clients",kyp:"Product reviews",watchlist:"Client Portfolios",settings:"Workspace Settings",markets:"Market Overview",picks:"Security Research",news:"Client Briefings",saved:"Saved Research",podcasts:"Market Audio"};
+export function TopNav({onMobileMenuToggle,mobileMenuOpen}:TopNavProps){
+ const[showUserMenu,setShowUserMenu]=useState(false);const router=useRouter();const pathname=usePathname();const query=useSearchParams();
+ async function logout(){clearTransientDrafts();try{await fetch("/api/auth/logout",{method:"POST"});}catch{}router.push("/login");}
+ return <header className="workspace-topbar fixed right-0 top-0 z-[80] w-full border-b border-outline-variant bg-white md:w-[calc(100%-15rem)]"><div className="flex h-20 items-center justify-between gap-4 px-4 md:px-8"><div className="flex min-w-0 items-center gap-3"><button onClick={onMobileMenuToggle} className="rounded-lg p-2 text-on-surface-variant md:hidden" aria-label={mobileMenuOpen?"Close menu":"Open menu"}>{mobileMenuOpen?<X size={20}/>:<Menu size={20}/>}</button><div className="min-w-0"><p className="truncate text-[13px] font-semibold text-on-surface">{pathname==="/crm"&&query.get("view")==="tasks"?"Tasks":pageNames[pathname.split('/')[1]]||"Advisor workspace"}</p><p className="mt-1 hidden items-center gap-1.5 text-[10px] text-on-surface-variant sm:flex"><ShieldCheck size={12} className="text-primary"/>Canadian advisory workspace</p></div></div><div className="flex items-center gap-2 md:gap-4"><form action="/crm" method="get" onSubmit={e=>{const firm=new URL(window.location.href).searchParams.get("firmId");if(pathname==="/crm"&&firm){e.preventDefault();const params=new URLSearchParams({view:"directory",firmId:firm,search:String(new FormData(e.currentTarget).get("search")||"")});window.location.assign(`/crm?${params}`);}}} role="search" className="hidden items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 lg:flex"><input type="hidden" name="view" value="directory"/><Search size={16} className="text-slate-400"/><input aria-label="Find a client" name="search" placeholder="Find a client…" className="w-48 bg-transparent text-xs outline-none xl:w-60"/></form><a href="/crm?view=households&action=meeting" onClick={e=>{if(pathname==="/crm"){const current=new URL(window.location.href);const target=new URL("/crm?view=households&action=meeting",window.location.origin);for(const key of ["firmId","householdId"]){const value=current.searchParams.get(key);if(value)target.searchParams.set(key,value);}e.preventDefault();window.location.assign(target.href);}}} className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-xs font-semibold text-on-primary"><FilePenLine size={15}/><span className="hidden sm:inline">Add meeting note</span><span className="sr-only sm:hidden">Add meeting note</span></a><NotificationPanel/><div className="relative"><button aria-label="Account menu" aria-expanded={showUserMenu} onClick={()=>setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 rounded-lg p-1.5"><span className="flex h-8 w-8 items-center justify-center rounded-full border border-primary/15 bg-primary/10 text-xs font-semibold text-primary">BB</span><ChevronDown size={13} className="hidden text-slate-400 sm:block"/></button>{showUserMenu&&<><button aria-label="Close account menu" className="fixed inset-0 z-40 cursor-default" onClick={()=>setShowUserMenu(false)}/><div className="workspace-menu absolute right-0 top-full z-50 mt-2 w-44 rounded-xl border border-outline-variant bg-white p-2 shadow-lg"><Link href="/settings" onClick={()=>setShowUserMenu(false)} className="block rounded-lg px-3 py-2 text-xs hover:bg-surface-container-low">Settings</Link><button onClick={()=>void logout()} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-error hover:bg-surface-container-low"><LogOut size={14}/>Log out</button></div></>}</div></div></div></header>;
 }

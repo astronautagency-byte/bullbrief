@@ -1,0 +1,45 @@
+begin;
+create function pg_temp.ms_assert(ok boolean,label text) returns void language plpgsql as $$ begin if not coalesce(ok,false) then raise exception 'Microsoft QA failed: %',label;end if;end $$;
+do $$
+declare u uuid=gen_random_uuid(); peer uuid=gen_random_uuid(); outsider uuid=gen_random_uuid(); f uuid; begin_result jsonb; attempt jsonb; lease jsonb; blocked boolean; conn_id uuid; gen uuid;
+begin
+ insert into auth.users(id,email) values(u,'outlook-qa@example.invalid'),(peer,'outlook-peer@example.invalid'),(outsider,'outlook-outside@example.invalid');
+ f=(public.crm_dispatch(u,null,'firm.create','{"name":"QA Outlook rollback","is_demo":false}',gen_random_uuid())->>'id')::uuid;
+ perform set_config('app.crm_actor',u::text,true);
+ insert into public.crm_members(firm_id,user_id,name,email,role) values(f,peer,'QA Admin','outlook-peer@example.invalid','admin');
+ begin_result=public.crm_ms_command(u,f,'oauth.begin','{"state_hash":"fixture-state","nonce_hash":"fixture-nonce","verifier_ciphertext":"ENCRYPTED-QA-VERIFIER"}');conn_id=(begin_result->>'id')::uuid;gen=(begin_result->>'generation')::uuid;
+ blocked=false;begin perform public.crm_ms_command(peer,null,'oauth.consume','{"state_hash":"fixture-state","nonce_hash":"fixture-nonce"}');exception when others then blocked=true;end;perform pg_temp.ms_assert(blocked,'state bound to signed-in actor');
+ blocked=false;begin perform public.crm_ms_command(u,null,'oauth.consume','{"state_hash":"fixture-state","nonce_hash":"wrong-cookie"}');exception when others then blocked=true;end;perform pg_temp.ms_assert(blocked,'state bound to browser nonce');
+ attempt=public.crm_ms_command(u,null,'oauth.consume','{"state_hash":"fixture-state","nonce_hash":"fixture-nonce"}');perform pg_temp.ms_assert(attempt->>'verifier_ciphertext'='ENCRYPTED-QA-VERIFIER','valid one-time attempt consumed');
+ blocked=false;begin perform public.crm_ms_command(u,null,'oauth.consume','{"state_hash":"fixture-state","nonce_hash":"fixture-nonce"}');exception when others then blocked=true;end;perform pg_temp.ms_assert(blocked,'callback replay rejected');
+ perform public.crm_ms_command(u,f,'oauth.complete',jsonb_build_object('generation',gen,'cache_ciphertext','ENCRYPTED-QA-CACHE','account_id','QA-HOME','email','fixture@example.invalid','tenant_id','QA-TENANT','scopes','["User.Read","Mail.ReadBasic","Calendars.ReadBasic"]'::jsonb));
+ lease=public.crm_ms_command(u,f,'sync.begin','{}');
+ blocked=false;begin perform public.crm_ms_command(u,f,'sync.begin','{}');exception when others then blocked=true;end;perform pg_temp.ms_assert(blocked,'concurrent sync excluded');
+ perform public.crm_ms_command(u,f,'sync.finish',jsonb_build_object('generation',gen,'lease_id',lease->>'lease_id','cache_ciphertext','ENCRYPTED-QA-ROTATED','items',jsonb_build_array(jsonb_build_object('kind','mail','provider_id','QA-MAIL','occurred_at','2026-10-31T12:00:00Z','metadata',jsonb_build_object('subject','Fictional private mail','sender','fixture@example.invalid')))));
+ perform pg_temp.ms_assert((select count(*)=1 from public.crm_ms_items where connection_id=conn_id),'private snapshot saved');
+ perform pg_temp.ms_assert(not has_column_privilege('authenticated','public.crm_ms_connections','cache_ciphertext','select'),'token cache unreadable to browsers');
+ perform pg_temp.ms_assert(not has_column_privilege('authenticated','public.crm_ms_connections','account_id','select'),'MSAL account identifiers server only');
+ perform pg_temp.ms_assert(not has_table_privilege('authenticated','public.crm_ms_oauth_attempts','select'),'PKCE attempts server only');
+ perform pg_temp.ms_assert(not has_function_privilege('authenticated','public.crm_ms_command(uuid,uuid,text,jsonb)','execute'),'RPC cannot impersonate actor');
+ perform set_config('request.jwt.claim.sub',peer::text,true);set local role authenticated;
+ perform pg_temp.ms_assert((select count(*)=0 from public.crm_ms_items where firm_id=f),'same-firm admin cannot read another private mailbox');
+ perform pg_temp.ms_assert((select count(id)=0 from public.crm_ms_connections where firm_id=f),'same-firm admin cannot read private connection status');reset role;
+ perform set_config('request.jwt.claim.sub',u::text,true);set local role authenticated;
+ perform pg_temp.ms_assert((select count(*)=1 from public.crm_ms_items where firm_id=f),'owner reads own private snapshot');
+ perform pg_temp.ms_assert((select count(id)=1 from public.crm_ms_connections where firm_id=f),'owner reads allowed status columns');
+ blocked=false;begin perform cache_ciphertext from public.crm_ms_connections where firm_id=f;exception when insufficient_privilege then blocked=true;end;perform pg_temp.ms_assert(blocked,'direct token cache query denied');reset role;
+ -- Failed snapshots roll back their partial replacements.
+ update public.crm_ms_connections set last_sync_attempt=null where firm_id=f and user_id=u;
+ lease=public.crm_ms_command(u,f,'sync.begin','{}');
+ blocked=false;begin perform public.crm_ms_command(u,f,'sync.finish',jsonb_build_object('generation',gen,'lease_id',lease->>'lease_id','cache_ciphertext','ENCRYPTED-QA-NEW','items',jsonb_build_array(jsonb_build_object('kind','invalid','provider_id','BAD','occurred_at','2026-10-31T12:00:00Z','metadata','{}'::jsonb))));exception when others then blocked=true;end;
+ perform pg_temp.ms_assert(blocked and (select count(*)=1 from public.crm_ms_items where connection_id=conn_id),'partial snapshot failure preserves prior items');
+ perform public.crm_ms_command(u,f,'disconnect','{}');
+ perform pg_temp.ms_assert(not exists(select 1 from public.crm_ms_items where connection_id=conn_id) and not exists(select 1 from public.crm_ms_connections where firm_id=f and user_id=u),'disconnect removes credentials and private items');
+ blocked=false;begin perform public.crm_ms_command(u,f,'sync.finish',jsonb_build_object('generation',gen,'lease_id',lease->>'lease_id','cache_ciphertext','ENCRYPTED-STALE','items','[]'::jsonb));exception when others then blocked=true;end;perform pg_temp.ms_assert(blocked,'in-flight sync cannot resurrect disconnected data');
+ begin_result=public.crm_ms_command(u,f,'oauth.begin','{"state_hash":"expired-state","nonce_hash":"expired-nonce","verifier_ciphertext":"QA"}');
+ update public.crm_ms_oauth_attempts set expires_at=now()-interval '1 minute' where state_hash='expired-state';
+ blocked=false;begin perform public.crm_ms_command(u,null,'oauth.consume','{"state_hash":"expired-state","nonce_hash":"expired-nonce"}');exception when others then blocked=true;end;perform pg_temp.ms_assert(blocked,'expired callback denied');
+ blocked=false;begin perform public.crm_ms_command(u,f,'oauth.complete',jsonb_build_object('generation',gen,'cache_ciphertext','STALE'));exception when others then blocked=true;end;perform pg_temp.ms_assert(blocked,'old generation cannot replace a new connection');
+end $$;
+select 'passed' as status;
+rollback;

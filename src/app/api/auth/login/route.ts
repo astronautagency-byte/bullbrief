@@ -8,7 +8,7 @@ export async function POST(request: Request) {
     const { email: rawEmail, password } = await request.json();
     const email = typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : "";
 
-    if (!email || !password) {
+    if (!email || typeof password !== "string" || !password) {
       return NextResponse.json(
         { error: "Email and password are required" },
         { status: 400 }
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
       );
       return NextResponse.json(
         {
-          error: "This account is not available in BullBrief yet. Create an account with this email, then sign in.",
+          error: "Sign-in is temporarily unavailable because BullBrief could not reach its authentication service. Please try again shortly.",
           code: "AUTH_PROVIDER_UNAVAILABLE",
         },
         { status: 503 }
@@ -43,6 +43,13 @@ export async function POST(request: Request) {
     }
 
     if (error) {
+      const providerUnavailable = error.name === "AuthRetryableFetchError" || error.status === 0 || (error.status != null && error.status >= 500);
+      if (providerUnavailable) {
+        return NextResponse.json(
+          { error: "Sign-in is temporarily unavailable because BullBrief could not reach its authentication service. Please try again shortly.", code: "AUTH_PROVIDER_UNAVAILABLE" },
+          { status: 503 }
+        );
+      }
       return NextResponse.json(
         { error: error.message || "Invalid email or password" },
         { status: 401 }

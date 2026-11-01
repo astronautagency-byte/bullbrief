@@ -1,3 +1,5 @@
+> Status note — 31 October 2026: this is a legacy design summary, not a deployed-control audit or compliance certification. Do not use its blanket claims as vendor-review evidence. See [the current review package](vendor-review/README.md) for implemented controls, unverified configuration and release gates.
+
 # Security
 
 ## Authentication

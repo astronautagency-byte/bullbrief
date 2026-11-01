@@ -98,7 +98,7 @@ export default function MarketsPage() {
         description="Advisor market monitoring, portfolio exceptions and daily compliance workflow."
         canonical="https://bullbrief.vercel.app/markets"
       />
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="workspace-page-header flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-primary">Advisor workflow</p>
           <h1 className="mt-1 font-display font-semibold text-2xl md:text-3xl text-on-surface">

@@ -1,3 +1,4 @@
+import { TOP_HOLDINGS } from "@/lib/kyp-top-holdings";
 import { NextResponse } from "next/server";
 import { KYP_HOLDINGS, type KypHolding, type KypProductRecord } from "@/lib/kyp";
 import { autoComplete, getFundDetails, getStockDetails } from "@/lib/providers/morningstar";
@@ -11,7 +12,7 @@ function scoreMatch(holding: KypHolding, name: string, ticker: string) {
 }
 
 async function buildRecord(holding: KypHolding): Promise<KypProductRecord> {
-  const matches = await autoComplete(holding.searchQuery);
+  const matches = holding.portfolioHolding ? [] : await autoComplete(holding.searchQuery);
   const expectedType = holding.assetType === "stock" ? "ST" : "FE";
   const identity = matches
     .filter((item) => item.securityType === expectedType)
@@ -121,11 +122,13 @@ export async function POST(request: Request) {
     requested = undefined;
   }
 
-  const allowed = new Map(KYP_HOLDINGS.map((holding) => [holding.id, holding]));
+  const allowed = new Map([...KYP_HOLDINGS, ...TOP_HOLDINGS].map((holding) => [holding.id, holding]));
   const normalizeHolding = (item: unknown): KypHolding | null => {
     if (typeof item === "string") return allowed.get(item) || null;
     if (!item || typeof item !== "object") return null;
     const candidate = item as Record<string, unknown>;
+    const sourceHolding = TOP_HOLDINGS.find((holding) => holding.id === candidate.id);
+    if (sourceHolding) return sourceHolding;
     const id = typeof candidate.id === "string" ? candidate.id.trim().slice(0, 80) : "";
     const requestedName = typeof candidate.requestedName === "string" ? candidate.requestedName.trim().slice(0, 140) : "";
     const searchQuery = typeof candidate.searchQuery === "string" ? candidate.searchQuery.trim().slice(0, 80) : "";
@@ -137,7 +140,7 @@ export async function POST(request: Request) {
     return { id, requestedName, searchQuery, assetType, ...(symbol ? { symbol } : {}), ...(exchange ? { exchange } : {}), ...(performanceId ? { performanceId } : {}) };
   };
   const holdings = Array.isArray(requested)
-    ? requested.slice(0, 20).map(normalizeHolding).filter((item): item is KypHolding => Boolean(item))
+    ? requested.slice(0, 200).map(normalizeHolding).filter((item): item is KypHolding => Boolean(item))
     : KYP_HOLDINGS;
   const records = await Promise.all(holdings.map(buildRecord));
 

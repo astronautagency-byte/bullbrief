@@ -1,3 +1,4 @@
+import { transientDraftStorage } from "@/lib/privacy/transient-drafts";
 const DEMO_EMAIL = "advisor.demo@bullbrief.ca";
 const SEEDED_KEY = "bullbrief:demo-workspace-seeded:v1";
 
@@ -29,7 +30,7 @@ const completedDraft = {
 
 export function seedDemoWorkspace(email?: string | null) {
   if (typeof window === "undefined" || email?.toLowerCase() !== DEMO_EMAIL) return;
-  if (window.localStorage.getItem(SEEDED_KEY)) return;
+  if (transientDraftStorage.getItem(SEEDED_KEY)) return;
 
   const partialDraft = {
     ...completedDraft,
@@ -49,8 +50,8 @@ export function seedDemoWorkspace(email?: string | null) {
   window.localStorage.setItem("bb-theme", "dark");
   window.localStorage.setItem("bullbrief_watchlist", JSON.stringify(["TD.TO", "ENB.TO", "MSFT", "AAPL", "RY.TO", "AMZN"]));
   window.localStorage.setItem("bullbrief_brief_watchlist_view", "grid");
-  window.localStorage.setItem("bullbrief:kyp-custom-holdings:v1", JSON.stringify(holdings));
-  window.localStorage.setItem("bullbrief:kyp-drafts:v2", JSON.stringify({
+  transientDraftStorage.setItem("bullbrief:kyp-custom-holdings:v1", JSON.stringify(holdings));
+  transientDraftStorage.setItem("bullbrief:kyp-drafts:v2", JSON.stringify({
     "demo-td": completedDraft,
     "demo-enb": partialDraft,
     "demo-msft": { ...partialDraft, reviewContext: "significant-change", firmApproval: "approved" },
@@ -60,5 +61,5 @@ export function seedDemoWorkspace(email?: string | null) {
   window.localStorage.setItem("bullbrief:institution-brand:v1", JSON.stringify({ companyName: "Northstar Wealth Advisory", brandColor: "#4be277" }));
   window.localStorage.setItem("bullbrief:workspace-modules:v1", JSON.stringify(["watchlist", "markets", "picks", "kyp", "news", "podcasts", "saved"]));
   window.localStorage.setItem(`bullbrief:advisor-controls:${dateKey}`, JSON.stringify(["market", "kyc", "kyp", "records"]));
-  window.localStorage.setItem(SEEDED_KEY, new Date().toISOString());
+  transientDraftStorage.setItem(SEEDED_KEY, new Date().toISOString());
 }

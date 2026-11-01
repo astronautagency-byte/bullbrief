@@ -1,0 +1,31 @@
+begin;
+create function pg_temp.check_invite(ok boolean,label text) returns void language plpgsql as $$ begin if not coalesce(ok,false) then raise exception 'Invitation QA failed: %',label;end if;end $$;
+do $$
+declare u uuid=gen_random_uuid(); other_user uuid=gen_random_uuid(); f uuid; h uuid; other_h uuid; a uuid; c uuid; other_c uuid; p jsonb; r jsonb; again jsonb; blocked boolean;
+begin
+ insert into auth.users(id,email) values(u,'invitation-qa@example.invalid'),(other_user,'invitation-outside@example.invalid');
+ f=(public.crm_dispatch(u,null,'firm.create','{"name":"QA invitations rollback","is_demo":false}',gen_random_uuid())->>'id')::uuid;
+ h=(public.crm_dispatch(u,f,'household.create',jsonb_build_object('name','QA household','stage','active','service_tier','Core','lead_advisor_id',u),gen_random_uuid())->>'id')::uuid;
+ other_h=(public.crm_dispatch(u,f,'household.create',jsonb_build_object('name','Other QA household','stage','active','service_tier','Core','lead_advisor_id',u),gen_random_uuid())->>'id')::uuid;
+ c=(public.crm_dispatch(u,f,'contact.create',jsonb_build_object('household_id',h,'first_name','Fixture','last_name','Client','relationship','Primary contact','email','fixture@example.invalid','phone','+1 416 555 0100'),gen_random_uuid())->>'id')::uuid;
+ other_c=(public.crm_dispatch(u,f,'contact.create',jsonb_build_object('household_id',other_h,'first_name','Other','last_name','Client','relationship','Primary contact','email','other@example.invalid','phone',''),gen_random_uuid())->>'id')::uuid;
+ p=jsonb_build_object('household_id',h,'owner_id',u,'title','QA invitation','meeting_type','annual_review','starts_at',now()+interval '10 days','ends_at',now()+interval '10 days 45 minutes','location','QA office','join_url','','agenda','INTERNAL MUST NOT SEND');
+ a=(public.crm_schedule_dispatch(u,f,'appointment.create',p,gen_random_uuid())->>'id')::uuid;
+ p=jsonb_build_object('appointment_id',a,'version',1,'contact_ids',jsonb_build_array(c),'contact_versions',jsonb_build_object(c::text,1),'client_agenda','Client-facing fixture agenda','teams',true);
+ blocked=false;begin perform public.crm_invitation_command(other_user,f,'begin',p);exception when others then blocked=true;end;perform pg_temp.check_invite(blocked,'outsider cannot send');
+ blocked=false;begin perform public.crm_invitation_command(u,f,'begin',p||jsonb_build_object('contact_ids',jsonb_build_array(other_c),'contact_versions',jsonb_build_object(other_c::text,1)));exception when others then blocked=true;end;perform pg_temp.check_invite(blocked,'other household contact cannot be invited');
+ blocked=false;begin perform public.crm_invitation_command(u,f,'begin',p||jsonb_build_object('contact_versions',jsonb_build_object(c::text,2)));exception when others then blocked=true;end;perform pg_temp.check_invite(blocked,'stale contact preview rejected');
+ r=public.crm_invitation_command(u,f,'begin',p);again=public.crm_invitation_command(u,f,'begin',p);perform pg_temp.check_invite(r->>'id'=again->>'id' and not again?'lease_id','repeat request cannot send twice');
+ perform public.crm_invitation_command(u,f,'rejected',jsonb_build_object('appointment_id',a,'lease_id',r->>'lease_id'));
+ again=public.crm_invitation_command(u,f,'begin',p);perform pg_temp.check_invite(again->>'id'<>r->>'id' and again?'lease_id','definite rejection permits a fresh reviewed attempt');r=again;
+ perform pg_temp.check_invite(r->'payload'->>'agenda'='Client-facing fixture agenda' and not r::text like '%INTERNAL MUST NOT SEND%','private agenda excluded');
+ blocked=false;begin update public.crm_appointments set starts_at=starts_at+interval '1 hour',ends_at=ends_at+interval '1 hour' where id=a;exception when others then blocked=true;end;perform pg_temp.check_invite(blocked,'silent local reschedule blocked');
+ perform public.crm_invitation_command(u,f,'accepted',jsonb_build_object('appointment_id',a,'lease_id',r->>'lease_id','provider_id','QA-event','join_url','https://teams.microsoft.com/l/meetup-join/fixture','web_url','https://outlook.office.com/calendar/item/fixture'));
+ perform pg_temp.check_invite((select status='accepted' from public.crm_meeting_invitations where appointment_id=a),'provider receipt persisted');
+ perform pg_temp.check_invite(not has_column_privilege('authenticated','public.crm_meeting_invitations','payload','select'),'private request payload not browser readable');
+ perform pg_temp.check_invite(not has_function_privilege('authenticated','public.crm_invitation_command(uuid,uuid,text,jsonb)','execute'),'browser cannot impersonate sender');
+ perform set_config('request.jwt.claim.sub',other_user::text,true);set local role authenticated;
+ perform pg_temp.check_invite((select count(*)=0 from public.crm_meeting_invitations where firm_id=f),'cross firm receipt hidden');reset role;
+end $$;
+select 'passed' as status;
+rollback;

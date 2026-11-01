@@ -1,0 +1,1237 @@
+{
+  "products": [
+    {
+      "assetType": "stock",
+      "productName": "The Toronto-Dominion Bank",
+      "fundCode": null,
+      "category": "Equity",
+      "currency": "USD",
+      "cusip": null,
+      "isin": null,
+      "inceptionDate": null,
+      "manager": null,
+      "riskLevel": null,
+      "mer": null,
+      "managementFee": null,
+      "morningstarRating": null,
+      "investmentObjective": null,
+      "investmentStrategy": null,
+      "specificRisks": "52-week trading range 73.67 to 87.10.",
+      "assetAllocation": null,
+      "geographicAllocation": null,
+      "sectorAllocation": null,
+      "topHoldings": null,
+      "return1Y": -2.4,
+      "return3Y": 2.9,
+      "return5Y": 4.7,
+      "return10Y": 6.7,
+      "standardDeviation": null,
+      "sharpeRatio": null,
+      "distributionFrequency": null,
+      "asOfDate": "3-Jul-2024",
+      "issuer": "The Toronto-Dominion Bank",
+      "ticker": "TD",
+      "primaryExchange": null,
+      "sector": "Financial Svs",
+      "peRatio": 13.4,
+      "currentPrice": 80.02,
+      "targetPrice": null,
+      "dividendYield": 5,
+      "profitability": "Return on equity 10.4%, return on assets 0.6%, net margin 19.6%",
+      "riskMeasure": "Morningstar fair value $90.00. 52-week trading range 73.67 to 87.10.",
+      "historicalPerformance": "Stock total return: 1 year -2.4%, 3 year 2.9%, 5 year 4.7%, 10 year 6.7%.",
+      "liquidity": null,
+      "businessDescription": "Toronto-Dominion is one of Canada's two largest banks and operates three business segments: Canadian retail banking, US retail banking, and wholesale banking. The bank’s US operations span from Maine to Florida, with a strong presence in the Northeast. It also has a 13% ownership stake in Charles Schwab.",
+      "comparables": "Royal Bank of Canada; Bank of Montreal",
+      "fairValue": 90,
+      "fiftyTwoWeekLow": 73.67,
+      "fiftyTwoWeekHigh": 87.1,
+      "returnOnEquity": 10.4,
+      "returnOnAssets": 0.6,
+      "netMargin": 19.6,
+      "annualPerformance": [
+        {
+          "year": "2014",
+          "totalReturn": 14.6,
+          "dividendYield": 3.3,
+          "marketCap": 102485
+        },
+        {
+          "year": "2015",
+          "totalReturn": 1.3,
+          "dividendYield": 3.7,
+          "marketCap": 100729
+        },
+        {
+          "year": "2016",
+          "totalReturn": 26.1,
+          "dividendYield": 3.3,
+          "marketCap": 123009
+        },
+        {
+          "year": "2017",
+          "totalReturn": 14.8,
+          "dividendYield": 3.2,
+          "marketCap": 135698
+        },
+        {
+          "year": "2018",
+          "totalReturn": -4.3,
+          "dividendYield": 3.9,
+          "marketCap": 124211
+        },
+        {
+          "year": "2019",
+          "totalReturn": 11.6,
+          "dividendYield": 4,
+          "marketCap": 132015
+        },
+        {
+          "year": "2020",
+          "totalReturn": 3,
+          "dividendYield": 4.3,
+          "marketCap": 130579
+        },
+        {
+          "year": "2021",
+          "totalReturn": 39.2,
+          "dividendYield": 3.3,
+          "marketCap": 176957
+        },
+        {
+          "year": "2022",
+          "totalReturn": -5.9,
+          "dividendYield": 4.1,
+          "marketCap": 159618
+        },
+        {
+          "year": "2023",
+          "totalReturn": 2,
+          "dividendYield": 4.5,
+          "marketCap": 153322
+        },
+        {
+          "year": "YTD",
+          "totalReturn": -3,
+          "dividendYield": 5,
+          "marketCap": 140779
+        }
+      ],
+      "annualFinancials": [
+        {
+          "year": "2014",
+          "revenue": 29640,
+          "netIncome": 7776,
+          "eps": 4.14,
+          "dividend": 1.84,
+          "bookValue": 27.41,
+          "operatingCashFlow": 25913,
+          "freeCashFlow": 25085
+        },
+        {
+          "year": "2015",
+          "revenue": 31102,
+          "netIncome": 7912,
+          "eps": 4.21,
+          "dividend": 2,
+          "bookValue": 33.77,
+          "operatingCashFlow": 35307,
+          "freeCashFlow": 34335
+        },
+        {
+          "year": "2016",
+          "revenue": 33999,
+          "netIncome": 8821,
+          "eps": 4.67,
+          "dividend": 2.16,
+          "bookValue": 36.69,
+          "operatingCashFlow": 37401,
+          "freeCashFlow": 36604
+        },
+        {
+          "year": "2017",
+          "revenue": 35842,
+          "netIncome": 10396,
+          "eps": 5.5,
+          "dividend": 2.35,
+          "bookValue": 37.7,
+          "operatingCashFlow": 26127,
+          "freeCashFlow": 25693
+        },
+        {
+          "year": "2018",
+          "revenue": 38533,
+          "netIncome": 11262,
+          "eps": 6.01,
+          "dividend": 2.61,
+          "bookValue": 40.45,
+          "operatingCashFlow": 5693,
+          "freeCashFlow": 5106
+        },
+        {
+          "year": "2019",
+          "revenue": 40729,
+          "netIncome": 11668,
+          "eps": 6.25,
+          "dividend": 2.89,
+          "bookValue": 45.18,
+          "operatingCashFlow": 830,
+          "freeCashFlow": -555
+        },
+        {
+          "year": "2020",
+          "revenue": 43284,
+          "netIncome": 11895,
+          "eps": 6.43,
+          "dividend": 3.11,
+          "bookValue": 49.49,
+          "operatingCashFlow": 229607,
+          "freeCashFlow": 228346
+        },
+        {
+          "year": "2021",
+          "revenue": 42266,
+          "netIncome": 14298,
+          "eps": 7.72,
+          "dividend": 3.16,
+          "bookValue": 51.58,
+          "operatingCashFlow": 50129,
+          "freeCashFlow": 49000
+        },
+        {
+          "year": "2022",
+          "revenue": 45762,
+          "netIncome": 17429,
+          "eps": 9.47,
+          "dividend": 3.56,
+          "bookValue": 55,
+          "operatingCashFlow": 38949,
+          "freeCashFlow": 37495
+        },
+        {
+          "year": "2023",
+          "revenue": 52929,
+          "netIncome": 10782,
+          "eps": 5.6,
+          "dividend": 3.84,
+          "bookValue": 57.07,
+          "operatingCashFlow": -65302,
+          "freeCashFlow": -67146
+        },
+        {
+          "year": "TTM",
+          "revenue": 54884,
+          "netIncome": 11283,
+          "eps": 5.97,
+          "dividend": 3.96,
+          "bookValue": 57.68,
+          "operatingCashFlow": -31114,
+          "freeCashFlow": -33078
+        }
+      ],
+      "annualProfitability": [
+        {
+          "year": "2014",
+          "returnOnAssets": 0.8,
+          "returnOnEquity": 15.4,
+          "netMargin": 25.8
+        },
+        {
+          "year": "2015",
+          "returnOnAssets": 0.8,
+          "returnOnEquity": 13.6,
+          "netMargin": 25.1
+        },
+        {
+          "year": "2016",
+          "returnOnAssets": 0.8,
+          "returnOnEquity": 13.3,
+          "netMargin": 25.5
+        },
+        {
+          "year": "2017",
+          "returnOnAssets": 0.8,
+          "returnOnEquity": 14.8,
+          "netMargin": 28.5
+        },
+        {
+          "year": "2018",
+          "returnOnAssets": 0.9,
+          "returnOnEquity": 15.4,
+          "netMargin": 28.7
+        },
+        {
+          "year": "2019",
+          "returnOnAssets": 0.8,
+          "returnOnEquity": 14.6,
+          "netMargin": 28
+        },
+        {
+          "year": "2020",
+          "returnOnAssets": 0.7,
+          "returnOnEquity": 13.5,
+          "netMargin": 26.9
+        },
+        {
+          "year": "2021",
+          "returnOnAssets": 0.8,
+          "returnOnEquity": 15.3,
+          "netMargin": 33.2
+        },
+        {
+          "year": "2022",
+          "returnOnAssets": 0.9,
+          "returnOnEquity": 17.7,
+          "netMargin": 37.5
+        },
+        {
+          "year": "2023",
+          "returnOnAssets": 0.5,
+          "returnOnEquity": 10.2,
+          "netMargin": 19.3
+        },
+        {
+          "year": "TTM",
+          "returnOnAssets": 0.6,
+          "returnOnEquity": 10.4,
+          "netMargin": 19.6
+        }
+      ],
+      "annualValuation": [
+        {
+          "year": "2014",
+          "pe": 23.8,
+          "priceToSales": 7,
+          "priceToBook": 2,
+          "priceToCashFlow": 6.3
+        },
+        {
+          "year": "2015",
+          "pe": 12.9,
+          "priceToSales": 3.2,
+          "priceToBook": 1.6,
+          "priceToCashFlow": 2.9
+        },
+        {
+          "year": "2016",
+          "pe": 14.2,
+          "priceToSales": 3.6,
+          "priceToBook": 1.8,
+          "priceToCashFlow": 2.8
+        },
+        {
+          "year": "2017",
+          "pe": 13.4,
+          "priceToSales": 3.8,
+          "priceToBook": 2,
+          "priceToCashFlow": 3.9
+        },
+        {
+          "year": "2018",
+          "pe": 11.3,
+          "priceToSales": 3.2,
+          "priceToBook": 1.7,
+          "priceToCashFlow": 21.9
+        },
+        {
+          "year": "2019",
+          "pe": 11.7,
+          "priceToSales": 3.3,
+          "priceToBook": 1.6,
+          "priceToCashFlow": 500
+        },
+        {
+          "year": "2020",
+          "pe": 11.2,
+          "priceToSales": 3,
+          "priceToBook": 1.5,
+          "priceToCashFlow": 0.6
+        },
+        {
+          "year": "2021",
+          "pe": 12.6,
+          "priceToSales": 4.2,
+          "priceToBook": 1.9,
+          "priceToCashFlow": 3.5
+        },
+        {
+          "year": "2022",
+          "pe": 9.3,
+          "priceToSales": 3.5,
+          "priceToBook": 1.6,
+          "priceToCashFlow": 4.1
+        },
+        {
+          "year": "2023",
+          "pe": 15.3,
+          "priceToSales": 3,
+          "priceToBook": 1.5,
+          "priceToCashFlow": -2.4
+        },
+        {
+          "year": "TTM",
+          "pe": 13.4,
+          "priceToSales": 2.6,
+          "priceToBook": 1.4,
+          "priceToCashFlow": null
+        }
+      ],
+      "quarterlyResults": [
+        {
+          "period": "Jul",
+          "revenue": 12768,
+          "revenuePrior": 11503,
+          "revenueGrowth": 11,
+          "eps": 1.57,
+          "epsPrior": 1.75
+        },
+        {
+          "period": "Oct",
+          "revenue": 14762,
+          "revenuePrior": 11926,
+          "revenueGrowth": 23.8,
+          "eps": 1.49,
+          "epsPrior": 3.62
+        },
+        {
+          "period": "Jan",
+          "revenue": 13641,
+          "revenuePrior": 13010,
+          "revenueGrowth": 5.1,
+          "eps": 1.55,
+          "epsPrior": 0.82
+        },
+        {
+          "period": "Apr",
+          "revenue": 13759,
+          "revenuePrior": 12429,
+          "revenueGrowth": 10.4,
+          "eps": 1.35,
+          "epsPrior": 1.72
+        }
+      ]
+    },
+    {
+      "assetType": "stock",
+      "productName": "Bank of Montreal",
+      "fundCode": null,
+      "category": "Equity",
+      "currency": "USD",
+      "cusip": null,
+      "isin": null,
+      "inceptionDate": null,
+      "manager": null,
+      "riskLevel": null,
+      "mer": null,
+      "managementFee": null,
+      "morningstarRating": null,
+      "investmentObjective": null,
+      "investmentStrategy": null,
+      "specificRisks": "52-week trading range 102.67 to 133.95.",
+      "assetAllocation": null,
+      "geographicAllocation": null,
+      "sectorAllocation": null,
+      "topHoldings": null,
+      "return1Y": 2.9,
+      "return3Y": 2.8,
+      "return5Y": 7.8,
+      "return10Y": 7.1,
+      "standardDeviation": null,
+      "sharpeRatio": null,
+      "distributionFrequency": null,
+      "asOfDate": "3-Jul-2024",
+      "issuer": "Bank of Montreal",
+      "ticker": "BMO",
+      "primaryExchange": null,
+      "sector": "Financial Svs",
+      "peRatio": 14.5,
+      "currentPrice": 120.85,
+      "targetPrice": null,
+      "dividendYield": 4.9,
+      "profitability": "Return on equity 8.1%, return on assets 0.5%, net margin 17.8%",
+      "riskMeasure": "Morningstar fair value $133.00. 52-week trading range 102.67 to 133.95.",
+      "historicalPerformance": "Stock total return: 1 year 2.9%, 3 year 2.8%, 5 year 7.8%, 10 year 7.1%.",
+      "liquidity": null,
+      "businessDescription": "Bank of Montreal is a diversified financial-services provider based in North America, operating four business segments: Canadian personal and commercial banking, US P&C banking, wealth management, and capital markets. The bank's operations are primarily in Canada, with a material portion also in the U.S.",
+      "comparables": "Royal Bank of Canada; The Toronto-Dominion",
+      "fairValue": 133,
+      "fiftyTwoWeekLow": 102.67,
+      "fiftyTwoWeekHigh": 133.95,
+      "returnOnEquity": 8.1,
+      "returnOnAssets": 0.5,
+      "netMargin": 17.8,
+      "annualPerformance": [
+        {
+          "year": "2014",
+          "totalReturn": 20.4,
+          "dividendYield": 3.8,
+          "marketCap": 52935
+        },
+        {
+          "year": "2015",
+          "totalReturn": -1,
+          "dividendYield": 4.2,
+          "marketCap": 50205
+        },
+        {
+          "year": "2016",
+          "totalReturn": 28,
+          "dividendYield": 3.5,
+          "marketCap": 62361
+        },
+        {
+          "year": "2017",
+          "totalReturn": 7.8,
+          "dividendYield": 3.5,
+          "marketCap": 65164
+        },
+        {
+          "year": "2018",
+          "totalReturn": -7.6,
+          "dividendYield": 4.2,
+          "marketCap": 57779
+        },
+        {
+          "year": "2019",
+          "totalReturn": 17.4,
+          "dividendYield": 4,
+          "marketCap": 64332
+        },
+        {
+          "year": "2020",
+          "totalReturn": 0.4,
+          "dividendYield": 4.4,
+          "marketCap": 62509
+        },
+        {
+          "year": "2021",
+          "totalReturn": 45.1,
+          "dividendYield": 3.1,
+          "marketCap": 88286
+        },
+        {
+          "year": "2022",
+          "totalReturn": -5.9,
+          "dividendYield": 4.4,
+          "marketCap": 86267
+        },
+        {
+          "year": "2023",
+          "totalReturn": 11.6,
+          "dividendYield": 4.4,
+          "marketCap": 94518
+        },
+        {
+          "year": "YTD",
+          "totalReturn": -5.5,
+          "dividendYield": 4.9,
+          "marketCap": 88130
+        }
+      ],
+      "annualFinancials": [
+        {
+          "year": "2014",
+          "revenue": 18054,
+          "netIncome": 4277,
+          "eps": 6.41,
+          "dividend": 3.08,
+          "bookValue": 48.55,
+          "operatingCashFlow": -2927,
+          "freeCashFlow": -3664
+        },
+        {
+          "year": "2015",
+          "revenue": 19182,
+          "netIncome": 4370,
+          "eps": 6.57,
+          "dividend": 3.24,
+          "bookValue": 56.27,
+          "operatingCashFlow": 2250,
+          "freeCashFlow": 1726
+        },
+        {
+          "year": "2016",
+          "revenue": 20947,
+          "netIncome": 4622,
+          "eps": 6.92,
+          "dividend": 3.4,
+          "bookValue": 59.56,
+          "operatingCashFlow": -2728,
+          "freeCashFlow": -3339
+        },
+        {
+          "year": "2017",
+          "revenue": 21721,
+          "netIncome": 5337,
+          "eps": 7.92,
+          "dividend": 3.56,
+          "bookValue": 61.92,
+          "operatingCashFlow": 2908,
+          "freeCashFlow": 2117
+        },
+        {
+          "year": "2018",
+          "revenue": 22738,
+          "netIncome": 5453,
+          "eps": 8.17,
+          "dividend": 3.78,
+          "bookValue": 64.74,
+          "operatingCashFlow": 17912,
+          "freeCashFlow": 17026
+        },
+        {
+          "year": "2019",
+          "revenue": 25332,
+          "netIncome": 5758,
+          "eps": 8.66,
+          "dividend": 4.06,
+          "bookValue": 71.54,
+          "operatingCashFlow": 29303,
+          "freeCashFlow": 28175
+        },
+        {
+          "year": "2020",
+          "revenue": 25025,
+          "netIncome": 5097,
+          "eps": 7.55,
+          "dividend": 4.24,
+          "bookValue": 80.36,
+          "operatingCashFlow": 50836,
+          "freeCashFlow": 49804
+        },
+        {
+          "year": "2021",
+          "revenue": 26909,
+          "netIncome": 7754,
+          "eps": 11.58,
+          "dividend": 4.24,
+          "bookValue": 83.1,
+          "operatingCashFlow": 44049,
+          "freeCashFlow": 43066
+        },
+        {
+          "year": "2022",
+          "revenue": 26259,
+          "netIncome": 13537,
+          "eps": 19.99,
+          "dividend": 5.44,
+          "bookValue": 97.24,
+          "operatingCashFlow": 4957,
+          "freeCashFlow": 3509
+        },
+        {
+          "year": "2023",
+          "revenue": 33055,
+          "netIncome": 4365,
+          "eps": 5.68,
+          "dividend": 5.8,
+          "bookValue": 102.24,
+          "operatingCashFlow": 9591,
+          "freeCashFlow": 7914
+        },
+        {
+          "year": "TTM",
+          "revenue": 33847,
+          "netIncome": 6358,
+          "eps": 8.34,
+          "dividend": 5.96,
+          "bookValue": 104.54,
+          "operatingCashFlow": 36535,
+          "freeCashFlow": 34909
+        }
+      ],
+      "annualProfitability": [
+        {
+          "year": "2014",
+          "returnOnAssets": 0.7,
+          "returnOnEquity": 14.1,
+          "netMargin": 23
+        },
+        {
+          "year": "2015",
+          "returnOnAssets": 0.7,
+          "returnOnEquity": 12.6,
+          "netMargin": 22.2
+        },
+        {
+          "year": "2016",
+          "returnOnAssets": 0.7,
+          "returnOnEquity": 12,
+          "netMargin": 21.4
+        },
+        {
+          "year": "2017",
+          "returnOnAssets": 0.7,
+          "returnOnEquity": 13.1,
+          "netMargin": 23.7
+        },
+        {
+          "year": "2018",
+          "returnOnAssets": 0.7,
+          "returnOnEquity": 12.9,
+          "netMargin": 23.2
+        },
+        {
+          "year": "2019",
+          "returnOnAssets": 0.7,
+          "returnOnEquity": 12.6,
+          "netMargin": 21.9
+        },
+        {
+          "year": "2020",
+          "returnOnAssets": 0.5,
+          "returnOnEquity": 9.9,
+          "netMargin": 19.4
+        },
+        {
+          "year": "2021",
+          "returnOnAssets": 0.8,
+          "returnOnEquity": 14.2,
+          "netMargin": 27.9
+        },
+        {
+          "year": "2022",
+          "returnOnAssets": 1.3,
+          "returnOnEquity": 21.8,
+          "netMargin": 50.7
+        },
+        {
+          "year": "2023",
+          "returnOnAssets": 0.3,
+          "returnOnEquity": 5.7,
+          "netMargin": 12.2
+        },
+        {
+          "year": "TTM",
+          "returnOnAssets": 0.5,
+          "returnOnEquity": 8.1,
+          "netMargin": 17.8
+        }
+      ],
+      "annualValuation": [
+        {
+          "year": "2014",
+          "pe": 12.8,
+          "priceToSales": 3.2,
+          "priceToBook": 1.7,
+          "priceToCashFlow": -18.1
+        },
+        {
+          "year": "2015",
+          "pe": 11.9,
+          "priceToSales": 2.6,
+          "priceToBook": 1.4,
+          "priceToCashFlow": 21.6
+        },
+        {
+          "year": "2016",
+          "pe": 13.9,
+          "priceToSales": 3,
+          "priceToBook": 1.6,
+          "priceToCashFlow": -23.6
+        },
+        {
+          "year": "2017",
+          "pe": 12.7,
+          "priceToSales": 3,
+          "priceToBook": 1.6,
+          "priceToCashFlow": 22.6
+        },
+        {
+          "year": "2018",
+          "pe": 10.9,
+          "priceToSales": 2.5,
+          "priceToBook": 1.4,
+          "priceToCashFlow": 3.2
+        },
+        {
+          "year": "2019",
+          "pe": 11.6,
+          "priceToSales": 2.5,
+          "priceToBook": 1.4,
+          "priceToCashFlow": 2.2
+        },
+        {
+          "year": "2020",
+          "pe": 12.8,
+          "priceToSales": 2.5,
+          "priceToBook": 1.2,
+          "priceToCashFlow": 1.2
+        },
+        {
+          "year": "2021",
+          "pe": 11.8,
+          "priceToSales": 3.3,
+          "priceToBook": 1.6,
+          "priceToCashFlow": 2
+        },
+        {
+          "year": "2022",
+          "pe": 6.1,
+          "priceToSales": 3.1,
+          "priceToBook": 1.3,
+          "priceToCashFlow": 16.5
+        },
+        {
+          "year": "2023",
+          "pe": 23.1,
+          "priceToSales": 2.8,
+          "priceToBook": 1.3,
+          "priceToCashFlow": 9.7
+        },
+        {
+          "year": "TTM",
+          "pe": 14.5,
+          "priceToSales": 2.6,
+          "priceToBook": 1.2,
+          "priceToCashFlow": 2.4
+        }
+      ],
+      "quarterlyResults": [
+        {
+          "period": "Jul",
+          "revenue": 7934,
+          "revenuePrior": 6945,
+          "revenueGrowth": 14.2,
+          "eps": 1.97,
+          "epsPrior": 1.95
+        },
+        {
+          "period": "Oct",
+          "revenue": 8322,
+          "revenuePrior": 6485,
+          "revenueGrowth": 28.3,
+          "eps": 2.08,
+          "epsPrior": 6.51
+        },
+        {
+          "period": "Jan",
+          "revenue": 7648,
+          "revenuePrior": 7047,
+          "revenueGrowth": 8.5,
+          "eps": 1.73,
+          "epsPrior": 0.3
+        },
+        {
+          "period": "Apr",
+          "revenue": 7921,
+          "revenuePrior": 7730,
+          "revenueGrowth": 2.5,
+          "eps": 2.36,
+          "epsPrior": 1.3
+        }
+      ]
+    },
+    {
+      "assetType": "stock",
+      "productName": "Bank of Nova Scotia",
+      "fundCode": null,
+      "category": "Equity",
+      "currency": "USD",
+      "cusip": null,
+      "isin": null,
+      "inceptionDate": null,
+      "manager": null,
+      "riskLevel": null,
+      "mer": null,
+      "managementFee": null,
+      "morningstarRating": null,
+      "investmentObjective": null,
+      "investmentStrategy": null,
+      "specificRisks": "52-week trading range 55.20 to 70.40.",
+      "assetAllocation": null,
+      "geographicAllocation": null,
+      "sectorAllocation": null,
+      "topHoldings": null,
+      "return1Y": 2.8,
+      "return3Y": -1.2,
+      "return5Y": 3.3,
+      "return10Y": 2.9,
+      "standardDeviation": null,
+      "sharpeRatio": null,
+      "distributionFrequency": null,
+      "asOfDate": "3-Jul-2024",
+      "issuer": "Bank of Nova Scotia",
+      "ticker": "BNS",
+      "primaryExchange": null,
+      "sector": "Financial Svs",
+      "peRatio": 10.6,
+      "currentPrice": 63.63,
+      "targetPrice": null,
+      "dividendYield": 6.7,
+      "profitability": "Return on equity 10.5%, return on assets 0.5%, net margin 22.5%",
+      "riskMeasure": "Morningstar fair value $71.00. 52-week trading range 55.20 to 70.40.",
+      "historicalPerformance": "Stock total return: 1 year 2.8%, 3 year -1.2%, 5 year 3.3%, 10 year 2.9%.",
+      "liquidity": null,
+      "businessDescription": "Bank of Nova Scotia is a global financial services provider. The bank has five business segments: Canadian banking, international banking, global wealth management, global banking and markets, and other. It offers a range of advice, products, and services, including personal and commercial banking, wealth management and private banking, corporate and investment banking, and capital markets. The bank's international operations span numerous countries and are more concentrated in Central and South America.",
+      "comparables": "Royal Bank of Canada; The Toronto-Dominion",
+      "fairValue": 71,
+      "fiftyTwoWeekLow": 55.2,
+      "fiftyTwoWeekHigh": 70.4,
+      "returnOnEquity": 10.5,
+      "returnOnAssets": 0.5,
+      "netMargin": 22.5,
+      "annualPerformance": [
+        {
+          "year": "2014",
+          "totalReturn": 3.7,
+          "dividendYield": 3.9,
+          "marketCap": 80672
+        },
+        {
+          "year": "2015",
+          "totalReturn": -10.4,
+          "dividendYield": 4.9,
+          "marketCap": 67328
+        },
+        {
+          "year": "2016",
+          "totalReturn": 38.8,
+          "dividendYield": 3.9,
+          "marketCap": 90302
+        },
+        {
+          "year": "2017",
+          "totalReturn": 12.7,
+          "dividendYield": 3.8,
+          "marketCap": 97313
+        },
+        {
+          "year": "2018",
+          "totalReturn": -12,
+          "dividendYield": 4.9,
+          "marketCap": 83499
+        },
+        {
+          "year": "2019",
+          "totalReturn": 11.7,
+          "dividendYield": 4.8,
+          "marketCap": 89203
+        },
+        {
+          "year": "2020",
+          "totalReturn": -1.3,
+          "dividendYield": 5.2,
+          "marketCap": 83364
+        },
+        {
+          "year": "2021",
+          "totalReturn": 36.8,
+          "dividendYield": 4.1,
+          "marketCap": 108866
+        },
+        {
+          "year": "2022",
+          "totalReturn": -22.5,
+          "dividendYield": 6.1,
+          "marketCap": 79036
+        },
+        {
+          "year": "2023",
+          "totalReturn": 3.5,
+          "dividendYield": 6.5,
+          "marketCap": 78306
+        },
+        {
+          "year": "YTD",
+          "totalReturn": 3.6,
+          "dividendYield": 6.7,
+          "marketCap": 78238
+        }
+      ],
+      "annualFinancials": [
+        {
+          "year": "2014",
+          "revenue": 23176,
+          "netIncome": 7071,
+          "eps": 5.66,
+          "dividend": 2.56,
+          "bookValue": 36.96,
+          "operatingCashFlow": 4944,
+          "freeCashFlow": 4667
+        },
+        {
+          "year": "2015",
+          "revenue": 23644,
+          "netIncome": 7014,
+          "eps": 5.67,
+          "dividend": 2.72,
+          "bookValue": 40.8,
+          "operatingCashFlow": 16426,
+          "freeCashFlow": 16144
+        },
+        {
+          "year": "2016",
+          "revenue": 25936,
+          "netIncome": 7117,
+          "eps": 5.77,
+          "dividend": 2.88,
+          "bookValue": 43.59,
+          "operatingCashFlow": 4536,
+          "freeCashFlow": 4188
+        },
+        {
+          "year": "2017",
+          "revenue": 26748,
+          "netIncome": 8005,
+          "eps": 6.49,
+          "dividend": 3.05,
+          "bookValue": 46.23,
+          "operatingCashFlow": 16584,
+          "freeCashFlow": 16584
+        },
+        {
+          "year": "2018",
+          "revenue": 28216,
+          "netIncome": 8548,
+          "eps": 6.82,
+          "dividend": 3.28,
+          "bookValue": 49.75,
+          "operatingCashFlow": 17811,
+          "freeCashFlow": 17395
+        },
+        {
+          "year": "2019",
+          "revenue": 30384,
+          "netIncome": 8390,
+          "eps": 6.68,
+          "dividend": 3.49,
+          "bookValue": 52.33,
+          "operatingCashFlow": -12025,
+          "freeCashFlow": -12211
+        },
+        {
+          "year": "2020",
+          "revenue": 31094,
+          "netIncome": 6778,
+          "eps": 5.3,
+          "dividend": 3.6,
+          "bookValue": 51.84,
+          "operatingCashFlow": 56664,
+          "freeCashFlow": 55893
+        },
+        {
+          "year": "2021",
+          "revenue": 30913,
+          "netIncome": 9624,
+          "eps": 7.7,
+          "dividend": 3.6,
+          "bookValue": 53.26,
+          "operatingCashFlow": -12807,
+          "freeCashFlow": -13269
+        },
+        {
+          "year": "2022",
+          "revenue": 31509,
+          "netIncome": 9916,
+          "eps": 8.02,
+          "dividend": 4.06,
+          "bookValue": 54.68,
+          "operatingCashFlow": 16943,
+          "freeCashFlow": 16372
+        },
+        {
+          "year": "2023",
+          "revenue": 31787,
+          "netIncome": 7410,
+          "eps": 5.78,
+          "dividend": 4.18,
+          "bookValue": 56.71,
+          "operatingCashFlow": 31724,
+          "freeCashFlow": 31282
+        },
+        {
+          "year": "TTM",
+          "revenue": 32669,
+          "netIncome": 7807,
+          "eps": 6.01,
+          "dividend": 4.24,
+          "bookValue": 57.4,
+          "operatingCashFlow": 29420,
+          "freeCashFlow": 28816
+        }
+      ],
+      "annualProfitability": [
+        {
+          "year": "2014",
+          "returnOnAssets": 0.9,
+          "returnOnEquity": 16.3,
+          "netMargin": 29.8
+        },
+        {
+          "year": "2015",
+          "returnOnAssets": 0.8,
+          "returnOnEquity": 14.7,
+          "netMargin": 29.2
+        },
+        {
+          "year": "2016",
+          "returnOnAssets": 0.8,
+          "returnOnEquity": 13.7,
+          "netMargin": 26.9
+        },
+        {
+          "year": "2017",
+          "returnOnAssets": 0.9,
+          "returnOnEquity": 14.6,
+          "netMargin": 29.5
+        },
+        {
+          "year": "2018",
+          "returnOnAssets": 0.9,
+          "returnOnEquity": 14.4,
+          "netMargin": 29.6
+        },
+        {
+          "year": "2019",
+          "returnOnAssets": 0.8,
+          "returnOnEquity": 13.2,
+          "netMargin": 27
+        },
+        {
+          "year": "2020",
+          "returnOnAssets": 0.6,
+          "returnOnEquity": 10.4,
+          "netMargin": 21.2
+        },
+        {
+          "year": "2021",
+          "returnOnAssets": 0.8,
+          "returnOnEquity": 14.7,
+          "netMargin": 30.4
+        },
+        {
+          "year": "2022",
+          "returnOnAssets": 0.8,
+          "returnOnEquity": 14.9,
+          "netMargin": 30.7
+        },
+        {
+          "year": "2023",
+          "returnOnAssets": 0.5,
+          "returnOnEquity": 10.4,
+          "netMargin": 22
+        },
+        {
+          "year": "TTM",
+          "returnOnAssets": 0.5,
+          "returnOnEquity": 10.5,
+          "netMargin": 22.5
+        }
+      ],
+      "annualValuation": [
+        {
+          "year": "2014",
+          "pe": 11.7,
+          "priceToSales": 3.5,
+          "priceToBook": 1.8,
+          "priceToCashFlow": 16.4
+        },
+        {
+          "year": "2015",
+          "pe": 9.9,
+          "priceToSales": 2.9,
+          "priceToBook": 1.4,
+          "priceToCashFlow": 5
+        },
+        {
+          "year": "2016",
+          "pe": 13,
+          "priceToSales": 3.5,
+          "priceToBook": 1.7,
+          "priceToCashFlow": 22.4
+        },
+        {
+          "year": "2017",
+          "pe": 12.5,
+          "priceToSales": 3.7,
+          "priceToBook": 1.8,
+          "priceToCashFlow": 6
+        },
+        {
+          "year": "2018",
+          "pe": 10,
+          "priceToSales": 3,
+          "priceToBook": 1.4,
+          "priceToCashFlow": 4.7
+        },
+        {
+          "year": "2019",
+          "pe": 11,
+          "priceToSales": 3,
+          "priceToBook": 1.4,
+          "priceToCashFlow": -7.6
+        },
+        {
+          "year": "2020",
+          "pe": 13,
+          "priceToSales": 2.8,
+          "priceToBook": 1.3,
+          "priceToCashFlow": 1.5
+        },
+        {
+          "year": "2021",
+          "pe": 11.6,
+          "priceToSales": 3.5,
+          "priceToBook": 1.7,
+          "priceToCashFlow": -8.6
+        },
+        {
+          "year": "2022",
+          "pe": 8.3,
+          "priceToSales": 2.5,
+          "priceToBook": 1.2,
+          "priceToCashFlow": 4.7
+        },
+        {
+          "year": "2023",
+          "pe": 11.2,
+          "priceToSales": 2.4,
+          "priceToBook": 1.1,
+          "priceToCashFlow": 2.4
+        },
+        {
+          "year": "TTM",
+          "pe": 10.6,
+          "priceToSales": 2.4,
+          "priceToBook": 1.1,
+          "priceToCashFlow": 2.6
+        }
+      ],
+      "quarterlyResults": [
+        {
+          "period": "Jul",
+          "revenue": 8035,
+          "revenuePrior": 7755,
+          "revenueGrowth": 3.6,
+          "eps": 1.72,
+          "epsPrior": 2.09
+        },
+        {
+          "period": "Oct",
+          "revenue": 7923,
+          "revenuePrior": 7577,
+          "revenueGrowth": 4.6,
+          "eps": 1.02,
+          "epsPrior": 1.63
+        },
+        {
+          "period": "Jan",
+          "revenue": 8387,
+          "revenuePrior": 7946,
+          "revenueGrowth": 5.6,
+          "eps": 1.68,
+          "epsPrior": 1.36
+        },
+        {
+          "period": "Apr",
+          "revenue": 8290,
+          "revenuePrior": 7849,
+          "revenueGrowth": 5.6,
+          "eps": 1.57,
+          "epsPrior": 1.69
+        }
+      ]
+    }
+  ]
+}

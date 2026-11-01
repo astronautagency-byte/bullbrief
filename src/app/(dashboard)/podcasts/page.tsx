@@ -181,7 +181,7 @@ export default function PodcastsPage() {
         description="Discover and listen to the best financial podcasts. Market analysis, investing tips, and economic insights from top podcasters."
         canonical="https://bullbrief.vercel.app/podcasts"
       />
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="workspace-page-header flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="font-display font-bold text-2xl text-on-surface italic">
           Podcasts
         </h1>

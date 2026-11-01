@@ -564,7 +564,7 @@ export default function WatchlistPage() {
         description="Monitor advisor-supplied positions, current market values, material movements, and client portfolio context."
         canonical="https://bullbrief.vercel.app/watchlist"
       />
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="workspace-page-header flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           {isEditing ? (
             <input

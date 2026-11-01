@@ -2,6 +2,11 @@ export type KypAssetType = "fund" | "stock";
 
 export interface KypHolding {
   id: string;
+  portfolioHolding?: {
+    identifier: string; rank: number; clientCount: number; assetsPercent: number;
+    tradeQuantity: number; marketValue: number; sourceFile: string; reportDate: string;
+    currency: string | null;
+  };
   performanceId?: string;
   requestedName: string;
   searchQuery: string;

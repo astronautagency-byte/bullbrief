@@ -1,0 +1,55 @@
+begin;
+create function pg_temp.check_import(ok boolean,label text) returns void language plpgsql as $$ begin if not coalesce(ok,false) then raise exception 'Import QA failed: %',label; end if; end $$;
+do $$
+declare u uuid=gen_random_uuid(); outsider uuid=gen_random_uuid(); firm uuid; otherfirm uuid; h uuid; rowdata jsonb; accounts jsonb; preview jsonb; saved jsonb; blocked boolean; rid uuid=gen_random_uuid();
+begin
+ insert into auth.users(id,email) values(u,'crm-import-qa@example.invalid'),(outsider,'crm-import-outsider@example.invalid');
+ firm=(public.crm_dispatch(u,null,'firm.create','{"name":"QA import rollback","is_demo":false}',gen_random_uuid())->>'id')::uuid;
+ otherfirm=(public.crm_dispatch(outsider,null,'firm.create','{"name":"QA outside rollback","is_demo":false}',gen_random_uuid())->>'id')::uuid;
+ rowdata='[{"external_id":"fixture-household-1","name":"QA imported household","stage":"prospect","service_tier":"Core","first_name":"Taylor","last_name":"Example","email":"taylor@example.invalid","phone":""}]';
+ preview=public.crm_import(u,firm,'households',rowdata,u,false,rid);
+ perform pg_temp.check_import((preview->>'created')::integer=1,'preview create count');
+ perform pg_temp.check_import(not exists(select 1 from public.crm_households where firm_id=firm),'preview writes nothing');
+ blocked=false; begin perform public.crm_import(u,firm,'households',rowdata,u,true,rid,'wrong'); exception when others then blocked=true; end;
+ perform pg_temp.check_import(blocked,'commit requires matching preview');
+ saved=public.crm_import(u,firm,'households',rowdata,u,true,rid,preview->>'preview_hash');
+ perform pg_temp.check_import(public.crm_import(u,firm,'households',rowdata,u,true,rid,preview->>'preview_hash')=saved,'retry idempotent');
+ select id into h from public.crm_households where firm_id=firm;
+ perform pg_temp.check_import((select count(*)=1 from public.crm_contacts where household_id=h),'primary contact saved atomically');
+ preview=public.crm_import(u,firm,'households',rowdata,u,false,gen_random_uuid());
+ perform pg_temp.check_import((preview->>'skipped')::integer=1,'same source skips');
+ blocked=false; begin perform public.crm_import(u,firm,'households',jsonb_set(rowdata,'{0,name}','"Changed household"'),u,false,gen_random_uuid()); exception when others then blocked=true; end;
+ perform pg_temp.check_import(blocked,'changed source cannot overwrite');
+ blocked=false; begin perform public.crm_import(u,firm,'households',jsonb_set(rowdata,'{0,external_id}','"different-key"'),u,false,gen_random_uuid()); exception when others then blocked=true; end;
+ perform pg_temp.check_import(blocked,'household name collision requires review');
+ blocked=false; begin perform public.crm_import(outsider,firm,'households',rowdata,outsider,false,gen_random_uuid()); exception when others then blocked=true; end;
+ perform pg_temp.check_import(blocked,'cross-firm import forbidden');
+ accounts=jsonb_build_array(jsonb_build_object('external_id','fixture-account-1','household_id',h,'institution','Fictional Bank','account_type','TFSA','last_four','1234','currency','CAD','balance','12345.67','as_of','2026-10-30'));
+ rid=gen_random_uuid(); preview=public.crm_import(u,firm,'accounts',accounts,null,false,rid);
+ perform public.crm_import(u,firm,'accounts',accounts,null,true,rid,preview->>'preview_hash');
+ perform pg_temp.check_import((select balance=12345.67 and currency='CAD' and as_of='2026-10-30' from public.crm_accounts where household_id=h),'account value with currency and date');
+ perform pg_temp.check_import(exists(select 1 from public.crm_audit_events where household_id=h and action='crm_accounts.insert'),'account audit trail');
+ blocked=false; begin perform public.crm_import(outsider,otherfirm,'accounts',accounts,null,false,gen_random_uuid()); exception when others then blocked=true; end;
+ perform pg_temp.check_import(blocked,'cross-firm account link forbidden');
+ blocked=false; begin perform public.crm_import(u,firm,'accounts',jsonb_set(accounts,'{0,external_id}','"another-key"'),null,false,gen_random_uuid()); exception when others then blocked=true; end;
+ perform pg_temp.check_import(blocked,'masked account collision requires review');
+ -- A database constraint failure in a later row must roll back the entire import.
+ accounts=jsonb_build_array(jsonb_build_object('external_id','rollback-account-1','household_id',h,'institution','Rollback Bank','account_type','TFSA','last_four','2234','currency','CAD','balance','10.00','as_of','2026-10-30'),jsonb_build_object('external_id','rollback-account-2','household_id',h,'institution','Rollback Bank','account_type','INVALID','last_four','2235','currency','CAD','balance','10.00','as_of','2026-10-30'));
+ rid=gen_random_uuid(); preview=public.crm_import(u,firm,'accounts',accounts,null,false,rid);
+ blocked=false; begin perform public.crm_import(u,firm,'accounts',accounts,null,true,rid,preview->>'preview_hash'); exception when others then blocked=true; end;
+ perform pg_temp.check_import(blocked and not exists(select 1 from public.crm_accounts where firm_id=firm and institution='Rollback Bank'),'all rows roll back on later error');
+ perform pg_temp.check_import(not exists(select 1 from public.crm_requests where actor_id=u and request_id=rid),'failed batch leaves no success receipt');
+ -- Another successful import changes the preview from create to skip.
+ accounts=jsonb_build_array(jsonb_build_object('external_id','stale-account','household_id',h,'institution','Stale Bank','account_type','TFSA','last_four','6789','currency','USD','balance','','as_of',''));
+ rid=gen_random_uuid(); preview=public.crm_import(u,firm,'accounts',accounts,null,false,rid);
+ perform public.crm_import(u,firm,'accounts',accounts,null,true,gen_random_uuid(),preview->>'preview_hash');
+ blocked=false; begin perform public.crm_import(u,firm,'accounts',accounts,null,true,rid,preview->>'preview_hash'); exception when others then blocked=true; end;
+ perform pg_temp.check_import(blocked,'stale preview blocked before saving');
+ perform pg_temp.check_import(not has_function_privilege('authenticated','public.crm_import(uuid,uuid,text,jsonb,uuid,boolean,uuid,text)','execute'),'clients cannot impersonate import actor');
+ perform set_config('request.jwt.claim.sub',outsider::text,true);
+ set local role authenticated;
+ perform pg_temp.check_import((select count(*)=0 from public.crm_accounts where firm_id=firm),'RLS hides other firm accounts');
+ reset role;
+end $$;
+select 'passed' as status;
+rollback;

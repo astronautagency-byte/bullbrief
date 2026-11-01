@@ -50,6 +50,7 @@ function normalizeReply(reply: string) {
 }
 
 export async function POST(request: Request) {
+  if (process.env.BULLBRIEF_EXTERNAL_AI_ENABLED !== "true") return NextResponse.json({ error: "External AI is disabled pending vendor review." }, { status: 503, headers: { "Cache-Control": "no-store" } });
   if (!GROQ_KEY && !GEMINI_KEY) {
     return NextResponse.json(
       { error: "AI assistant is not configured" },

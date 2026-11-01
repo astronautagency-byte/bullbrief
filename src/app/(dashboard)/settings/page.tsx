@@ -168,9 +168,9 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6 max-w-2xl">
-      <h1 className="font-display font-bold text-2xl text-on-surface italic">
+      <header className="workspace-page-header"><div><h1 className="font-display font-bold text-2xl text-on-surface italic">
         Settings
-      </h1>
+      </h1><p className="workspace-page-description">Manage your practice identity, preferences and workspace.</p></div></header>
 
       <Card>
         <CardHeader>

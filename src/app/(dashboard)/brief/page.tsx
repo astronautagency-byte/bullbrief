@@ -244,7 +244,7 @@ export default function BriefPage() {
       />
 
       {/* Header */}
-      <div className="flex flex-col gap-4 border-b border-outline-variant pb-6 md:flex-row md:items-end md:justify-between">
+      <div className="workspace-page-header flex flex-col gap-4 border-b border-outline-variant pb-6 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Advisor desktop</p>
           <h1 className="mt-2 font-display text-3xl font-semibold leading-tight text-on-surface md:text-4xl">Book overview{userName ? ` for ${userName}` : ""}</h1>

@@ -1,4 +1,5 @@
 "use client";
+import { transientDraftStorage } from "@/lib/privacy/transient-drafts";
 
 import { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -19,6 +20,8 @@ import {
   Upload,
   X,
 } from "lucide-react";
+import { TOP_HOLDINGS } from "@/lib/kyp-top-holdings";
+import { KypPortfolioContext } from "./kyp-portfolio-context";
 import { cn } from "@/lib/cn";
 import { normalizeExtractedProducts, uploadedDocumentTitle, type ExtractedFundFactsheet, type KypAssetType, type KypHolding, type KypProductRecord } from "@/lib/kyp";
 import { formatPrice } from "@/lib/types";
@@ -46,6 +49,7 @@ type Draft = {
   templateFields: Record<string, string>;
   completed: boolean;
   completedAt: string;
+  simulationSource?: { runId: string; state: string };
 };
 
 const EMPTY_DRAFT: Draft = {
@@ -68,6 +72,22 @@ const EMPTY_DRAFT: Draft = {
   completedAt: "",
 };
 const STORAGE_KEY = "bullbrief:kyp-drafts:v2";
+function savedRationaleCriteria() {
+  try { return JSON.parse(localStorage.getItem("bullbrief-rationale-profile") || "{}"); }
+  catch { return {}; }
+}
+
+async function requestAiAssessment(fileName: string, facts: unknown, products?: unknown[]): Promise<Partial<Draft>> {
+  const response = await fetch("/api/kyp/ai-assessment", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ fileName, facts, products, criteria: savedRationaleCriteria() }),
+    signal: AbortSignal.timeout(40000),
+  });
+  const payload = await response.json().catch(() => ({ error: "The AI service returned an unexpected response. Try again." }));
+  if (!response.ok) throw new Error(payload.error || "The AI assessment could not be generated.");
+  return payload.data;
+}
 const CUSTOM_HOLDINGS_KEY = "bullbrief:kyp-custom-holdings:v1";
 const REPORT_IDENTITY_KEY = "bullbrief:report-identity:v1";
 const FACTSHEET_OVERRIDES_KEY = "bullbrief:kyp-factsheet-overrides:v1";
@@ -170,7 +190,7 @@ export function KypWorkspace() {
   const [factsheetUploading, setFactsheetUploading] = useState(false);
   const [factsheetOverrides, setFactsheetOverrides] = useState<Record<string, KypProductRecord["uploadedFactsheet"]>>(() => {
     if (typeof window === "undefined") return {};
-    try { return JSON.parse(localStorage.getItem(FACTSHEET_OVERRIDES_KEY) || "{}"); } catch { return {}; }
+    try { return JSON.parse(transientDraftStorage.getItem(FACTSHEET_OVERRIDES_KEY) || "{}"); } catch { return {}; }
   });
   const [pendingFactsheet, setPendingFactsheet] = useState<{ data: ExtractedFundFactsheet; products?: ExtractedFundFactsheet[]; source: { fileName: string; pageCount: number; extractedCount: number } } | null>(null);
   const [pendingSourcePdf, setPendingSourcePdf] = useState<File | null>(null);
@@ -182,9 +202,9 @@ export function KypWorkspace() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       try {
-        const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") as Record<string, Partial<Draft>>;
+        const stored = JSON.parse(transientDraftStorage.getItem(STORAGE_KEY) || "{}") as Record<string, Partial<Draft>>;
         const migrated = Object.fromEntries(Object.entries(stored).map(([id, draft]) => [id, migrateLegacyAiDraft(draft)]));
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+        transientDraftStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
         setDrafts(migrated);
       } catch {
         setDrafts({});
@@ -213,8 +233,8 @@ export function KypWorkspace() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       try {
-        const stored = JSON.parse(localStorage.getItem(CUSTOM_HOLDINGS_KEY) || "[]");
-        if (Array.isArray(stored)) setCustomHoldings(stored.slice(0, 10));
+        const stored = JSON.parse(transientDraftStorage.getItem(CUSTOM_HOLDINGS_KEY) || "[]");
+        if (Array.isArray(stored)) setCustomHoldings(stored);
       } catch {
         setCustomHoldings([]);
       }
@@ -248,6 +268,12 @@ export function KypWorkspace() {
     };
   }, []);
 
+  const addTopHoldings = () => {
+    const next = [...customHoldings, ...TOP_HOLDINGS.filter((holding) => !customHoldings.some((existing) => existing.id === holding.id || existing.portfolioHolding?.identifier === holding.portfolioHolding?.identifier))];
+    transientDraftStorage.setItem(CUSTOM_HOLDINGS_KEY, JSON.stringify(next));
+    setCustomHoldings(next);
+  };
+
   const allHoldings = customHoldings;
 
   useEffect(() => {
@@ -279,7 +305,7 @@ export function KypWorkspace() {
   const saveDraft = (id: string, change: Partial<Draft>) => {
     setDrafts((current) => {
       const next = { ...current, [id]: { ...EMPTY_DRAFT, ...current[id], ...change } };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      transientDraftStorage.setItem(STORAGE_KEY, JSON.stringify(next));
       return next;
     });
   };
@@ -288,12 +314,12 @@ export function KypWorkspace() {
     if (!window.confirm(`Delete the KYP document for ${name}? This cannot be undone.`)) return;
     const nextHoldings = customHoldings.filter((holding) => holding.id !== id);
     setCustomHoldings(nextHoldings);
-    localStorage.setItem(CUSTOM_HOLDINGS_KEY, JSON.stringify(nextHoldings));
+    transientDraftStorage.setItem(CUSTOM_HOLDINGS_KEY, JSON.stringify(nextHoldings));
     setRecords((current) => current.filter((record) => record.id !== id));
     setDrafts((current) => {
       const next = { ...current };
       delete next[id];
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      transientDraftStorage.setItem(STORAGE_KEY, JSON.stringify(next));
       return next;
     });
     if (selectedId === id) setSelectedId(nextHoldings[0]?.id || "");
@@ -341,7 +367,7 @@ export function KypWorkspace() {
 
   const visible = items.filter((item) => {
     const matchesFilter = filter === "all" || item.assetType === filter || (filter === "review" && !drafts[item.id]?.completed);
-    const haystack = `${item.requestedName} ${item.symbol || ""} ${item.identity.name || ""}`.toLowerCase();
+    const haystack = `${item.requestedName} ${item.symbol || ""} ${item.identity.name || ""} ${item.portfolioHolding?.identifier || ""}`.toLowerCase();
     return matchesFilter && haystack.includes(query.toLowerCase());
   });
 
@@ -470,18 +496,7 @@ export function KypWorkspace() {
     setAiAssessmentLoading(true);
     setAiAssessmentMessage("");
     try {
-      const response = await fetch("/api/kyp/ai-assessment", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          fileName: selected.uploadedFactsheet.fileName,
-          facts: selected.uploadedFactsheet,
-          products: selected.uploadedFactsheet.comparisonProducts,
-        }),
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "The AI assessment draft could not be completed.");
-      const generated = payload.data as Partial<Draft>;
+      const generated = await requestAiAssessment(selected.uploadedFactsheet.fileName, selected.uploadedFactsheet, selected.uploadedFactsheet.comparisonProducts);
       setDrafts((current) => {
         const nextDraft = { ...EMPTY_DRAFT, ...current[selected.id], completed: false, completedAt: "" };
         for (const field of AI_ASSESSMENT_FIELDS) {
@@ -491,7 +506,7 @@ export function KypWorkspace() {
         if (!nextDraft.reviewContext || nextDraft.reviewContext === "confirmation-required") nextDraft.reviewContext = "document-review";
         if (!nextDraft.firmApproval) nextDraft.firmApproval = "not-confirmed";
         const next = { ...current, [selected.id]: nextDraft };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        transientDraftStorage.setItem(STORAGE_KEY, JSON.stringify(next));
         return next;
       });
       setAiAssessmentMessage("AI draft added. Review and edit every answer before using the record.");
@@ -503,9 +518,24 @@ export function KypWorkspace() {
   };
 
   const applyFactsheet = async (openPdf = false) => {
-    if (!pendingFactsheet) return;
+    if (!pendingFactsheet || aiAssessmentLoading) return;
     const uploadedTitle = uploadedDocumentTitle(pendingFactsheet.source.fileName);
     const extractedProducts = normalizeExtractedProducts(pendingFactsheet.products?.length ? pendingFactsheet.products : [pendingFactsheet.data]);
+    let generated: Partial<Draft> = {};
+    if (factsheetCreateMode) {
+      setAiAssessmentLoading(true);
+      setAiAssessmentMessage("Drafting rationale from this document...");
+      try {
+        const response = await requestAiAssessment(pendingFactsheet.source.fileName, pendingFactsheet.data, extractedProducts);
+        generated = Object.fromEntries(AI_ASSESSMENT_FIELDS.flatMap(field => {
+          const value = response[field];
+          return typeof value === "string" && value.trim() ? [[field, value.trim()]] : [];
+        }));
+        setAiAssessmentMessage("AI assessment added to this document.");
+      } catch (error) {
+        setAiAssessmentMessage("Document saved with extracted facts. AI drafting failed; use AI fill assessment to retry. " + (error instanceof Error ? error.message : ""));
+      } finally { setAiAssessmentLoading(false); }
+    }
     const makeDraft = (data: ExtractedFundFactsheet, targetId: string): Draft => {
       const assetType: KypAssetType = data.assetType === "stock" ? "stock" : "fund";
       const structure = assetType === "stock"
@@ -528,6 +558,7 @@ export function KypWorkspace() {
         clientExplanation: clientExplanation || "Advisor must prepare a plain-language explanation of product benefits, risks and costs.",
         changeMonitoring: "Monitor issuer notices, material product changes, fees, risk classification, strategy, manager changes and dealer shelf status.",
         evidenceSources: `${pendingFactsheet.source.fileName}, ${pendingFactsheet.source.pageCount} pages, analyzed ${new Date().toLocaleDateString("en-CA")}`,
+        ...generated,
         completed: false,
       };
     };
@@ -539,12 +570,12 @@ export function KypWorkspace() {
         : selected || { id: `custom-${crypto.randomUUID()}`, requestedName: `${tickers.join(", ")} comparison`, searchQuery: tickers.join(" "), assetType: "stock" };
       const facts = { ...extractedProducts[0], comparisonProducts: extractedProducts, productName: uploadedTitle, ticker: tickers.join(" / "), fileName: pendingFactsheet.source.fileName, pageCount: pendingFactsheet.source.pageCount, extractedAt: new Date().toISOString() };
       const comparisonDraft = { ...makeDraft(extractedProducts[0], holding.id), alternatives: names.slice(1).join("; ") };
-      const nextHoldings = factsheetCreateMode ? [...customHoldings, holding].slice(-10) : customHoldings;
+      const nextHoldings = factsheetCreateMode ? [...customHoldings, holding] : customHoldings;
       const nextOverrides = { ...factsheetOverrides, [holding.id]: facts };
       const nextDrafts = { ...drafts, [holding.id]: comparisonDraft };
-      if (factsheetCreateMode) { setCustomHoldings(nextHoldings); localStorage.setItem(CUSTOM_HOLDINGS_KEY, JSON.stringify(nextHoldings)); }
-      setFactsheetOverrides(nextOverrides); localStorage.setItem(FACTSHEET_OVERRIDES_KEY, JSON.stringify(nextOverrides));
-      setDrafts(nextDrafts); localStorage.setItem(STORAGE_KEY, JSON.stringify(nextDrafts));
+      if (factsheetCreateMode) { setCustomHoldings(nextHoldings); transientDraftStorage.setItem(CUSTOM_HOLDINGS_KEY, JSON.stringify(nextHoldings)); }
+      setFactsheetOverrides(nextOverrides); transientDraftStorage.setItem(FACTSHEET_OVERRIDES_KEY, JSON.stringify(nextOverrides));
+      setDrafts(nextDrafts); transientDraftStorage.setItem(STORAGE_KEY, JSON.stringify(nextDrafts));
       if (pendingSourcePdf) await saveKypSourcePdf(holding.id, pendingSourcePdf);
       const sourceForExport = pendingSourcePdf;
       setSelectedId(holding.id); setShowNewKyp(false); setPendingFactsheet(null); setFactsheetCreateMode(false); setPendingSourcePdf(null);
@@ -557,14 +588,14 @@ export function KypWorkspace() {
       const identifier = pendingFactsheet.data.fundCode || pendingFactsheet.data.ticker || pendingFactsheet.data.cusip || pendingFactsheet.data.isin || `PDF-${crypto.randomUUID()}`;
       const assetType: KypAssetType = pendingFactsheet.data.assetType === "stock" ? "stock" : "fund";
       const holding: KypHolding = { id: `custom-${crypto.randomUUID()}`, requestedName, searchQuery: identifier, assetType, ...(assetType === "stock" ? { symbol: identifier, exchange: pendingFactsheet.data.primaryExchange || "" } : {}) };
-      const nextHoldings = [...customHoldings, holding].slice(-10);
-      setCustomHoldings(nextHoldings); localStorage.setItem(CUSTOM_HOLDINGS_KEY, JSON.stringify(nextHoldings));
+      const nextHoldings = [...customHoldings, holding];
+      setCustomHoldings(nextHoldings); transientDraftStorage.setItem(CUSTOM_HOLDINGS_KEY, JSON.stringify(nextHoldings));
       targetId = holding.id; setSelectedId(targetId); setShowNewKyp(false);
     }
     if (!targetId) return;
     const data = { ...pendingFactsheet.data, productName: uploadedTitle, fileName: pendingFactsheet.source.fileName, pageCount: pendingFactsheet.source.pageCount, extractedAt: new Date().toISOString() };
     const next = { ...factsheetOverrides, [targetId]: data };
-    setFactsheetOverrides(next); localStorage.setItem(FACTSHEET_OVERRIDES_KEY, JSON.stringify(next));
+    setFactsheetOverrides(next); transientDraftStorage.setItem(FACTSHEET_OVERRIDES_KEY, JSON.stringify(next));
     const populatedDraft = makeDraft(data, targetId);
     saveDraft(targetId, populatedDraft);
     if (pendingSourcePdf) await saveKypSourcePdf(targetId, pendingSourcePdf);
@@ -587,10 +618,11 @@ export function KypWorkspace() {
               <ShieldCheck className="h-4 w-4" />
               <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em]">Agent workspace</span>
             </div>
-            <h1 className="font-display text-3xl font-bold italic text-on-surface md:text-4xl">Know the product. Keep the record clear.</h1>
+            <h2 className="font-display text-3xl font-bold italic text-on-surface md:text-4xl">Know the product. Keep the record clear.</h2>
             <p className="mt-2 max-w-xl text-sm leading-6 text-on-surface-variant">Review essential product facts, document alternatives, and capture why the recommendation is reasonable without turning KYP into another research terminal.</p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <button onClick={addTopHoldings} className="rounded-full border border-outline-variant px-4 py-2.5 text-xs font-semibold text-on-surface">Add Oct 16 top 20 holdings</button>
             <button onClick={() => setShowNewKyp(true)} className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2.5 text-xs font-bold text-on-primary"><Plus className="h-4 w-4" /> New KYP</button>
             <button onClick={() => window.print()} disabled={!selected || historyLoading} className="inline-flex items-center gap-2 rounded-full border border-outline-variant px-4 py-2.5 text-xs font-semibold text-on-surface hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-50"><FileDown className="h-4 w-4" /> {historyLoading ? "Loading report" : "Print record"}</button>
             <button onClick={() => void refresh()} disabled={loading || !items.length} className="inline-flex items-center gap-2 rounded-full border border-outline-variant px-4 py-2.5 text-xs font-semibold text-on-surface hover:bg-surface-container-high disabled:opacity-60"><RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} /> Refresh data</button>
@@ -620,7 +652,7 @@ export function KypWorkspace() {
                 <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.025 }} key={item.id} className={cn("group relative flex items-center rounded-xl transition", isSelected ? "bg-surface-container-high" : "hover:bg-surface-container-low")}>
                   <button onClick={() => setSelectedId(item.id)} className="flex min-w-0 flex-1 items-center gap-3 p-3 text-left">
                     <span className={cn("h-9 w-1 shrink-0 rounded-full", isComplete ? "bg-primary" : item.status === "verified" ? "bg-primary/50" : "bg-warning")} />
-                    <span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold text-on-surface">{item.uploadedFactsheet ? uploadedDocumentTitle(item.uploadedFactsheet.fileName) : item.identity.name || item.requestedName}</span><span className="mt-1 block font-mono text-[10px] uppercase tracking-wide text-on-surface-variant">{item.assetType} · {item.identity.ticker || (item.uploadedFactsheet ? "Source document added" : "Match pending")}</span></span>
+                    <span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold text-on-surface">{item.uploadedFactsheet ? uploadedDocumentTitle(item.uploadedFactsheet.fileName) : item.identity.name || item.requestedName}</span><span className="mt-1 block font-mono text-[10px] uppercase tracking-wide text-on-surface-variant">{item.portfolioHolding ? `#${item.portfolioHolding.rank} · ${item.portfolioHolding.assetsPercent}% · ` : ""}{item.assetType} · {item.identity.ticker || (item.uploadedFactsheet ? "Source document added" : "Match pending")}</span></span>
                     {isComplete ? <Check className="h-4 w-4 shrink-0 text-primary" /> : <ChevronRight className="h-4 w-4 shrink-0 text-on-surface-variant" />}
                   </button>
                   <button onClick={() => deleteKyp(item.id, item.identity.name || item.requestedName)} aria-label={`Delete ${item.identity.name || item.requestedName}`} className="mr-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-on-surface-variant opacity-60 transition hover:bg-error/10 hover:text-error hover:opacity-100 focus:opacity-100"><Trash2 className="h-3.5 w-3.5" /></button>
@@ -644,6 +676,8 @@ export function KypWorkspace() {
               )}
               <div>
                 <div className="mb-2"><span className="text-[11px] font-semibold text-on-surface-variant">{selected.assetType === "fund" ? "Fund / ETF review" : "Equity review"}</span></div>
+                {draft.simulationSource && <p className="mb-3 rounded-lg border border-warning/30 bg-warning/5 p-3 text-xs text-on-surface-variant">Simulation draft · Generated notes require source verification and advisor review. This is not a completed compliance record.</p>}
+                <KypPortfolioContext record={selected} />
                 <h2 className="font-display text-2xl font-bold text-on-surface">{selected.uploadedFactsheet ? uploadedDocumentTitle(selected.uploadedFactsheet.fileName) : selected.identity.name || selected.requestedName}</h2>
                 <p className="mt-1 font-mono text-xs text-on-surface-variant">{selected.identity.ticker || selected.symbol || "Identifier pending"}{selected.identity.exchange ? ` · ${selected.identity.exchange}` : ""}</p>
                 <label className="mt-3 block max-w-xs print:hidden"><span className="mb-1 block font-mono text-[9px] uppercase tracking-[0.12em] text-on-surface-variant">Prepared by</span><span className="relative block"><select value={reportIdentity.name} onChange={(event) => setReportIdentity((current) => ({ ...current, name: event.target.value }))} className="h-10 w-full appearance-none rounded-xl border border-outline-variant bg-surface-container-low py-2 pl-3 pr-10 text-xs font-semibold text-on-surface outline-none focus:border-primary">{!reportIdentity.name && <option value="">Select advisor</option>}{advisorRoster.map((advisor) => <option key={advisor} value={advisor}>{advisor}</option>)}</select><ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" /></span></label>
@@ -748,7 +782,7 @@ export function KypWorkspace() {
                 ["3-year return", pendingFactsheet.data.return3Y != null ? `${pendingFactsheet.data.return3Y}%` : null], ["5-year return", pendingFactsheet.data.return5Y != null ? `${pendingFactsheet.data.return5Y}%` : null], ["Manager", pendingFactsheet.data.manager], ["CUSIP / ISIN", pendingFactsheet.data.cusip || pendingFactsheet.data.isin],
               ].filter((row) => row[1]).map(([label, value]) => <div key={label} className="rounded-xl bg-surface-container-low p-3"><p className="font-mono text-[9px] uppercase tracking-wider text-on-surface-variant">{label}</p><p className="mt-1 text-xs font-semibold text-on-surface">{value}</p></div>)}</div>
               <div className="mt-5 rounded-xl border border-warning/30 bg-warning/10 p-3 text-[11px] leading-5 text-on-surface-variant">Confirm extracted values against the visible source document. Applying the factsheet does not verify dealer approval, suitability or product availability.</div>
-              <div className="mt-5 flex flex-wrap justify-end gap-2"><button onClick={() => { setPendingFactsheet(null); setPendingSourcePdf(null); setFactsheetCreateMode(false); }} className="rounded-full border border-outline-variant px-4 py-2.5 text-xs font-semibold">Cancel</button><button onClick={() => void applyFactsheet(false)} className="rounded-full border border-primary px-4 py-2.5 text-xs font-bold text-primary">{factsheetCreateMode ? (pendingFactsheet.products?.length || 0) > 1 ? "Create comparison record" : "Create KYP draft" : "Apply extracted properties"}</button><button onClick={() => void applyFactsheet(true)} disabled={!reportIdentity.name || combinedPdfLoading} className="rounded-full bg-primary px-4 py-2.5 text-xs font-bold text-on-primary disabled:cursor-not-allowed disabled:opacity-40">{combinedPdfLoading ? "Building combined PDF" : (pendingFactsheet.products?.length || 0) > 1 ? "Create and download one PDF" : factsheetCreateMode ? "Create and download combined PDF" : "Apply and download combined PDF"}</button></div>
+              <div className="mt-5 flex flex-wrap justify-end gap-2"><button onClick={() => { setPendingFactsheet(null); setPendingSourcePdf(null); setFactsheetCreateMode(false); }} className="rounded-full border border-outline-variant px-4 py-2.5 text-xs font-semibold">Cancel</button><button disabled={aiAssessmentLoading} onClick={() => void applyFactsheet(false)} className="rounded-full border border-primary px-4 py-2.5 text-xs font-bold text-primary">{aiAssessmentLoading ? "Drafting AI rationale..." : factsheetCreateMode ? (pendingFactsheet.products?.length || 0) > 1 ? "Create comparison record" : "Create KYP draft" : "Apply extracted properties"}</button><button onClick={() => void applyFactsheet(true)} disabled={!reportIdentity.name || combinedPdfLoading || aiAssessmentLoading} className="rounded-full bg-primary px-4 py-2.5 text-xs font-bold text-on-primary disabled:cursor-not-allowed disabled:opacity-40">{combinedPdfLoading ? "Building combined PDF" : (pendingFactsheet.products?.length || 0) > 1 ? "Create and download one PDF" : factsheetCreateMode ? "Create and download combined PDF" : "Apply and download combined PDF"}</button></div>
             </motion.div>
           </motion.div>
         )}

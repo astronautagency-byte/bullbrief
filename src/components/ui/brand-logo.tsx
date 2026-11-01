@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { cn } from "@/lib/cn";
 
 type BrandLogoProps = {
@@ -14,7 +15,7 @@ export function BrandLogo({
   const src = {
     horizontal: "/BullBrief_Combo_Horizontal_Transparent.png",
     stacked: "/BullBrief_Combo_Stacked_Transparent.png",
-    icon: "/BullBrief_App_Icon.png",
+    icon: "/BullBrief_Logo_Mark_Transparent.png",
     wordmark: "/BullBrief_Wordmark_Transparent.png",
   }[variant];
 
@@ -27,12 +28,8 @@ export function BrandLogo({
     wordmark: { sm: "h-4", md: "h-6", lg: "h-8" },
   };
 
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      alt={alt}
-      className={cn(sizeClasses[variant][size], variant === "icon" ? "rounded-lg" : "w-auto object-contain", className)}
-    />
-  );
+  return <span className={cn("bullbrief-consistent-logo",className)} style={{"--logo-art":`url("${src}")`} as CSSProperties}>
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    <img src={src} alt={alt} className={cn(sizeClasses[variant][size],variant==="icon"?"rounded-lg":"w-auto object-contain")}/>
+  </span>;
 }

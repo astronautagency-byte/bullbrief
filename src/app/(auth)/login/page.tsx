@@ -1,7 +1,9 @@
 "use client";
 
+import { safeCallback } from "@/lib/safe-callback";
 import { useState, Suspense, useRef } from "react";
 import Link from "next/link";
+import { BrandLogo } from "@/components/ui/brand-logo";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,7 +12,8 @@ import { Input } from "@/components/ui/input";
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/brief";
+  const requestedCallback = searchParams.get("callbackUrl") || "/brief";
+  const callbackUrl = safeCallback(requestedCallback);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -56,12 +59,7 @@ function LoginForm() {
     <div className="relative w-full max-w-md">
       <div className="text-center mb-8">
         <Link href="/" className="inline-block mb-6">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/BullBrief_Combo_Horizontal_Transparent.png"
-            alt="BullBrief"
-            className="h-16 w-auto mx-auto"
-          />
+          <BrandLogo variant="horizontal" size="lg"/>
         </Link>
         <h1 className="font-display font-bold text-2xl text-on-surface">
           Welcome back
