@@ -55,6 +55,7 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/api/") ||
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/BullBrief_") ||
+    /^\/illustrations\/[a-z0-9-]+\.webp$/.test(pathname) ||
     pathname.endsWith(".png") ||
     pathname.endsWith(".jpg") ||
     pathname.endsWith(".svg") ||
